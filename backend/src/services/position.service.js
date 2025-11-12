@@ -4,8 +4,21 @@ import { AUDIT_ACTIONS } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
 // create a new position
-export const createNewPosition = async (positionTitle, userId) => {
+export const createNewPosition = async (positionTitle, departmentId, userId) => {
   try {
+
+    // check if department exists
+    const { data: department, error: deptError } = await supabase
+      .from('departments')
+      .select('id, department_name')
+      .eq('id', departmentId)
+      .single();
+
+    if (deptError || !department){
+      throw new NotFoundError('Department not found');
+    }
+
+    // check if position already exists
     const { data: existingPosition, error: checkError } = await supabase
       .from('positions')
       .select('id, position_title')
@@ -21,6 +34,7 @@ export const createNewPosition = async (positionTitle, userId) => {
       .insert([
         {
           position_title: positionTitle,
+          department_id: departmentId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }
@@ -29,7 +43,7 @@ export const createNewPosition = async (positionTitle, userId) => {
       .single();
 
     if (insertError){
-      throw new InternalServerError('Failed to create');
+      throw new InternalServerError('Failed to create position');
     }
     
     await supabase.from('audit_logs').insert({
@@ -41,7 +55,7 @@ export const createNewPosition = async (positionTitle, userId) => {
       timestamp: new Date().toISOString()
     });
 
-    logger.info(`New position created: ${newPosition.position_title}`);
+    logger.info(`New position created: ${newPosition.position_title} in department ${department.department_name}`);
 
     return newPosition;
 
@@ -55,7 +69,7 @@ export const getAllPositions = async () => {
   try {
     const { data: positions, error } = await supabase
       .from('positions')
-      .select('*')
+      .select(`id, position_title, created_at, updated_at, departments (id, department_name)`)
       .order('position_title', { ascending: true });
 
     if (error) {
@@ -74,7 +88,7 @@ export const getPositionById = async (positionId) => {
   try {
     const { data: position, error } = await supabase
       .from('positions')
-      .select('*')
+      .select(`id, position_title, created_at, updated_at, departments (id, department_name)`)
       .eq('id', positionId)
       .single();
 
@@ -90,7 +104,7 @@ export const getPositionById = async (positionId) => {
   }
 };
 
-export const updatePosition = async (positionId, positionTitle, userId) => {
+export const updatePosition = async (positionId, updateData, userId) => {
   try {
     const { data: existingPosition, error: fetchError } = await supabase
       .from('positions')
@@ -102,11 +116,25 @@ export const updatePosition = async (positionId, positionTitle, userId) => {
       throw new NotFoundError('Position not found');
     }
 
-    if (positionTitle && positionTitle !== existingPosition.position_title){
+    // verify department if being updated
+    if (updateData.department_id && updateData.department_id !== existingPosition.department_id) {
+      const { data: department, error: deptError } = await supabase
+        .from('departments')
+        .select('id')
+        .eq('id', updateData.department_id)
+        .single();
+
+      if (deptError || !department) {
+        throw new NotFoundError('Department not found');
+      }
+    }
+
+    // check if position title is existing
+    if (updateData.position_title && updateData.position_title !== existingPosition.position_title){
       const { data: duplicatePost, error: dupError } = await supabase
         .from('positions')
         .select('id')
-        .eq('position_title', positionTitle)
+        .eq('position_title', updateData.position_title)
         .single();
 
       if (duplicatePost) {
@@ -117,7 +145,7 @@ export const updatePosition = async (positionId, positionTitle, userId) => {
     const { data: updatedPosition, error: updateError } = await supabase
       .from('positions')
       .update({
-        position_title: positionTitle,
+        ...updateData,
         updated_at: new Date().toISOString()
       })
       .eq('id', positionId)

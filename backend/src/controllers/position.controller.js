@@ -3,10 +3,10 @@ import * as positionService from '../services/position.service.js';
 // create position controller
 export const createPosition = async (req, res, next) => {
   try {
-    const { position_title } = req.body;
+    const { position_title, department_id } = req.body;
     const userId = req.user.id;
 
-    const newPosition = await positionService.createNewPosition(position_title, userId);
+    const newPosition = await positionService.createNewPosition(position_title, department_id, userId);
     res.status(201).json({
       success: true,
       message: 'Position created successfully',
@@ -51,15 +51,19 @@ export const getPositionById = async (req, res, next) => {
 export const updatePosition = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const position_title = req.body;
+    const { position_title, department_id } = req.body;
     const userId = req.user.id;
 
-    const updatePosition = await positionService.updatePosition(id, position_title, userId);
+    const updateData = {};
+    if (position_title !== undefined) updateData.position_title = position_title;
+    if (department_id !== undefined) updateData.department_id = department_id;
+
+    const updatedPosition = await positionService.updatePosition(id, updateData, userId);
 
     res.status(200).json({
       success: true,
       message: 'Position updated successfully',
-      data: updatePosition
+      data: updatedPosition
     });
 
   } catch (error) {
