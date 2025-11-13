@@ -1,0 +1,123 @@
+.react-calendar{
+  border-radius: 10px;
+  background-color: #EDEDED !important;
+  border: none !important;
+  width: 24%;
+  height: 250px;
+}
+
+.react-calendar__tile--now {
+  background: #9900009c !important;
+  color: white;
+  border-radius: 8px;
+}
+
+.react-calendar__month-view__days__day--weekend{
+  color: #990100 !important;
+}
+
+.react-calendar__tile--active {
+  background: #9900009c !important;
+  color: white !important;
+  border-radius: 8px;
+}
+
+.react-calendar__tile:enabled:hover,
+.react-calendar__tile:enabled:focus  {
+  background-color: #e6e6e6;
+}
+
+.react-calendar__navigation {
+  display: flex;
+  height: 45px;
+  margin-bottom: 1em;
+}
+
+.react-calendar__year-view .react-calendar__tile, 
+.react-calendar__decade-view .react-calendar__tile, 
+.react-calendar__century-view .react-calendar__tile {
+    padding: 18.5px;
+}
+
+
+.react-calendar__navigation button {
+    color: #990100;
+}
+
+.react-calendar__navigation{
+        margin-bottom: 0;
+    }
+
+    .react-calendar__tile{
+        padding: 6px ;
+    }
+
+    .react-calendar__year-view__months__month, .react-calendar__decade-view__years__year {
+        padding: 14px !important;
+    }   
+
+    .react-calendar__century-view__decades__decade{
+        padding: 10px !important;
+    }
+
+
+    .react-calendar__century-view .react-calendar__tile{
+        padding: 8.5px !important;
+    }   
+
+    .react-calendar__navigation button {
+        min-width: 25px;
+        background: none;
+        color: #990100;
+        font-weight: 400;
+    }
+
+
+/* TABLET VIEWPORT */
+
+@media (max-width: 768px){
+
+    .react-calendar{
+        width: 250px;
+        height: 240px;
+    }
+
+    button, abbr{
+        font-size: 11px;
+    }
+
+    .react-calendar__navigation{
+        margin-bottom: 0;
+    }
+
+    .react-calendar__tile{
+        padding: 5px ;
+    }
+
+    .react-calendar__year-view__months__month, .react-calendar__decade-view__years__year {
+        padding: 10px !important;
+    }   
+
+    .react-calendar__century-view__decades__decade{
+        padding: 5px !important;
+    }
+
+
+    .react-calendar__century-view .react-calendar__tile{
+        padding: 5px !important;
+    }   
+
+    .react-calendar__navigation button {
+        min-width: 25px;
+        background: none;
+        color: #990100;
+        background-color: #99000035;
+        font-weight: 400;
+    }
+
+    .react-calendar__navigation button {
+        min-width: 25px;
+        background: none;
+    }
+
+}

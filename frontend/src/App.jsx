@@ -1,39 +1,39 @@
-import React from 'react';
-import { useState } from 'react'
+/*import { useState } from 'react'
 import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import viteLogo from '/vite.svg'*/
+import React from 'react'
 import './App.css'
+import { Routes, Route, Navigate, Outlet, BrowserRouter } from 'react-router-dom'
+import { NavSide } from "./pages/components/sidenav"
+import Login from "./pages/login"
+import Dashboard from './pages/dashboard'
+
+
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-        <h1 class="text-3xl font-bold underline">
-          atin ne tailwind yan
-        </h1>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <React.StrictMode>
+      <BrowserRouter>
+        <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route element={<LayoutWithSidebar />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+        </Route>
+      </Routes>
+      </BrowserRouter>
+    </React.StrictMode>
+    
   )
 }
 
-export default App
+
+function LayoutWithSidebar() {
+  return (
+    <NavSide>
+      <Outlet />
+    </NavSide>
+  )
+}
+
+export default App;
