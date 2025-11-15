@@ -6,8 +6,8 @@
 }
 
 .react-calendar__tile--now {
-  background: #9900009c !important;
-  color: white;
+  background: #d69999 !important;
+  color: white !important;
   border-radius: 8px;
 }
 
@@ -76,7 +76,11 @@
 
 @media (max-width: 768px){
 
-    .react-calendar{
+    #calendar{
+        display: none;
+    }
+
+    /*.react-calendar{
        
         height: 240px;
     }
@@ -117,6 +121,6 @@
     .react-calendar__navigation button {
         min-width: 25px;
         background: none;
-    }
+    }*/
 
 }

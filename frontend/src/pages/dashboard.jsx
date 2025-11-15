@@ -44,18 +44,18 @@ function Dashboard() {
             <Navbar />
 
             <div className="p-7 lg:mx-18 md:mx-10">
-                <h1 className="md:text-2xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
+                <h1 className="md:text-3xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
 
 
                 {/* FIRST ROW */}
 
                 <div className="pt-7 lg:flex gap-4 justify-center">
 
-                    <div className="flex justify-center items-center">
+                    <div className="flex justify-center items-center" id = "calendar">
                         <Calendar className={`p-3 shadow-lg justify-center items-center hover:scale-105 lg:w-[24%] `}/>
                     </div>
 
-                    <div className="md:grid md:grid-cols-2 gap-4 lg:w-[41%] md:pt-10 lg:pt-0 ">
+                    <div className="md:grid md:grid-cols-2 gap-4 lg:w-[41%] md:pt-2 lg:pt-0 ">
                         <Cards title="Employees" icon="icons/red-employees.png" value="20" />
                         <Cards title="Ongoing Projects" icon="icons/red-projects.png" value="5" />
                         <Cards title="Leave Requests" icon="icons/red-leave.png" value="8" />
@@ -65,12 +65,12 @@ function Dashboard() {
 
                     <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg hover:scale-105 shadow-lg px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Pending Evaluations</h2>
-                        <div className="grid grid-cols-2 bg-[#ad3332] px-5 py-1 rounded-lg">
+                        <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
                             <p className="text-white lg:text-md text-sm">Name</p>
                             <p className="text-white lg:text-md text-sm text-center">Position</p>
                         </div>
-                        <div className="grid grid-cols-2 px-5 py-2">
-                            <p className="lg:text-md md:text-sm text-xs">Lance Cabe</p>
+                        <div className="grid grid-cols-2 lg:px-5 px-3 py-2">
+                            <p className="lg:text-md md:text-sm text-[10px]">Lance Cabe</p>
                             <p className="text-center lg:text-md md:text-sm text-xs">Web Developer</p>
                         </div>
                         <hr className="text-[#990100]"/>
@@ -88,11 +88,11 @@ function Dashboard() {
                     <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg shadow-lg hover:scale-105 px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Project Summary</h2>
 
-                        <div className="grid grid-cols-2 bg-[#ad3332] px-5 py-1 rounded-lg">
+                        <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
                             <p className="text-white lg:text-md text-sm">Project Name</p>
                             <p className="text-white lg:text-md text-sm text-center">Headcount</p>
                         </div>
-                        <div className="grid grid-cols-2 px-5 py-2">
+                        <div className="grid grid-cols-2 md:px-5 px-3 py-2">
                             <p className="lg:text-md md:text-sm text-xs">Project #1</p>
                             <p className="text-center lg:text-md md:text-sm text-xs">10</p>
                         </div>
@@ -101,17 +101,17 @@ function Dashboard() {
 
                     <div className="bg-[#EDEDED] lgw-[30%] rounded-lg shadow-lg hover:scale-105 px-5 py-4 mt-6 md:mt-8 lg:mt-0">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Audit Logs</h2>
-                        <div className="grid grid-cols-2 bg-[#ad3332] px-5 py-1 rounded-lg">
+                        <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
                             <p className="text-white lg:text-md text-sm">Email</p>
                             <p className="text-white lg:text-md text-sm text-center">Action</p>
                         </div>
-                        <div className="grid grid-cols-2 px-5 py-2 items-center">
+                        <div className="grid grid-cols-2 md:px-5 px-3 py-2 items-center">
                             <p className="md:text-sm text-[10px]">r.sundiam@acdc.ph</p>
                             <p className="text-center md:text-sm text-xs">Onboarding</p>
                         </div>
                         <hr className="text-[#990100]"/>
 
-                        <div className="grid grid-cols-2 px-5 py-2 items-center">
+                        <div className="grid grid-cols-2 md:px-5 px-3 py-2 items-center">
                             <p className="md:text-sm text-[10px]">g.delossantos@acdc.ph</p>
                             <p className="text-center md:text-sm text-xs">Logged in</p>
                         </div>

@@ -29,7 +29,7 @@ function Navbar() {
             
 
             {isOpen && (
-                <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-19 md:mr-5 mr-2" role="menu">
+                <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-19 md:mr-5 mr-2 z-1000" role="menu">
 
                     <div className="md:py-1 py-0" role="none">
 
