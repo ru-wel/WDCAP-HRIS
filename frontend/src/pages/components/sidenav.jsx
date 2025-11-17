@@ -197,7 +197,7 @@ export default function Sidenav({
 
 export function NavSide({ children }) {
   return (
-    <div className="h-screen w-screen bg-[#E0E0E0] relative">
+    <div className="h-screen w-screen bg-[#EDEDED] relative">
       <Sidenav />
       <main className="bg-white text-gray-900 overflow-y-auto h-full ml-20">{children}</main>
     </div>
@@ -206,7 +206,7 @@ export function NavSide({ children }) {
 
 // ----- Simple Item (no submenu) -----
 function NavItem({ label, icon, active, onClick, isHovered }) {
-  const base = "flex items-center gap-3 w-full rounded-xl transition-colors";
+  const base = "flex items-center gap-3 w-full rounded-lg transition-colors";
   const activeClasses = active
     ? "bg-white text-[#9b0000] font-medium shadow-sm"
     : "text-white/90 hover:text-white";
@@ -296,7 +296,7 @@ function NavGroup({
   );
 
   return isHighlighted ? (
-    <div className="bg-[#f8f4f4] rounded-3xl text-[#9b0000] shadow-sm overflow-hidden">
+    <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
       {isOpen && isHovered && (
         <ul className="px-3 pb-3 text-[13px]">
@@ -409,7 +409,7 @@ function NavDropdown({
   );
 
   return isHighlighted ? (
-    <div className="bg-[#f8f4f4] rounded-3xl text-[#9b0000] shadow-sm overflow-hidden">
+    <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
       {isOpen && isHovered && (
         <ul className="px-3 pb-3 text-[13px]">

@@ -44,7 +44,7 @@ function Dashboard() {
             <Navbar />
 
             <div className="p-7 lg:mx-18 md:mx-10">
-                <h1 className="md:text-3xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
+                <h1 className="lg:text-3xl md:text-2xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
 
 
                 {/* FIRST ROW */}
