@@ -7,8 +7,8 @@ import React from 'react'
 {/* CARDS */}
 function Cards({ title, icon, value }) {
     return (
-        <div className="bg-[#EDEDED] w-full max-w-sm rounded-lg px-5 py-4 mx-auto hover:scale-105 shadow-lg mt-6 lg:mt-0 md:mt-0">
-            <h2 className="lg:text-[22px] md:text-[20px] text-[#990100] font-medium ">{title}</h2>
+        <div className="bg-[#EDEDED] w-full max-w-sm rounded-lg px-5 py-4 mx-auto hover:scale-105 transition duration-300 ease-in-out shadow-lg mt-6 lg:mt-0 md:mt-0">
+            <h2 className="lg:text-[21px] md:text-[20px] text-[#990100] font-medium ">{title}</h2>
             <div className="flex pt-2 gap-6 items-center">
                 <img src={icon} className="lg:h-9 lg:w-9 h-8 w-8" alt={`${title} icon`} />
                 <p className="text-2xl font-medium ">{value}</p>
@@ -44,7 +44,7 @@ function Dashboard() {
             <Navbar />
 
             <div className="p-7 lg:mx-18 md:mx-10">
-                <h1 className="md:text-3xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
+                <h1 className="lg:text-3xl md:text-2xl text-xl text-[#990100] font-bold">Good <Greeting />, Reuel Christian!</h1>
 
 
                 {/* FIRST ROW */}
@@ -52,7 +52,7 @@ function Dashboard() {
                 <div className="pt-7 lg:flex gap-4 justify-center">
 
                     <div className="flex justify-center items-center" id = "calendar">
-                        <Calendar className={`p-3 shadow-lg justify-center items-center hover:scale-105 lg:w-[24%] `}/>
+                        <Calendar className={`p-3 shadow-lg justify-center items-center hover:scale-105 transition duration-300 ease-in-out lg:w-[24%] `}/>
                     </div>
 
                     <div className="md:grid md:grid-cols-2 gap-4 lg:w-[41%] md:pt-2 lg:pt-0 ">
@@ -63,7 +63,7 @@ function Dashboard() {
                     </div>
                     
 
-                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg hover:scale-105 shadow-lg px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
+                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg hover:scale-105 transition duration-300 ease-in-out shadow-lg px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Pending Evaluations</h2>
                         <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
                             <p className="text-white lg:text-md text-sm">Name</p>
@@ -81,11 +81,11 @@ function Dashboard() {
 
                 <div className="lg:pt-7 lg:flex gap-4 justify-center mt-6 md:mt-8 lg:mt-0 ">
                     
-                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg shadow-lg hover:scale-105 px-5 py-4 h-[350px]">
+                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg shadow-lg hover:scale-105 transition duration-300 ease-in-out px-5 py-4 h-[350px]">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Employee Headcount</h2>
                     </div>
 
-                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg shadow-lg hover:scale-105 px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
+                    <div className="bg-[#EDEDED] lg:w-[35%] rounded-lg shadow-lg hover:scale-105 transition duration-300 ease-in-out px-5 py-4 mt-6 md:mt-8 lg:mt-0 ">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Project Summary</h2>
 
                         <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
@@ -99,7 +99,7 @@ function Dashboard() {
                         <hr className="text-[#990100]"/>
                     </div>
 
-                    <div className="bg-[#EDEDED] lgw-[30%] rounded-lg shadow-lg hover:scale-105 px-5 py-4 mt-6 md:mt-8 lg:mt-0">
+                    <div className="bg-[#EDEDED] lgw-[30%] rounded-lg shadow-lg hover:scale-105 transition duration-300 ease-in-out px-5 py-4 mt-6 md:mt-8 lg:mt-0">
                         <h2 className="lg:text-2xl md:text-xl text-[#990100] font-medium pb-2">Audit Logs</h2>
                         <div className="grid grid-cols-2 bg-[#ad3332] md:px-5 px-3 py-1 rounded-lg">
                             <p className="text-white lg:text-md text-sm">Email</p>
