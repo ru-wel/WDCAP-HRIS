@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 
 function Navbar() {
@@ -6,13 +6,25 @@ function Navbar() {
     {/* NEEDS TO TRANSFER - TOP NAVBAR */}
 
     const [isOpen, setIsOpen] = useState(false);
+    const dropdownRef = useRef(null);
 
     function profileDropdown() {
         setIsOpen(!isOpen);
     };
 
+    useEffect(() => {
+                function handleClickOutside(e) {
+                    if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                        setIsOpen(false);
+                    }
+                }
+    
+                document.addEventListener("mousedown", handleClickOutside);
+                return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     return (
-        <div>
+        <div ref={dropdownRef}>
 
             {/* BUTTON */}
             <div className="bg-[#EDEDED] md:py-3 lg:pr-15 md:pr-5 py-2 pr-2">
