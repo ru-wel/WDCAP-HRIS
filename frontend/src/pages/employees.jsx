@@ -1,77 +1,8 @@
 import React, { useEffect, useRef } from 'react'
 import Navbar from './components/navbar';
+import DropDownFilter from './components/dropdownfilter';
 import { useState } from "react";
 
-
-function DropDownFilter(){
-    
-        const [isOpen, setIsOpen] = useState(false);
-        const dropdownRef = useRef(null);
-        
-    
-        function profileDropdown() {
-            setIsOpen(!isOpen);
-        };
-
-        useEffect(() => {
-            function handleClickOutside(e) {
-                if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-                    setIsOpen(false);
-                }
-            }
-
-            document.addEventListener("mousedown", handleClickOutside);
-            return () => document.removeEventListener("mousedown", handleClickOutside);
-        }, []);
-            
-    
-        return (
-            <div ref={dropdownRef}>
-                {/* FILTER BUTTON */}
-                <div className="text-gray-600 border border-[#990100] rounded-lg">
-                    <div className="flex justify-end">
-                        <button  onClick={profileDropdown} className="flex items-center bg-white lg:h-10 md:h-9 h-8 rounded-lg py-1 cursor-pointer px-3 md:text-sm text-xs text-[#990100] md:gap-8 gap-4">
-                            Filter By
-                            <img src = "icons/red-dropdown.png" width={"10px"} height={"10px"} className={`${isOpen ? "rotate-180" : "" }`} />
-                        </button>
-                    </div>
-                </div>
-    
-                {/* FILTER DROPDOWN */}
-                
-    
-                {isOpen && (
-                    <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-82 md:mr-68 mr-45 z-1000 mt-1" role="menu">
-    
-                        <div className="md:py-1 py-0" role="none">
-    
-                            <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
-                                <p className='pb-2 text-[#990100] '>A - Z</p>
-                                <hr /> 
-                            </a>
-
-                            <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
-                                <p className='pb-2 text-[#990100] '>Z - A</p>
-                                <hr /> 
-                            </a>
-
-                            <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
-                                <p className='pb-2 text-[#990100] '>A - Z</p>
-                                <hr /> 
-                            </a>
-
-                            <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
-                                <p className='pb-2 text-[#990100] '>A - Z</p>
-                                
-                            </a>
-    
-                        </div>
-                    </div>
-                )}
-    
-            </div>
-        )
-}
 
 function Employees(){
     
@@ -105,7 +36,7 @@ function Employees(){
                 <hr className='text-[#990100] mt-6 '/>
 
                 <div className="flex justify-end mt-5">
-                    <button className='bg-[#ad3332] lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-md md:text-sm text-xs rounded-md text-white hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out'>Generate Report</button>
+                    <button className='bg-[#ad3332] lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-md text-sm rounded-md text-white hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out'>Generate Report</button>
                 </div>
 
                 {/* TABLE */}
@@ -124,106 +55,113 @@ function Employees(){
                         </thead>
                         <tbody className='divide-y divide-[#990100]'>
                             <tr className='odd:bg-transparent even:bg-bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00002</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00003</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00004</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00005</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00006</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00007</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00008</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
 
                             <tr className='odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]'>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00001</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Regular</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-2 rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">AC-00009</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Reuel Christian Sundiam</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Web Developer</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
+                                <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
                                 </td>                   
                             </tr>
-
                         </tbody>
                     </table>
+                    <br />
+
+                    <div className="flex">
+                        <p>Showing 9 out of 200 employees</p>
+                        
+                    </div>
+
+
                 </div>
                 {/*
 
