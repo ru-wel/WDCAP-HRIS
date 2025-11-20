@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from '../config/constants';
+import { EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from '../config/constants.js';
 
 // EMPLOYEE VALIDATION
 export const createEmployeeSchema = Joi.object({
