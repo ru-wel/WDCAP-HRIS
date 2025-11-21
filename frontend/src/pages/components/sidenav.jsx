@@ -137,7 +137,7 @@ export default function Sidenav({
     >
       <div className="px-3 mb-5 flex items-center justify-start">
         <div className="bg-white rounded-2xl w-12 h-12 flex items-center justify-center overflow-hidden">
-          <img src="./tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" />
+          <a href = "/dashboard"><img src="./tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" /></a>
         </div>
       </div>
 

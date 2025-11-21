@@ -3,14 +3,35 @@ import Navbar from './components/navbar';
 import DropDownFilter from './components/dropdownfilter';
 import { useState } from "react";
 
+function ModalEmployees({isOpen, onClose}){
+    if (!isOpen) return null;
+
+    return(
+        <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-150 h-120">
+                <div className="rounded-lg bg-[#990100] flex items-center justify-between py-3 px-4">
+                    <h1 className='text-white text-lg font-medium'>Information of AC-00001</h1>
+                    <button className="text-white text-lg font-medium hover:scale-105 transition duration-300 ease-in-out" onClick={onClose}> ✕ </button>
+                </div>
+
+                <div className="pt-3 text-left pl-3 pr-3">
+                    <p className='text-md'><b>Employee ID:</b> AC-40001</p>
+                </div>
+            </div>
+        </div>
+    )
+}
 
 function Employees(){
+    
+    const [isModalOpen, setModalOpen] = useState(false);
+    const handleOpen = () => setModalOpen(true);
+    const handleClose = () => setModalOpen(false);
     
     return(
         <div className="">
             <Navbar />
 
-            
             <div className="p-7 lg:mx-18 md:mx-10">
 
                 {/* HEADER */}
@@ -61,7 +82,8 @@ function Employees(){
                                 <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">10/20/25</td>
                                 <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">Regular</td>
                                 <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
-                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out'>View Details</button>
+                                    <button href="#" className='bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out' onClick={handleOpen}>View Details</button>
+                                    <ModalEmployees isOpen={isModalOpen} onClose={handleClose} />
                                 </td>                   
                             </tr>
 
@@ -156,9 +178,18 @@ function Employees(){
                     </table>
                     <br />
 
-                    <div className="flex">
-                        <p>Showing 9 out of 200 employees</p>
+                    <div className="flex items-center justify-between w-full">
+                        <p>Showing <b>9</b> out of 200 employees</p>
                         
+                        <form >
+                            <div className="flex items-center space-x-2">
+                                <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
+                                <span className="text-sm font-medium text-body">1</span>
+                                {/*<input type="tel" id="visitors" className="bg-neutral-secondary-medium w-10 border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block px-2.5 py-1 shadow-xs placeholder:text-body" placeholder="99" required pattern="[0-9]*" />*/}
+                                <span className="text-sm text-body">to 10</span>
+                                <span className='text-[#990100] hover:underline'><a href = "#"> &gt; </a></span>
+                            </div>
+                        </form>                        
                     </div>
 
 

@@ -39,7 +39,7 @@ function DropDownFilter(){
             
 
             {isOpen && (
-                <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-82 md:mr-68 mr-45 z-1000 mt-1" role="menu">
+                <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-85 md:mr-68 mr-45 z-1000 mt-1" role="menu">
 
                     <div className="md:py-1 py-0" role="none">
 
