@@ -5,10 +5,11 @@ import { NavSide } from "./pages/components/sidenav";
 import Login from "./pages/login";
 import Dashboard from './pages/dashboard';
 import Employees from './pages/employees';
-
-{ /* 
-
 import Projects from './pages/projects';
+import ProjectEmployees from './pages/project-page/project-employees';
+
+{ /*  
+
 import Leave from './pages/leave';
 import Evaluation from './pages/evaluation';
 import Analytics from './pages/analytics';
@@ -46,9 +47,10 @@ function App() {
             {/* Main routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:projectId" element={<ProjectEmployees />} />
 
             {/*
-            <Route path="/projects" element={<Projects />} />
             <Route path="/leave" element={<Leave />} />
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/analytics" element={<Analytics />} />

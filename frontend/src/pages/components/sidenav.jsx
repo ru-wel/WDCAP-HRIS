@@ -12,7 +12,9 @@ export default function Sidenav({
 
   const getActiveStatesFromPath = () => {
     const path = location.pathname;
-
+    if (path.startsWith("/projects/")) {
+      return { main: "Projects", sub: null };
+    }
     const pathMappings = {
       "/dashboard": { main: "Dashboard", sub: null },
       "/employees": { main: "Employees", sub: null },
@@ -37,9 +39,9 @@ export default function Sidenav({
       "/audit/evaluation": { main: "Audit Logs", sub: "Evaluation" },
       "/audit/reports": { main: "Audit Logs", sub: "Reports" },
     };
-
     return pathMappings[path] || { main: initialActive, sub: initialSub };
   };
+
 
   const { main: activeMain, sub: activeSub } = getActiveStatesFromPath();
 
@@ -96,7 +98,7 @@ export default function Sidenav({
       label: "Audit Logs",
       icon: "audit",
       type: "group",
-      path: null, // Change from "/audit" to null
+      path: null,
       children: [
         { label: "User Accounts", path: "/audit/user-accounts" },
         { label: "Employees", path: "/audit/employees" },
@@ -117,7 +119,6 @@ export default function Sidenav({
     }
   };
 
-  // CARET BUTTON: the ONLY control that toggles submenus
   const handleToggle = (label) => {
     setOpenGroup((prev) => (prev === label ? null : label));
   };
@@ -137,7 +138,13 @@ export default function Sidenav({
     >
       <div className="px-3 mb-5 flex items-center justify-start">
         <div className="bg-white rounded-2xl w-12 h-12 flex items-center justify-center overflow-hidden">
-          <a href = "/dashboard"><img src="./tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" /></a>
+          <a href="/dashboard">
+            <img
+              src="/tab-logo.png"
+              alt="Arise logo"
+              className="w-8 h-8 object-contain"
+            />
+          </a>
         </div>
       </div>
 
@@ -166,8 +173,8 @@ export default function Sidenav({
                 isOpen={openGroup === item.label}
                 active={activeMain === item.label}
                 activeSub={activeSub}
-                onMainClick={() => handleMainClick(item)}              // navigate only
-                onToggleClick={() => handleToggle(item.label)}         // caret toggles
+                onMainClick={() => handleMainClick(item)}
+                onToggleClick={() => handleToggle(item.label)}
                 onSubClick={handleSubClick}
                 isHovered={isHovered}
               />
@@ -183,8 +190,8 @@ export default function Sidenav({
               isOpen={openGroup === item.label}
               active={activeMain === item.label}
               activeSub={activeSub}
-              onMainClick={() => handleMainClick(item)}                // navigate only
-              onToggleClick={() => handleToggle(item.label)}           // caret toggles
+              onMainClick={() => handleMainClick(item)}
+              onToggleClick={() => handleToggle(item.label)}
               onSubClick={handleSubClick}
               isHovered={isHovered}
             />
@@ -204,28 +211,33 @@ export function NavSide({ children }) {
   );
 }
 
-// ----- Simple Item (no submenu) -----
 function NavItem({ label, icon, active, onClick, isHovered }) {
   const base = "flex items-center gap-3 w-full rounded-lg transition-colors";
   const activeClasses = active
     ? "bg-white text-[#9b0000] font-medium shadow-sm"
     : "text-white/90 hover:text-white";
+
   const iconColor = active ? "red" : "white";
-  const iconPath = `./icons/sidenav/${iconColor}-${icon}.png`;
+  const iconPath = `/icons/sidenav/${iconColor}-${icon}.png`;
 
   return (
     <button
-      className={`${base} ${activeClasses} ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}
+      className={`${base} ${activeClasses} ${
+        !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
+      }`}
       onClick={onClick}
       title={!isHovered ? label : ""}
     >
-      <img src={iconPath} alt={`${label} icon`} className="h-5 w-5 object-contain" />
+      <img
+        src={iconPath}
+        alt={`${label} icon`}
+        className="h-5 w-5 object-contain"
+      />
       {isHovered && <span className="text-left text-[14px]">{label}</span>}
     </button>
   );
 }
 
-// ----- Group (Audit Logs style) with separate caret -----
 function NavGroup({
   label,
   icon,
@@ -240,16 +252,15 @@ function NavGroup({
 }) {
   const getIconPath = (iconName, isActive) => {
     const color = isActive ? "red" : "white";
-    return `./icons/sidenav/${color}-${iconName}.png`;
+    return `/icons/sidenav/${color}-${iconName}.png`;
   };
 
-  const isHighlighted = active || isOpen; // white header if submenu open
+  const isHighlighted = active || isOpen;
 
   const HeaderInner = ({ isActiveLike }) => (
     <div
       className={`flex w-full items-center ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}
     >
-      {/* Main button: navigates only */}
       <button
         className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] ${
           isActiveLike ? "font-medium" : ""
@@ -269,7 +280,6 @@ function NavGroup({
         {isHovered && <span className="text-left">{label}</span>}
       </button>
 
-      {/* Caret button: toggles only — hover bg turns pure white */}
       {isHovered && (
         <button
           className={`p-1 rounded-md transition-colors ${
@@ -338,7 +348,6 @@ function NavGroup({
   );
 }
 
-// ----- Dropdown (Employees/Leave/Evaluation) with separate caret -----
 function NavDropdown({
   label,
   icon,
@@ -353,16 +362,15 @@ function NavDropdown({
 }) {
   const getIconPath = (iconName, isActive) => {
     const color = isActive ? "red" : "white";
-    return `./icons/sidenav/${color}-${iconName}.png`;
+    return `/icons/sidenav/${color}-${iconName}.png`;
   };
 
-  const isHighlighted = active || isOpen; // white header if submenu open
+  const isHighlighted = active || isOpen;
 
   const HeaderInner = ({ isActiveLike }) => (
     <div
       className={`flex w-full items-center ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}
     >
-      {/* Main button: navigates only */}
       <button
         className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] ${
           isActiveLike ? "font-medium" : ""
@@ -382,7 +390,6 @@ function NavDropdown({
         {isHovered && <span className="text-left">{label}</span>}
       </button>
 
-      {/* Caret button: toggles only — hover bg turns pure white */}
       {isHovered && (
         <button
           className={`p-1 rounded-md transition-colors ${
