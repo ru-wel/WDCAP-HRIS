@@ -13,12 +13,24 @@ export const AUDIT_ACTIONS = {
 };
 
 export const EMPLOYMENT_STATUSES = {
-  ACTIVE: 'ACTIVE',
-  INACTIVE: 'INACTIVE'
+  ACTIVE: 'Active',
+  INACTIVE: 'Inactive'
 }
 
 export const PERSONNEL_TYPES = {
-  REGULAR: 'REGULAR',
-  PROJECT_BASED: 'PROJECT-BASED',
-  PROBATIONARY: 'PROBATIONARY'
+  REGULAR: 'Regular',
+  PROJECT_BASED: 'Project-Based',
+  PROBATIONARY: 'Probationary'
+}
+
+export const PROJECT_STATUSES = {
+  ACTIVE: 'Active',
+  COMPLETED: 'Completed',
+  ON_HOLD: 'On Hold',
+  CANCELLED: 'Cancelled'
+}
+
+export const ASSIGNMENT_STATUSES = {
+  ACTIVE: 'Active',
+  COMPLETED: 'Completed'
 }

@@ -98,7 +98,7 @@ export const login = async ({ email, password }) => {
       .single();
 
     if (userError || !userData) {
-      throw new DatabaseError('User not found in database');
+      throw new InternalServerError('User not found in database');
     }
 
     // update last_login timestamp
