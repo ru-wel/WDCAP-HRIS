@@ -6,6 +6,7 @@ import DropDownFilter from "./components/dropdownfilter";
 const initialProjects = [
   {
     id: 1,
+    name: "Project #1",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -13,6 +14,7 @@ const initialProjects = [
   },
   {
     id: 2,
+    name: "Project #2",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -20,6 +22,7 @@ const initialProjects = [
   },
   {
     id: 3,
+    name: "Project #3",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -27,6 +30,7 @@ const initialProjects = [
   },
   {
     id: 4,
+    name: "Project #4",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -34,6 +38,7 @@ const initialProjects = [
   },
   {
     id: 5,
+    name: "Project #5",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -41,6 +46,7 @@ const initialProjects = [
   },
   {
     id: 6,
+    name: "Project #6",
     location: "Pampanga",
     startDate: "06/06/25",
     endDate: "01/06/26",
@@ -60,7 +66,7 @@ function ViewProjectCard({ project, index, onClick }) {
       <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#990100] mb-3">
-            {`Project #${index + 1}`}
+            {project.name || `Project #${index + 1}`}
           </h2>
 
           <div className="flex items-center text-base mb-2 gap-2">
@@ -99,9 +105,23 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
 
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
-      <h2 className="text-xl font-bold text-[#990100] mb-3">
-        {`Project #${index + 1}`}
+      <h2 className="text-xl font-bold text-[#990100] mb-2">
+        {project.name || `Project #${index + 1}`}
       </h2>
+
+      {/* PROJECT NAME INPUT */}
+      <div className="mb-3">
+        <label className="block text-sm font-semibold mb-1">
+          Project Name
+        </label>
+        <input
+          type="text"
+          value={project.name}
+          onChange={(e) => handleChange("name", e.target.value)}
+          className="w-full border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
+          placeholder="Enter project name"
+        />
+      </div>
 
       <div className="mb-3 flex items-center gap-2">
         <img
@@ -173,9 +193,23 @@ function NewProjectCard({ values, displayNumber, onChange }) {
 
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
-      <h2 className="text-xl font-bold text-[#c4bcbc] mb-3">
+      <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">
         {`Project #${displayNumber}`}
       </h2>
+
+      {/* PROJECT NAME INPUT */}
+      <div className="mb-3">
+        <label className="block text-sm font-semibold mb-1">
+          Project Name
+        </label>
+        <input
+          type="text"
+          value={values.name}
+          onChange={(e) => handleChange("name", e.target.value)}
+          className="w-full border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
+          placeholder="Enter project name"
+        />
+      </div>
 
       <div className="mb-3 flex items-center gap-2">
         <img
@@ -238,6 +272,7 @@ function Projects() {
   const [mode, setMode] = useState("view");
 
   const [newProject, setNewProject] = useState({
+    name: "",
     location: "",
     startDate: "",
     endDate: "",
@@ -250,6 +285,7 @@ function Projects() {
 
   const handleAddClick = () => {
     setNewProject({
+      name: "",
       location: "",
       startDate: "",
       endDate: "",
@@ -261,6 +297,7 @@ function Projects() {
   const handleSaveChanges = () => {
     if (mode === "add") {
       const hasAnyValue =
+        newProject.name ||
         newProject.location ||
         newProject.startDate ||
         newProject.endDate ||
@@ -271,6 +308,7 @@ function Projects() {
           ...prev,
           {
             id: prev.length ? Math.max(...prev.map((p) => p.id)) + 1 : 1,
+            name: newProject.name || `Project ${prev.length + 1}`,
             location: newProject.location || "Pampanga",
             startDate: newProject.startDate || "06/06/25",
             endDate: newProject.endDate || "01/06/26",
@@ -322,7 +360,7 @@ function Projects() {
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
             Projects
           </h1>
-          <div className="flex items-center justify-end md:gap-4 gap-3">
+          <div className="flex items=center justify-end md:gap-4 gap-3">
             <DropDownFilter />
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
@@ -392,7 +430,7 @@ function Projects() {
             }
 
             if (item.type === "edit") {
-              return(
+              return (
                 <EditableProjectCard
                   key={item.project.id}
                   project={item.project}

@@ -32,7 +32,36 @@ export const PROJECT_STATUSES = {
 
 export const ASSIGNMENT_STATUSES = {
   ACTIVE: 'Active',
-  COMPLETED: 'Completed',
   ON_HOLD: 'On Hold',
+  COMPLETED: 'Completed',
   CANCELLED: 'Cancelled'
+}
+
+export const DOCUMENT_TYPES = {
+  EMPLOYEE_CONTRACT: 'Employee Contract',
+  RESUME_CV: 'Resume/CV',
+  APPLICATION_FOR_EMPLOYMENT: 'Application for Employment',
+  PERSONAL_DATA_SHEET: 'Personal Data Sheet',
+  NDA: 'NDA',
+  DIPLOMA: 'Diploma',
+  TOR: 'Transcript of Records',
+  SSS: 'SSS',
+  PHILHEALTH: 'PhilHealth',
+  PAG_IBIG: 'Pag-IBIG',
+  DRIVERS_LICENSE: "Driver's License",
+  PRC_ID: 'PRC ID',
+  OTHERS: 'Others'
+};
+
+export const ALLOWED_FILE_TYPES = {
+  'application/pdf': '.pdf',
+  'application/vnd.openxmlformats-officedocument.wordpressingml.document': '.docx',
+  'image/jpeg': '.jpg',
+  'image/png': '.png'
+}
+
+export const FILE_VALIDATION = {
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10 MB
+  ALLOWED_MIME_TYPES: Object.keys(ALLOWED_FILE_TYPES),
+  ALLOWED_EXTENSIONS: Object.values(ALLOWED_FILE_TYPES)
 }
