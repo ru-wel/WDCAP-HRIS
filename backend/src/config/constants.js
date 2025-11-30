@@ -32,5 +32,7 @@ export const PROJECT_STATUSES = {
 
 export const ASSIGNMENT_STATUSES = {
   ACTIVE: 'Active',
-  COMPLETED: 'Completed'
+  COMPLETED: 'Completed',
+  ON_HOLD: 'On Hold',
+  CANCELLED: 'Cancelled'
 }
