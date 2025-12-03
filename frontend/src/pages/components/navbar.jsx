@@ -23,7 +23,7 @@ function Navbar() {
   return (
     <div ref={dropdownRef}>
       {/* BUTTON */}
-      <div className="bg-[#EDEDED] md:py-3 lg:pr-15 md:pr-5 py-2 pr-2">
+      <div className="bg-[#EDEDED] py-3 lg:pr-15 md:pr-5 lg:pr-2 pr-4">
         <div className="flex justify-end">
           <button
             onClick={profileDropdown}
