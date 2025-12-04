@@ -7,6 +7,7 @@ import Dashboard from './pages/dashboard';
 import Employees from './pages/employees';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
+import Onboarding from './pages/onboarding';
 
 { /*  
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<ProjectEmployees />} />
+            <Route path="/employees/onboarding" element={<Onboarding />} />
 
             {/*
             <Route path="/leave" element={<Leave />} />

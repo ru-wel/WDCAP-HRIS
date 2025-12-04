@@ -265,7 +265,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
 
                         <div className="flex items-center md:justify-between md:pl-2">
                             <p className='lg:text-sm text-xs md:pr-0 pr-5'><b>Phone No.:</b></p>
-                            <input type="text" name="phone" value = {data.phone} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-40 md:w-35 w-45 disabled:text-gray-600" maxLength="11" />
+                            <input type="tel" name="phone" value = {data.phone} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-40 md:w-35 w-45 disabled:text-gray-600" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }}/>
                         </div>
                     </div>
 
@@ -281,7 +281,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
 
                     <div className="md:flex justify-between items-center text-left lg:pt-5 md:pt-3 pt-2">
                         <p className='lg:text-sm text-xs'><b>Emergency Contact No.:</b></p>
-                        <input type="text" name="emergencyPhone" value = {data.emergencyPhone} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-80 md:w-70 w-66 disabled:text-gray-600 mt-2 md:mt-0" maxLength="11" />
+                        <input type="tel" name="emergencyPhone" value = {data.emergencyPhone} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-80 md:w-70 w-66 disabled:text-gray-600 mt-2 md:mt-0" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }} />
                     </div>
                     
 
@@ -291,12 +291,12 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
 
                         {!editData ? (
                             <div className="flex justify-end gap-4">
-                                <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-md text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-md text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
+                                <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
                             </div>
                         ) : (
                             <div className="flex justify-end gap-4">
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-md text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
                                     const onClick = {() => {
                                         if (unsavedChanges){
                                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
@@ -307,7 +307,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
                                 <button onClick={() => {
 
                                     if (!data.fname || !data.lname || !data.position || !data.hireDate || !data.personnelType || !data.status || !data.department || !data.birthDate ||!data.phone || !data.address || !data.emergencyName || !data.emergencyPhone) {
-                                        alert("Please fill out all fields and do not leave any of them blank.");
+                                        alert("Please fill out all the fields and do not leave any of them blank.");
                                         return;
                                     }
 
@@ -320,10 +320,8 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
                                         onClose();
                                         alert(`You've successfully updated the record of ${data.id}!`)
                                     }
-
-                                    
                                 }} 
-                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-md text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out'>Save Changes</button>
+                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out'>Save Changes</button>
                             </div>
                         )}
                     </div>
@@ -351,9 +349,6 @@ function Employees(){
             prev.map(emp => emp.id === updated.id ? updated : emp)
         );
     };
-
-    
-
     
     return(
         <div className="">
@@ -405,22 +400,22 @@ function Employees(){
                         <tbody className='divide-y divide-[#990100]'>
                             {employees.map((row) => (
                                 <tr key={row.id} className="odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]">
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900 font-medium">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 font-medium">
                                         {row.id}
                                     </td>
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
                                         {row.fname + " " + row.lname}
                                     </td>
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
                                         {row.position}
                                     </td>
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
                                         {row.hireDate}
                                     </td>
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
                                         {row.personnelType}
                                     </td>
-                                    <td className="px-6 py-3 lg:text-sm text-xs text-gray-900">
+                                    <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
                                         <button
                                         className="bg-[#990100] text-white lg:text-sm test-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                                         onClick={() => handleOpen(row)}
