@@ -7,10 +7,10 @@ import Dashboard from './pages/dashboard';
 import Employees from './pages/employees';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
+import Leave from './pages/leave';
 
 { /*  
 
-import Leave from './pages/leave';
 import Evaluation from './pages/evaluation';
 import Analytics from './pages/analytics';
 import Audit from './pages/audit';
@@ -49,9 +49,9 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<ProjectEmployees />} />
+            <Route path="/leave" element={<Leave />} />
 
             {/*
-            <Route path="/leave" element={<Leave />} />
             <Route path="/evaluation" element={<Evaluation />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/audit" element={<Audit />} /> 
