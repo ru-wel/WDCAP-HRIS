@@ -5,9 +5,11 @@ import { NavSide } from "./pages/components/sidenav";
 import Login from "./pages/login";
 import Dashboard from './pages/dashboard';
 import Employees from './pages/employees';
+import Onboarding from './pages/onboarding';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
 import Leave from './pages/leave';
+
 
 { /*  
 
@@ -47,6 +49,7 @@ function App() {
             {/* Main routes */}
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/employees" element={<Employees />} />
+            <Route path="/employees/onboarding" element={<Onboarding />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<ProjectEmployees />} />
             <Route path="/leave" element={<Leave />} />
