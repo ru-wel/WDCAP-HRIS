@@ -172,6 +172,14 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
         setEditData(false);
     }, [employee]);
 
+    //document.getElementsByClassName("date").min = new Date().toISOString().split("T")[0];
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const maxDate = `${yyyy}-${mm}-${dd}`;
+
     const unsavedChanges = JSON.stringify(data) !== JSON.stringify(initialData);
 
     return(
@@ -246,7 +254,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
                         
                         <div className="flex items-center md:justify-between md:pl-2">
                             <p className='lg:text-sm text-xs md:pr-0 pr-7'><b>Hire Date:</b></p>
-                            <input type="date" name="hireDate" value = {data.hireDate} disabled = {!editData} onChange={handleChange} className="block lg:w-40 md:w-35 w-44 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" />
+                            <input type="date" name="hireDate" value = {data.hireDate} disabled = {!editData} onChange={handleChange} className="block lg:w-40 md:w-35 w-44 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" min = "2019-01-01" max = {maxDate} />
                         </div>
                     </div>
 
@@ -260,7 +268,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
                         
                         <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs md:pr-0 pr-5'><b>Birth Date:</b></p>
-                            <input type="date" name="birthDate" value={data.birthDate} disabled = {!editData} onChange={handleChange} className="block lg:w-40 md:w-35 w-45 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" />
+                            <input type="date" name="birthDate" value={data.birthDate} disabled = {!editData} onChange={handleChange} className="block lg:w-40 md:w-35 w-45 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" max = {maxDate} />
                         </div>
 
                         <div className="flex items-center md:justify-between md:pl-2">
@@ -269,9 +277,9 @@ function ModalEmployees({isOpen, onClose, employee, onSave}){
                         </div>
                     </div>
 
-                    <div className="flex md:justify-between items-center text-left lg:pt-5 pt-3">
+                    <div className="md:flex md:justify-between items-center text-left lg:pt-5 pt-3">
                         <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Home Address:</b></p>
-                        <input type="text" name="address" value = {data.address} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-100 md:w-85 w-42 disabled:text-gray-600" />
+                        <input type="text" name="address" value = {data.address} disabled = {!editData} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-100 md:w-85 w-66 disabled:text-gray-600 mt-2 md:mt-0" />
                     </div>
 
                     <div className="md:flex md:justify-between items-center text-left lg:pt-5 md:pt-3 pt-2">
