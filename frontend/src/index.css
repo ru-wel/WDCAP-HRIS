@@ -1,2 +1,11 @@
 @import "tailwindcss";
 
+@layer components {
+  .input-field {
+    @apply bg-white rounded-md border border-[#990100] shadow-sm py-1.5 px-2 text-[#990100] text-sm w-full focus:outline-gray-400;
+  }
+
+  .input-select {
+    @apply bg-white rounded-md border border-[#990100] shadow-sm py-1.5 px-2 text-[#990100] text-sm w-full focus:outline-gray-400;
+  }
+}
