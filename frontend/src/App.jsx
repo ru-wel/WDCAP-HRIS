@@ -9,7 +9,7 @@ import Onboarding from './pages/onboarding';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
 import Leave from './pages/leave';
-
+import LeaveRequest from './pages/leave-page/request';
 
 { /*  
 
@@ -23,7 +23,6 @@ import Onboarding from './pages/employees/onboarding';
 import UserAccounts from './pages/employees/user-accounts';
 import EmployeeFiles from './pages/employees/201-files';
 import Departments from './pages/employees/departments';
-import LeaveRequest from './pages/leave/request';
 import LeaveCredits from './pages/leave/credits';
 import LeaveHistory from './pages/leave/history';
 import EvaluationHistory from './pages/evaluation/history';
@@ -53,6 +52,7 @@ function App() {
             <Route path="/projects" element={<Projects />} />
             <Route path="/projects/:projectId" element={<ProjectEmployees />} />
             <Route path="/leave" element={<Leave />} />
+            <Route path="/leave/request" element={<LeaveRequest />} />
 
             {/*
             <Route path="/evaluation" element={<Evaluation />} />
@@ -66,7 +66,6 @@ function App() {
             <Route path="/employees/201-files" element={<EmployeeFiles />} />
             <Route path="/employees/departments" element={<Departments />} />
             
-            <Route path="/leave/request" element={<LeaveRequest />} />
             <Route path="/leave/credits" element={<LeaveCredits />} />
             <Route path="/leave/history" element={<LeaveHistory />} />
             

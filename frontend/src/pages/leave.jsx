@@ -1,4 +1,3 @@
-// src/pages/leave.jsx
 import React from "react";
 import Navbar from "./components/navbar";
 import DropDownFilter from "./components/dropdownfilter";
@@ -63,18 +62,13 @@ function Leave() {
           </div>
         </div>
 
-        {/* RED SEPARATOR LINE */}
         <hr className="mt-6 border-t border-[#990100]" />
-
-        {/* MAIN BODY */}
         <div className="mt-10 flex flex-col lg:flex-row gap-10">
-          {/* LEFT SIDE –   + CARDS */}
           <div className="flex-1">
             <h2 className="text-[24px] lg:text-[28px] font-bold text-[#990100] mb-8">
               JANUARY
             </h2>
 
-            {/* Cards row – 4 cards, equal spacing */}
             <div className="flex flex-wrap gap-6 lg:gap-8">
               {leaveCards.map((card) => (
                 <div
@@ -97,10 +91,8 @@ function Leave() {
             </div>
           </div>
 
-          {/* RIGHT SIDE – CALENDARS LEGEND */}
           <div className="w-full lg:w-[260px] xl:w-[280px]">
             <div className="bg-white rounded-xl shadow-md border border-[#E0E0E0] h-[430px] flex flex-col">
-              {/* Title */}
               <div className="px-6 pt-6">
                 <h3 className="text-[20px] lg:text-[22px] font-bold text-[#990100]">
                   Calendars
@@ -108,7 +100,6 @@ function Leave() {
                 <hr className="mt-2 border-t border-[#990100]" />
               </div>
 
-              {/* Legend items */}
               <div className="px-6 pt-8 space-y-6 text-[13px]">
                 <div className="flex items-center gap-3">
                   <span className="w-4 h-4 rounded-sm bg-[#6D28D9]" />
@@ -120,13 +111,11 @@ function Leave() {
                 </div>
               </div>
 
-              {/* extra space at bottom like screenshot */}
               <div className="flex-1" />
             </div>
           </div>
         </div>
 
-        {/* PAGINATION – bottom right */}
         <div className="flex justify-end items-center mt-10 text-[13px]">
           <button className="text-[#990100] mr-4 hover:underline">&lt;</button>
           <span className="border border-[#990100] rounded-md px-2 py-1 mr-3 text-[#990100]">
