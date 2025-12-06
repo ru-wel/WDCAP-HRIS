@@ -11,7 +11,6 @@ const router = express.Router();
 router.use(authenticate);
 
 // create project
-// NOTE: Adjust roles if you use different role names for project owners/managers
 router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(projectValidation.createProjectSchema), projectController.createProject);
 
 // get all projects

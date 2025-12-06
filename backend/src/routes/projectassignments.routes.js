@@ -11,37 +11,18 @@ const router = express.Router();
 router.use(authenticate);
 
 // CREATE ASSIGNMENT - Admin & HR
-router.post(
-  '/',
-  authorizeRoles(ROLES.ADMIN, ROLES.HR),
-  validate(assignmentValidation.createAssignmentSchema),
-  assignmentController.createAssignment
-);
+router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValidation.createAssignmentSchema), assignmentController.createAssignment);
 
 // GET ALL ASSIGNMENTS
 router.get('/', assignmentController.getAllAssignments);
 
 // GET ASSIGNMENT BY ID
-router.get(
-  '/:id',
-  validate(assignmentValidation.assignmentIdSchema),
-  assignmentController.getAssignmentById
-);
+router.get('/:id', validate(assignmentValidation.assignmentIdSchema), assignmentController.getAssignmentById);
 
 // UPDATE ASSIGNMENT - Admin & HR
-router.put(
-  '/:id',
-  authorizeRoles(ROLES.ADMIN, ROLES.HR),
-  validate(assignmentValidation.updateAssignmentSchema),
-  assignmentController.updateAssignment
-);
+router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValidation.updateAssignmentSchema), assignmentController.updateAssignment);
 
 // DELETE ASSIGNMENT - Admin only
-router.delete(
-  '/:id',
-  authorizeRoles(ROLES.ADMIN),
-  validate(assignmentValidation.assignmentIdSchema),
-  assignmentController.deleteAssignment
-);
+router.delete('/:id', authorizeRoles(ROLES.ADMIN), validate(assignmentValidation.assignmentIdSchema), assignmentController.deleteAssignment);
 
 export default router;

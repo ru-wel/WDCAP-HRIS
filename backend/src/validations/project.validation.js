@@ -13,11 +13,11 @@ export const createProjectSchema = Joi.object({
     'string.max': 'Site location cannot exceed 255 characters',
     'any.required': 'Site location is required'
   }),
-  start_date: Joi.date().required.messages({
+  start_date: Joi.date().required().messages({
     'date.base': 'Start date must be a valid date',
     'any.required': 'Start date is required'
   }),
-  end_date: Joi.date().greater(Joi.ref('start_date')).required().messages({
+  end_date: Joi.date().greater(Joi.ref('start_date')).messages({
     'date.base': 'End date must be a valid date',
     'date.greater': 'End date must be after start date',
     'any.required': 'End date is required'
@@ -52,7 +52,7 @@ export const updateProjectSchema = Joi.object({
   }).messages({
     'date.base': 'End date must be a valid ate'
   }),
-  status: Joi.string().valid(PROJECT_STATUSES.ACTIVE, PROJECT_STATUSES.COMPLETED, PROJECT_STATUSES.ON_HOLD, PROJECT_STATUSES.CANCELLED).required().messages({
+  status: Joi.string().valid(PROJECT_STATUSES.ACTIVE, PROJECT_STATUSES.COMPLETED, PROJECT_STATUSES.ON_HOLD, PROJECT_STATUSES.CANCELLED).messages({
     'any.only': 'Status must be Active, Completed, On Hold, or Cancelled'
   }),
   completed_at: Joi.date().allow(null).messages({

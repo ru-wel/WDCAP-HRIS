@@ -25,8 +25,8 @@ export const createAssignmentSchema = Joi.object({
 
 // UPDATE ASSIGNMENT
 export const updateAssignmentSchema = Joi.object({
-  employee_id: employeeIdSchema.extract('id'),
-  project_id: projectIdSchema.extract('id'),
+  // employee_id: employeeIdSchema.extract('id'),
+  // project_id: projectIdSchema.extract('id'), 
   assignment_date: Joi.date().messages({
     'date.base': 'Assignment date must be a valid date'
   }),
