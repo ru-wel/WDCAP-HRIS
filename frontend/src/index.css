@@ -8,4 +8,8 @@
   .input-select {
     @apply bg-white rounded-md border border-[#990100] shadow-sm py-1.5 px-2 text-[#990100] text-sm w-full focus:outline-gray-400;
   }
+
+  .project-field {
+    @apply border border-[#990100] rounded-md shadow-sm px-2 py-1 text-sm bg-white;
+  }
 }

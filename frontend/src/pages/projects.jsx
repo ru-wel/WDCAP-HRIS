@@ -63,7 +63,7 @@ function ViewProjectCard({ project, index, onClick }) {
       onClick={onClick}
       className="text-left w-full hover:scale-105 transition duration-300 ease-in-out"
     >
-      <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+      <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#990100] mb-3">
             {project.name || `Project #${index + 1}`}
@@ -89,8 +89,11 @@ function ViewProjectCard({ project, index, onClick }) {
         </div>
 
         <div className="mt-4">
-          <span className="inline-block bg-[#C8C8FF] text-[#0000FF] px-6 py-2 rounded-xl text-sm font-semibold">
-            {project.status}
+          <span className={`inline-block  px-6 py-2 rounded-xl text-sm font-semibold"
+            ${project.status === "ONGOING" ? "bg-[#C8C8FF] text-[#0000FF]" : ""}
+            ${project.status === "COMPLETED" ? "text-[#198C19] bg-[#198C19]/25" : ""}
+            ${project.status === "ON HOLD" ? "bg-[#FFA500]/25 text-[#FFA500]" : ""}`}>
+              {project.status}
           </span>
         </div>
       </div>
@@ -118,7 +121,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
           type="text"
           value={project.name}
           onChange={(e) => handleChange("name", e.target.value)}
-          className="w-full border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
+          className="w-full project-field"
           placeholder="Enter project name"
         />
       </div>
@@ -133,7 +136,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
           type="text"
           value={project.location}
           onChange={(e) => handleChange("location", e.target.value)}
-          className="flex-1 border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
+          className="flex-1 project-field"
           placeholder="Location"
         />
       </div>
@@ -148,7 +151,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
           type="text"
           value={project.startDate}
           onChange={(e) => handleChange("startDate", e.target.value)}
-          className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
+          className="project-field w-[40%]"
           placeholder="Start Date"
         />
         <span className="text-sm">to</span>
@@ -156,7 +159,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
           type="text"
           value={project.endDate}
           onChange={(e) => handleChange("endDate", e.target.value)}
-          className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
+          className="project-field w-[40%]"
           placeholder="End Date"
         />
       </div>
@@ -166,7 +169,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
         <select
           value={project.status}
           onChange={(e) => handleChange("status", e.target.value)}
-          className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-40"
+          className="project-field w-40"
         >
           <option value="ONGOING">ONGOING</option>
           <option value="COMPLETED">COMPLETED</option>
@@ -416,7 +419,7 @@ function Projects() {
           )}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cardDescriptors.map((item, index) => {
             if (item.type === "new") {
               return (
@@ -452,15 +455,14 @@ function Projects() {
           })}
         </div>
 
-        <div className="flex justify-end items-center mt-10 text-sm">
-          <span className="text-[#990100] cursor-pointer hover:underline mr-3">
-            &lt;
+
+        <div className="flex items-center justify-end mt-10 space-x-2">
+          <span className="text-[#990100] hover:underline cursor-pointer mr-3">
+                &lt;
           </span>
-          <span className="border border-[#990100] rounded-md px-2 py-1 mr-3 text-[#990100]">
-            1
-          </span>
-          <span className="mr-3">to 5</span>
-          <span className="text-[#990100] cursor-pointer hover:underline">
+          <span className="text-sm font-medium mr-3">1</span>
+          <span className="text-sm mr-3">to 5</span>
+          <span className="text-[#990100] hover:underline cursor-pointer">
             &gt;
           </span>
         </div>

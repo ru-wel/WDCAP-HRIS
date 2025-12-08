@@ -168,7 +168,7 @@ function ProjectEmployees() {
           </button>
         </div>
 
-        <div className="overflow-x-auto bg-white border rounded-lg mt-6 shadow-lg px-8 py-10">
+        <div className="overflow-x-auto bg-white border border-gray-300 rounded-lg mt-6 shadow-lg px-8 py-10">
           <table className="min-w-full text-center">
             <thead className="bg-[#990100] text-white">
               <tr>
