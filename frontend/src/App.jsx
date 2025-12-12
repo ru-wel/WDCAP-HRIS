@@ -10,6 +10,8 @@ import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
 import Leave from './pages/leave';
 import LeaveRequest from './pages/leave-page/request';
+import ProtectedRoute from './utils/ProtectedRoute.jsx';
+import { ROLES } from './constants/config.js';
 
 { /*  
 
@@ -40,18 +42,27 @@ function App() {
     <React.StrictMode>
       <BrowserRouter>
         <Routes>
+          {/* public route (no auth needeed) */}
           <Route path="/login" element={<Login />} />
-          <Route element={<LayoutWithSidebar />}>
+
+          {/* protected routes */}
+          <Route element={<ProtectedLayoutWithSidebar />}>
             {/* Default redirect */}
             <Route index element={<Navigate to="/dashboard" replace />} />
             
             {/* Main routes */}
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/employees" element={<Employees />} />
+
+            <Route path="/employees" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Employees /> </ProtectedRoute> } />
+
             <Route path="/employees/onboarding" element={<Onboarding />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/:projectId" element={<ProjectEmployees />} />
+
+            <Route path="/projects" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Projects /> </ProtectedRoute>} />
+
+            <Route path="/projects/:projectId" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <ProjectEmployees /> </ProtectedRoute>} />
+
             <Route path="/leave" element={<Leave />} />
+
             <Route path="/leave/request" element={<LeaveRequest />} />
 
             {/*
@@ -88,11 +99,13 @@ function App() {
   );
 }
 
-function LayoutWithSidebar() {
+function ProtectedLayoutWithSidebar() {
   return (
-    <NavSide>
-      <Outlet />
-    </NavSide>
+    <ProtectedRoute>
+      <NavSide>
+        <Outlet />
+      </NavSide>
+    </ProtectedRoute>
   );
 }
 
