@@ -107,6 +107,15 @@ export const createNewEmployee = async (employeeData, userId) => {
     if (fetchError) {
       throw new InternalServerError('Employee created but failed to fetch details');
     }
+    
+    const { error: updateUserError } = await supabase
+      .from('users')
+      .update({ employee_id: completeEmployee.employee_id })
+      .eq('id', employeeData.user_id);
+
+    if (updateUserError) {
+      logger.error('Failed to update user with employee_id:', updateUserError);
+    }
 
     // log to audit
     await supabase.from('audit_logs').insert({
