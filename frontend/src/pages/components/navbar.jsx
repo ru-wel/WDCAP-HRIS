@@ -1,12 +1,24 @@
 // src/pages/components/navbar.jsx
 import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const { user, logout } = useAuth();
+
   function profileDropdown() {
     setIsOpen(!isOpen);
+  }
+
+  // handle logout click
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   }
 
   useEffect(() => {
@@ -34,7 +46,7 @@ function Navbar() {
               className="lg:w-[40px] lg:h-[40px] md:w-[30px] md:h-[30px] w-[25px] h-[25px]"
             />
             <p className="lg:px-3 md:px-2 px-1 md:text-sm text-xs text-[#990100]">
-              Reuel Christian Sundiam
+              {user?.email || 'User'}
             </p>
             <img
               src="/icons/red-dropdown.png"
@@ -54,9 +66,9 @@ function Navbar() {
               <p className="pb-2 text-[#990100] hover:underline">MY PROFILE</p>
               <hr />
             </a>
-            <a href="#" className="block px-4 py-2 md:text-sm text-xs hover:font-medium" role="menuitem">
+            <button onClick={handleLogout} className="block px-4 py-2 md:text-sm text-xs hover:font-medium" role="menuitem">
               <p className="text-[#990100] hover:underline">LOGOUT</p>
-            </a>
+            </button>
           </div>
         </div>
       )}

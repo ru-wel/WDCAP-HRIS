@@ -77,5 +77,19 @@ export const getCurrentUser = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+// refresh token controller
+export const refreshToken = async (req, res, next) => {
+  try {
+    const result = await authService.refreshToken(req.body);
+    res.status(200).json({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
 }
 

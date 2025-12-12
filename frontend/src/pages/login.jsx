@@ -1,6 +1,44 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 
 function Login(){
+    // state for form inputs
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    // state for loading and errors
+    const [loading, setLoading] = useState('');
+    const [error, setError] = useState('');
+
+    // get login function from AuthContext
+    const { login } = useAuth();
+
+    const navigate = useNavigate();
+
+    // handle form submission
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError('');
+
+      if (!email || !password) {
+        setError('Please enter both email and password');
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        // get login function from AuthContext
+        await login(email, password);
+        navigate('/dashboard');
+
+      } catch (err) {
+        setError(err.message || 'Login failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
     
     return(
         <div> 
@@ -21,22 +59,32 @@ function Login(){
                         <h1 className="lg:text-4xl md:text-3xl text-2xl font-bold text-[#483D3D] pb-[10px]">SIGN IN</h1>
                         <p className="lg:text-lg md:text-md text-sm pb-[30px]">LOGIN TO YOUR ACCOUNT</p>
 
-                        <p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">USERNAME</p>
-                        <input type="text" name="username" placeholder='Enter Username' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" required/>
+                        {/* Error message display */}
+                        { error && (
+													<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+														{error}
+													</div>
+                        )}
 
+												{/* Login Form */}
+												<form onSubmit={handleSubmit}>
+													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">EMAIL</p>
+                        	<input type="email" name="email" placeholder='Enter Email' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required />
 
-                        <p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pt-5 pb-2">PASSWORD</p>
-                        <input type="password" name="password" placeholder='Enter Password' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" required/>
+													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pt-5 pb-2">PASSWORD</p>
+                       		<input type="password" name="password" placeholder='Enter Password' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} required />
 
-                        <br />
+													<br />
 
-                        <div className="pt-8 flex gap-6 pb-3">
+													<div className="pt-8 flex gap-6 pb-3">
                             <button type="submit" 
                                 className="text-white lg:text-lg md:text-md text-sm bg-[#990100] border-0 py-[6px] px-6 lg:w-95 md:w-75 w-70 focus:outline-none hover:bg-[#ad3332] rounded text-lg contact-btn transform hover:scale-105 transition duration-300 ease-in-out hover:shadow-lg text-center rounded-3xl font-bold">
-                                LOGIN
+                                {loading ? 'LOGGING IN ...' : 'LOGIN'}
                             </button>
-                        </div>      
-                        <a href = "#" className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm">Forgot Password?</a>
+                       	 	</div>
+												</form>
+
+                        <a href = "#" className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm">Forgot Password?</a>	                     
                     </div>
                 </div>
 
@@ -47,6 +95,5 @@ function Login(){
     );
 }
  
-
 export default Login;
 

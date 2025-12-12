@@ -134,4 +134,25 @@ export const login = async ({ email, password }) => {
     logger.error('Login error:', error);
     throw error;
   }
-}
+};
+
+export const refreshToken = async ({ refresh_token }) => {
+  try {
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token });
+
+    if (error || !data.session) {
+      throw new UnauthorizedError('Invalid refresh token');
+    }
+
+    return {
+      session: {
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+        expires_in: data.session.expires_in
+      }
+    };
+  } catch (error) {
+    logger.error('Token refresh error:', error);
+    throw error;
+  }
+};

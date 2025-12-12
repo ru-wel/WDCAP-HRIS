@@ -11,5 +11,6 @@ router.post('/register', authenticate, authorizeRoles(ROLES.ADMIN, ROLES.HR), va
 router.post('/login', validate(loginSchema), authController.login);                                                               // /api/auth/login
 router.post('/logout', authenticate, authController.logout);                                                                      // /api/auth/logout
 router.get('/me', authenticate, authController.getCurrentUser);                                                                   // /api/auth/me
+router.post('/refresh', authController.refreshToken);
 
 export default router;
