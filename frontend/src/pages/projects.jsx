@@ -1,61 +1,35 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./components/navbar";
 import DropDownFilter from "./components/dropdownfilter";
-
-const initialProjects = [
-  {
-    id: 1,
-    name: "Project #1",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-  {
-    id: 2,
-    name: "Project #2",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-  {
-    id: 3,
-    name: "Project #3",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-  {
-    id: 4,
-    name: "Project #4",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-  {
-    id: 5,
-    name: "Project #5",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-  {
-    id: 6,
-    name: "Project #6",
-    location: "Pampanga",
-    startDate: "06/06/25",
-    endDate: "01/06/26",
-    status: "ONGOING",
-  },
-];
+import { get, post, put, del } from "../services/api.js";
+import { PROJECT_STATUSES } from "../constants/config.js";
 
 function ViewProjectCard({ project, index, onClick }) {
-  const dateRange = `${project.startDate} to ${project.endDate}`;
+  // format dates for display
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+  }
+
+  const dateRange = `${formatDate(project.start_date)} to ${formatDate(project.end_date)}`;
+
+  // change format according to status
+  const statusStyle = (status) => {
+    switch(status) {
+      case PROJECT_STATUSES.ACTIVE:
+        return "bg-[#C8C8FF] text-[#0000FF]"; 
+              case PROJECT_STATUSES.COMPLETED:
+        return "text-[#198C19] bg-[#198C19]/25";
+      case PROJECT_STATUSES.ON_HOLD:
+        return "bg-[#FFA500]/25 text-[#FFA500]";
+      case PROJECT_STATUSES.CANCELLED:
+        return "bg-[#CC0000]/25 text-[#CC0000]";
+      default:
+        return "bg-gray-200 text-gray-600";
+    }
+  };
 
   return (
     <button
@@ -66,7 +40,7 @@ function ViewProjectCard({ project, index, onClick }) {
       <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
         <div>
           <h2 className="text-xl font-bold text-[#990100] mb-3">
-            {project.name || `Project #${index + 1}`}
+            {project.project_name || `Project #${index + 1}`}
           </h2>
 
           <div className="flex items-center text-base mb-2 gap-2">
@@ -75,7 +49,7 @@ function ViewProjectCard({ project, index, onClick }) {
               alt="location"
               className="w-4 h-4"
             />
-            <span>{project.location}</span>
+            <span>{project.site_location}</span>
           </div>
 
           <div className="flex items-center text-base gap-2">
@@ -89,11 +63,8 @@ function ViewProjectCard({ project, index, onClick }) {
         </div>
 
         <div className="mt-4">
-          <span className={`inline-block  px-6 py-2 rounded-xl text-sm font-semibold"
-            ${project.status === "ONGOING" ? "bg-[#C8C8FF] text-[#0000FF]" : ""}
-            ${project.status === "COMPLETED" ? "text-[#198C19] bg-[#198C19]/25" : ""}
-            ${project.status === "ON HOLD" ? "bg-[#FFA500]/25 text-[#FFA500]" : ""}`}>
-              {project.status}
+          <span className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(project.status)}`}>
+            {project.status}
           </span>
         </div>
       </div>
@@ -101,15 +72,21 @@ function ViewProjectCard({ project, index, onClick }) {
   );
 }
 
-function EditableProjectCard({ project, index, onChange, onDelete }) {
+function EditableProjectCard({ project, index, onChange, onDelete, onSave, loading }) {
   const handleChange = (field, value) => {
     onChange(project.id, field, value);
   };
 
+  const handleSaveClick = async () => {
+    await onSave(project);
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#990100] mb-2">
-        {project.name || `Project #${index + 1}`}
+        {project.project_name || `Project #${index + 1}`}
       </h2>
 
       {/* PROJECT NAME INPUT */}
@@ -119,10 +96,11 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
         </label>
         <input
           type="text"
-          value={project.name}
-          onChange={(e) => handleChange("name", e.target.value)}
+          value={project.project_name || ''}
+          onChange={(e) => handleChange("project_name", e.target.value)}
           className="w-full project-field"
           placeholder="Enter project name"
+          disabled={loading}
         />
       </div>
 
@@ -134,10 +112,11 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
         />
         <input
           type="text"
-          value={project.location}
-          onChange={(e) => handleChange("location", e.target.value)}
+          value={project.site_location || ''}
+          onChange={(e) => handleChange("site_location", e.target.value)}
           className="flex-1 project-field"
           placeholder="Location"
+          disabled={loading}
         />
       </div>
 
@@ -148,39 +127,53 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
           className="w-4 h-4 mt-[2px]"
         />
         <input
-          type="text"
-          value={project.startDate}
-          onChange={(e) => handleChange("startDate", e.target.value)}
+          type="date"
+          value={project.start_date || ''}
+          onChange={(e) => handleChange("start_date", e.target.value)}
           className="project-field w-[40%]"
-          placeholder="Start Date"
+          max={project.end_date || today}
+          disabled={loading}
         />
         <span className="text-sm">to</span>
         <input
-          type="text"
-          value={project.endDate}
-          onChange={(e) => handleChange("endDate", e.target.value)}
+          type="date"
+          value={project.end_date || ''}
+          onChange={(e) => handleChange("end_date", e.target.value)}
           className="project-field w-[40%]"
-          placeholder="End Date"
+          min={project.start_date || today}
+          disabled={loading}
         />
       </div>
 
       <div className="mb-4 flex items-center gap-2">
         <span className="w-4" />
         <select
-          value={project.status}
+          value={project.status || PROJECT_STATUSES.ACTIVE}
           onChange={(e) => handleChange("status", e.target.value)}
           className="project-field w-40"
+          disabled={loading}
         >
-          <option value="ONGOING">ONGOING</option>
-          <option value="COMPLETED">COMPLETED</option>
-          <option value="ON HOLD">ON HOLD</option>
+          <option value={PROJECT_STATUSES.ACTIVE}>{PROJECT_STATUSES.ACTIVE}</option>
+          <option value={PROJECT_STATUSES.COMPLETED}>{PROJECT_STATUSES.COMPLETED}</option>
+          <option value={PROJECT_STATUSES.ON_HOLD}>{PROJECT_STATUSES.ON_HOLD}</option>
+          <option value={PROJECT_STATUSES.CANCELLED}>{PROJECT_STATUSES.CANCELLED}</option>
         </select>
       </div>
 
+      {/* BALIKAN MO TO */}
+      <button
+        onClick={handleSaveClick}
+        disabled={loading}
+        className="bg-[#22C55E] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#16A34A] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
+      >
+        {loading ? 'Saving...' : 'Save'}
+      </button>
+      {/* BALIKAN MO TO */}
+      
       <div className="flex justify-center">
         <button
           onClick={() => onDelete(project.id)}
-          className="bg-[#CC0000] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out"
+          className="bg-[#CC0000] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
         >
           Delete Project
         </button>
@@ -189,7 +182,7 @@ function EditableProjectCard({ project, index, onChange, onDelete }) {
   );
 }
 
-function NewProjectCard({ values, displayNumber, onChange }) {
+function NewProjectCard({ values, onChange, onSave, loading }) {
   const handleChange = (field, value) => {
     onChange({ ...values, [field]: value });
   };
@@ -197,7 +190,7 @@ function NewProjectCard({ values, displayNumber, onChange }) {
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">
-        {`Project #${displayNumber}`}
+        {`New Project`}
       </h2>
 
       {/* PROJECT NAME INPUT */}
@@ -207,10 +200,11 @@ function NewProjectCard({ values, displayNumber, onChange }) {
         </label>
         <input
           type="text"
-          value={values.name}
-          onChange={(e) => handleChange("name", e.target.value)}
+          value={values.project_name || ''}
+          onChange={(e) => handleChange("project_name", e.target.value)}
           className="w-full border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
           placeholder="Enter project name"
+          disabled={loading}
         />
       </div>
 
@@ -222,10 +216,11 @@ function NewProjectCard({ values, displayNumber, onChange }) {
         />
         <input
           type="text"
-          value={values.location}
-          onChange={(e) => handleChange("location", e.target.value)}
+          value={values.site_location || ''}
+          onChange={(e) => handleChange("site_location", e.target.value)}
           className="flex-1 border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
           placeholder="Location"
+          disabled={loading}
         />
       </div>
 
@@ -236,33 +231,49 @@ function NewProjectCard({ values, displayNumber, onChange }) {
           className="w-4 h-4 mt-[2px]"
         />
         <input
-          type="text"
-          value={values.startDate}
-          onChange={(e) => handleChange("startDate", e.target.value)}
+          type="date"
+          value={values.start_date || ''}
+          onChange={(e) => handleChange("start_date", e.target.value)}
           className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
           placeholder="Start Date"
+          min={values.start_date}
+          disabled={loading}
         />
         <span className="text-sm">to</span>
         <input
-          type="text"
-          value={values.endDate}
-          onChange={(e) => handleChange("endDate", e.target.value)}
+          type="date"
+          value={values.end_date || ''}
+          onChange={(e) => handleChange("end_date", e.target.value)}
           className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
           placeholder="End Date"
+          min={values.start_date}
+          disabled={loading}
         />
       </div>
 
       <div className="mb-1 flex items-center gap-2">
         <span className="w-4" />
         <select
-          value={values.status}
+          value={values.status || PROJECT_STATUSES.ACTIVE}
           onChange={(e) => handleChange("status", e.target.value)}
           className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-40"
+          disabled={loading}
         >
-          <option value="ONGOING">ONGOING</option>
-          <option value="COMPLETED">COMPLETED</option>
-          <option value="ON HOLD">ON HOLD</option>
+          <option value={PROJECT_STATUSES.ACTIVE}>{PROJECT_STATUSES.ACTIVE}</option>
+          <option value={PROJECT_STATUSES.COMPLETED}>{PROJECT_STATUSES.COMPLETED}</option>
+          <option value={PROJECT_STATUSES.ON_HOLD}>{PROJECT_STATUSES.ON_HOLD}</option>
+          <option value={PROJECT_STATUSES.CANCELLED}>{PROJECT_STATUSES.CANCELLED}</option>
         </select>
+      </div>
+
+      <div className="flex justify-center mt-3">
+        <button
+          onClick={onSave}
+          disabled={loading || !values.project_name || !values.site_location}
+          className="bg-[#16A34A] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? 'Creating ...' : 'Create Project'}
+        </button>
       </div>
     </div>
   );
@@ -271,16 +282,39 @@ function NewProjectCard({ values, displayNumber, onChange }) {
 function Projects() {
   const navigate = useNavigate();
 
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
   const [mode, setMode] = useState("view");
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [newProject, setNewProject] = useState({
-    name: "",
-    location: "",
-    startDate: "",
-    endDate: "",
-    status: "ONGOING",
+    project_name: "",
+    site_location: "",
+    start_date: "",
+    end_date: "",
+    status: PROJECT_STATUSES.ACTIVE,
   });
+
+  // fetch projects from backend
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await get('/projects');
+
+        if (response.success){
+          setProjects(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+        setError(error.message || 'Failed to load projects');
+      } finally { setLoading(false); }
+    };
+
+    fetchProjects();
+
+  }, []);
 
   const handleEditClick = () => {
     setMode("edit");
@@ -288,40 +322,104 @@ function Projects() {
 
   const handleAddClick = () => {
     setNewProject({
-      name: "",
-      location: "",
-      startDate: "",
-      endDate: "",
-      status: "ONGOING",
+      project_name: "",
+      site_location: "",
+      start_date: "",
+      end_date: "",
+      status: PROJECT_STATUSES.ACTIVE,
     });
     setMode("add");
   };
 
-  const handleSaveChanges = () => {
-    if (mode === "add") {
-      const hasAnyValue =
-        newProject.name ||
-        newProject.location ||
-        newProject.startDate ||
-        newProject.endDate ||
-        newProject.status !== "ONGOING";
-
-      if (hasAnyValue) {
-        setProjects((prev) => [
-          ...prev,
-          {
-            id: prev.length ? Math.max(...prev.map((p) => p.id)) + 1 : 1,
-            name: newProject.name || `Project ${prev.length + 1}`,
-            location: newProject.location || "Pampanga",
-            startDate: newProject.startDate || "06/06/25",
-            endDate: newProject.endDate || "01/06/26",
-            status: newProject.status || "ONGOING",
-          },
-        ]);
-      }
+  // create new project
+  const handleCreateProject = async () => {
+    if (!newProject.project_name || !newProject.site_location) {
+      alert('Please fill in project name and location');
+      return;
     }
 
-    setMode("view");
+    try {
+      setActionLoading(true);
+
+      const response = await post('/projects', {
+        project_name: newProject.project_name,
+        site_location: newProject.site_location,
+        start_date: newProject.start_date || null,
+        end_date: newProject.end_date || null,
+        status: newProject.status || PROJECT_STATUSES.ACTIVE
+      });
+
+      if (response.success) {
+        setProjects(prev => [...prev, response.data]);
+        alert(`Project ${newProject.project_name} created successfully!`);
+        setNewProject({
+          project_name: "",
+          site_location: "",
+          start_date: "",
+          end_date: "",
+          status: PROJECT_STATUSES.ACTIVE,
+        });
+        setMode('view');
+      }
+    } catch (error) {
+      console.error('Create project error:', error);
+      alert(error.message || 'Failed to create project');
+    } finally { setActionLoading(false); }
+  };
+
+  // update project
+  const handleSaveProject = async (project) => {
+    if (!project.project_name || !project.site_location) {
+      alert('Please fill in project name and location');
+      return;
+    }
+
+    const confirmUpdate = window.confirm(`Save changes to "${project.project_name}"?`);
+    if (!confirmUpdate) return;
+
+    try {
+      setActionLoading(true);
+
+      const response = await put(`/projects/${project.id}`, {
+        project_name: project.project_name,
+        site_location: project.site_location,
+        start_date: project.start_date || null,
+        end_date: project.end_date || null,
+        status: project.status
+      });
+
+      if (response.success) {
+        setProjects(prev =>
+          prev.map(p => p.id === project.id ? response.data : p)
+        );
+        alert(`Project "${project.project_name}" updated successfully!`);
+      }
+    } catch (error) {
+      console.error('Update project error:', error);
+      alert(error.message || 'Failed to update project');
+    } finally { setActionLoading(false); }
+  };
+
+  // delete project
+  const handleDeleteProject = async (id) => {
+    const project = projects.find(p => p.id === id);
+    const confirmDelete = window.confirm(`Are you sure you want to delete "${project?.project_name}"? This action cannot be undone.`);
+
+    if (!confirmDelete) return;
+
+    try {
+      setActionLoading(true);
+
+      const response = await del(`/projects/${id}`);
+
+      if (response.success) {
+        setProjects(prev => prev.filter(p => p.id !== id));
+        alert('Project deleted successfully');
+      }
+    } catch (error) {
+      console.error('Delete project error:', error);
+      alert(error.message || 'Failed to delete project');
+    } finally { setActionLoading(false); }
   };
 
   const handleFieldChange = (id, field, value) => {
@@ -330,9 +428,46 @@ function Projects() {
     );
   };
 
-  const handleDeleteProject = (id) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
+  const handleCancelAdd = () => {
+    setNewProject({
+      project_name: "",
+      site_location: "",
+      start_date: "",
+      end_date: "",
+      status: PROJECT_STATUSES.ACTIVE,
+    });
+    setMode("view");
   };
+
+  if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-[#990100] text-white px-4 py-2 rounded"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   let cardDescriptors;
 
@@ -409,63 +544,97 @@ function Projects() {
             </>
           )}
 
-          {mode !== "view" && (
+          {/* {mode !== "view" && (
             <button
               className="bg-[#16A34A] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out"
               onClick={handleSaveChanges}
             >
               Save Changes
             </button>
+          )} */}
+
+          {mode === "edit" && (
+            <button
+              className="bg-[#16A34A] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out"
+              onClick={() => setMode("view")}
+            >
+              Done Editing
+            </button>
+          )}
+
+          {mode === "add" && (
+            <button
+              className="bg-[#CC0000] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out"
+              onClick={handleCancelAdd}
+            >
+              Cancel
+            </button>
           )}
         </div>
 
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {cardDescriptors.map((item, index) => {
-            if (item.type === "new") {
-              return (
-                <NewProjectCard
-                  key="new-project"
-                  values={newProject}
-                  displayNumber={projects.length + 1}
-                  onChange={setNewProject}
-                />
-              );
-            }
+        {projects.length === 0 && mode === "view" ? (
+          <div className="mt-8 text-center py-20">
+            <p className="text-gray-500 mb-4">No projects found</p>
+            <button
+              className="bg-[#F59E0B] text-white px-6 py-3 rounded-md hover:scale-105 transition duration-300 ease-in-out"
+              onClick={handleAddClick}
+            >
+              Create Your First Project
+            </button>
+          </div>
+        ) : (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {cardDescriptors.map((item, index) => {
+              if (item.type === "new") {
+                return (
+                  <NewProjectCard
+                    key="new-project"
+                    values={newProject}
+                    onChange={setNewProject}
+                    onSave={handleCreateProject}
+                    loading={actionLoading}
+                  />
+                );
+              }
 
-            if (item.type === "edit") {
+              if (item.type === "edit") {
+                return (
+                  <EditableProjectCard
+                    key={item.project.id}
+                    project={item.project}
+                    index={index}
+                    onChange={handleFieldChange}
+                    onDelete={handleDeleteProject}
+                    onSave={handleSaveProject}
+                    loading={actionLoading}
+                  />
+                );
+              }
+
               return (
-                <EditableProjectCard
+                <ViewProjectCard
                   key={item.project.id}
                   project={item.project}
                   index={index}
-                  onChange={handleFieldChange}
-                  onDelete={handleDeleteProject}
+                  onClick={() => navigate(`/projects/${item.project.id}`)}
                 />
               );
-            }
+            })}
+          </div>
+        )}
 
-            return (
-              <ViewProjectCard
-                key={item.project.id}
-                project={item.project}
-                index={index}
-                onClick={() => navigate(`/projects/${index + 1}`)}
-              />
-            );
-          })}
-        </div>
-
-
-        <div className="flex items-center justify-end mt-10 space-x-2">
-          <span className="text-[#990100] hover:underline cursor-pointer mr-3">
-                &lt;
-          </span>
-          <span className="text-sm font-medium mr-3">1</span>
-          <span className="text-sm mr-3">to 5</span>
-          <span className="text-[#990100] hover:underline cursor-pointer">
-            &gt;
-          </span>
-        </div>
+        {projects.length > 0 && (
+          <div className="flex items-center justify-end mt-10 space-x-2">
+            <span className="text-[#990100] hover:underline cursor-pointer mr-3">
+              &lt;
+            </span>
+            <span className="text-sm font-medium mr-3">1</span>
+            <span className="text-sm mr-3">to {Math.min(6, projects.length)}</span>
+            <span className="text-[#990100] hover:underline cursor-pointer">
+              &gt;
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
