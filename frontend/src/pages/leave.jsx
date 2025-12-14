@@ -1,132 +1,215 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "./components/navbar";
 import DropDownFilter from "./components/dropdownfilter";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import "./leave-page/leave.css";
 
-const leaveCards = [
-  {
-    id: 1,
-    dateLabel: "01, Monday",
-    description: "Special Non-Working Day",
-    badgeColor: "bg-[#E2C6FF] text-[#5A1A8A]",
-  },
-  {
-    id: 2,
-    dateLabel: "05, Friday",
-    description: "Reuel Christian Sundiam - SIL",
-    badgeColor: "bg-[#FFE1A3] text-[#805200]",
-  },
-  {
-    id: 3,
-    dateLabel: "11, Thursday",
-    description: "Reuel Christian Sundiam - SIL",
-    badgeColor: "bg-[#FFE1A3] text-[#805200]",
-  },
-  {
-    id: 4,
-    dateLabel: "24, Wednesday",
-    description: "Reuel Christian Sundiam - SIL",
-    badgeColor: "bg-[#FFE1A3] text-[#805200]",
-  },
-];
+function formatPrettyDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
 
-function Leave() {
+function EventPopover({ open, anchor, data, onClose }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open || !data) return null;
+  const CARD_W = 430;
+  const CARD_H = 260;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const left = Math.max(16, Math.min(anchor.x - 60, vw - CARD_W - 16));
+  const top = Math.max(16, Math.min(anchor.y - 80, vh - CARD_H - 16));
+
   return (
-    <div>
-      <Navbar />
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/10" />
 
-      <div className="p-7 lg:mx-18 md:mx-10">
-        <div className="md:flex justify-between items-center w-full">
-          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
-            Leave
-          </h1>
-          <div className="flex items=center justify-end md:gap-4 gap-3">
-            <DropDownFilter />
-            <div className="relative text-gray-600 border border-[#990100] rounded-lg">
-              <input
-                type="search"
-                name="search"
-                placeholder="Search"
-                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
+      <div ref={ref} className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style={{ width: CARD_W, height: CARD_H, left, top }}>
+          <div className="relative p-3 flex justify-end gap-2 border-b">
+            <button className="gc-icon-btn" title="Close" onClick={onClose}>✕</button>
+          </div>
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <span
+                className="gc-dot"
+                style={{ background: data.dotColor || "#F59E0B" }}
               />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
-              >
-                <img
-                  src="icons/red-search.png"
-                  className="lg:w-5 lg:h-5 w-4 h-4 items-center"
-                  alt="search"
-                />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <hr className="mt-6 border-t border-[#990100]" />
-        <div className="mt-10 flex flex-col lg:flex-row gap-10">
-          <div className="flex-1">
-            <h2 className="text-[24px] lg:text-[28px] font-bold text-[#990100] mb-8">
-              JANUARY
-            </h2>
-
-            <div className="flex flex-wrap gap-6 lg:gap-8">
-              {leaveCards.map((card) => (
-                <div
-                  key={card.id}
-                  className="w-full sm:w-[260px] lg:w-[270px] h-[170px] bg-[#F4F4F4] rounded-xl shadow-md px-6 py-5 flex flex-col justify-between hover:scale-[1.02] transition duration-300 ease-in-out"
-                >
-                  <p className="text-[18px] lg:text-[20px] font-semibold text-[#990100]">
-                    {card.dateLabel}
-                  </p>
-
-                  <div className="mt-5">
-                    <span
-                      className={`inline-block px-4 py-2 rounded-md text-[12px] lg:text-[13px] font-medium ${card.badgeColor}`}
-                    >
-                      {card.description}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="w-full lg:w-[260px] xl:w-[280px]">
-            <div className="bg-white rounded-xl shadow-md border border-[#E0E0E0] h-[430px] flex flex-col">
-              <div className="px-6 pt-6">
-                <h3 className="text-[20px] lg:text-[22px] font-bold text-[#990100]">
-                  Calendars
+              <div>
+                <h3 className="text-2xl font-medium text-gray-900 leading-tight">
+                  {data.title}
                 </h3>
-                <hr className="mt-2 border-t border-[#990100]" />
+                <p className="text-sm text-gray-600 mt-1">
+                  {formatPrettyDate(data.date)}
+                </p>
               </div>
-
-              <div className="px-6 pt-8 space-y-6 text-[13px]">
-                <div className="flex items-center gap-3">
-                  <span className="w-4 h-4 rounded-sm bg-[#6D28D9]" />
-                  <span>Holiday</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="w-4 h-4 rounded-sm bg-[#F59E0B]" />
-                  <span>SIL</span>
-                </div>
+            </div>
+            <div className="mt-6 space-y-4 text-sm text-gray-800">
+              <div className="gc-row">
+                <span className="gc-row-icon">≡</span>
+                <span>{data.category || "Leave"}</span>
               </div>
-
-              <div className="flex-1" />
+              <div className="gc-row">
+              <span className="gc-row-icon">📅</span>
+              <span>{data.calendarName || "SIL"}</span>
             </div>
           </div>
-        </div>
-
-        <div className="flex justify-end items-center mt-10 text-[13px]">
-          <button className="text-[#990100] mr-4 hover:underline">&lt;</button>
-          <span className="border border-[#990100] rounded-md px-2 py-1 mr-3 text-[#990100]">
-            1
-          </span>
-          <span className="mr-3">to 12</span>
-          <button className="text-[#990100] hover:underline">&gt;</button>
         </div>
       </div>
     </div>
   );
 }
 
-export default Leave;
+export default function Leave() {
+const rawEvents = [
+  {
+    id: "1",
+    title: "Reuel Christian Sundiam - SIL",
+    date: "2025-12-15",
+    pillBg: "#FFE1A3",
+    pillText: "#FF8A00",
+    dotColor: "#F59E0B",
+  },
+  {
+    id: "2",
+    title: "Lance Paolo Cabe - SIL",
+    date: "2025-12-05",
+    pillBg: "#FFE1A3",
+    pillText: "#FF8A00",
+    dotColor: "#F59E0B",
+  },
+];
+
+  const calendarEvents = useMemo(
+    () =>
+      rawEvents.map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.date,
+        backgroundColor: "transparent",
+        borderColor: "transparent",
+        textColor: "inherit",
+        extendedProps: {
+          title: e.title,
+          date: e.date,
+          dotColor: e.dotColor,
+          category: e.category,
+          calendarName: e.calendarName,
+          visibility: e.visibility,
+          pillBg: e.pillBg,
+          pillText: e.pillText,
+        },
+      })),
+    []
+  );
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [anchor, setAnchor] = useState({ x: 200, y: 200 });
+
+  return (
+    <div>
+      <Navbar />
+      <div className="p-7 lg:mx-18 md:mx-10">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold text-[#990100]">Leave</h1>
+          <div className="flex gap-3">
+            <DropDownFilter />
+            <input
+              type="search"
+              placeholder="Search"
+              className="border border-[#990100] rounded-lg px-3 h-9 text-sm"
+            />
+          </div>
+        </div>
+
+        <hr className="border-[#990100] mb-6" />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3 bg-white rounded-xl border border-gray-300 shadow-sm px-6 py-5">
+            <FullCalendar
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              height="auto"
+              fixedWeekCount={false}
+              expandRows={true}
+              showNonCurrentDates={true}
+              dayMaxEvents={true}
+              eventDisplay="block"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "",
+              }}
+
+              events={calendarEvents}
+              eventContent={(arg) => {
+                const bg = arg.event.extendedProps?.pillBg || "#FFE1A3";
+                const color = arg.event.extendedProps?.pillText || "#FF8A00";
+
+                return (
+                  <div
+                    className="gc-event-pill"
+                    style={{ background: bg, color }}
+                    title={arg.event.title}
+                  >
+                    {arg.event.title}
+                  </div>
+                );
+              }}
+
+              eventClick={(info) => {
+                const x = info.jsEvent?.clientX ?? 200;
+                const y = info.jsEvent?.clientY ?? 200;
+                setAnchor({ x, y });
+                setSelected(info.event.extendedProps);
+                setPopoverOpen(true);
+              }}
+            />
+          </div>
+
+          <div className="gc-legend">
+            <div className="gc-legend-title">Calendars</div>
+            <div className="gc-legend-line" />
+            <div className="gc-legend-item">
+              <span
+                className="gc-legend-color"
+                style={{ background: "#F59E0B" }}
+              />
+              <span>SIL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <EventPopover
+        open={popoverOpen}
+        anchor={anchor}
+        data={selected}
+        onClose={() => setPopoverOpen(false)}
+      />
+    </div>
+  );
+}
