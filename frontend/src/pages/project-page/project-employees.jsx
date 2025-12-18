@@ -162,38 +162,38 @@ function ProjectEmployees() {
         <div className="flex justify-end mt-5">
           <button
             onClick={openAddModal}
-            className="bg-[#b63b3a] text-white px-5 py-2 rounded-md hover:bg-[#990100] hover:scale-105 transition"
+            className="generate-report-button"
           >
             Add Employee
           </button>
         </div>
 
-        <div className="overflow-x-auto bg-white border border-gray-300 rounded-lg mt-6 shadow-lg px-8 py-10">
-          <table className="min-w-full text-center">
-            <thead className="bg-[#990100] text-white">
+        <div className="div-table">
+          <table className="table-style">
+            <thead className="thead-style">
               <tr>
-                <th className="px-6 py-3 text-xs rounded-tl-lg">Employee ID</th>
-                <th className="px-6 py-3 text-xs">Name</th>
-                <th className="px-6 py-3 text-xs">Position</th>
-                <th className="px-6 py-3 text-xs">Personnel Type</th>
-                <th className="px-6 py-3 text-xs">Date Added</th>
-                <th className="px-6 py-3 text-xs rounded-tr-lg">Actions</th>
+                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                <th className="th-style">Name</th>
+                <th className="th-style">Position</th>
+                <th className="th-style">Personnel Type</th>
+                <th className="th-style">Date Added</th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-[#990100]">
+            <tbody className="tbody-style">
               {employeeRows.map((row) => (
                 <tr
                   key={row.id}
-                  className="even:bg-gray-100 hover:bg-[#f4e5e5]"
+                  className="tr-style"
                 >
-                  <td className="px-6 py-3">{row.id}</td>
-                  <td className="px-6 py-3">{row.name}</td>
-                  <td className="px-6 py-3">{row.position}</td>
-                  <td className="px-6 py-3">{row.personnelType}</td>
-                  <td className="px-6 py-3">{row.dateAdded}</td>
+                  <td className="td-style font-medium">{row.id}</td>
+                  <td className="td-style">{row.name}</td>
+                  <td className="td-style">{row.position}</td>
+                  <td className="td-style">{row.personnelType}</td>
+                  <td className="td-style">{row.dateAdded}</td>
 
-                  <td className="px-6 py-3">
+                  <td className="td-style">
                     <button className="bg-[#CC0000] text-white text-sm px-4 py-[6px] rounded-lg hover:bg-[#aa0000] hover:scale-105 transition">
                       Delete
                     </button>

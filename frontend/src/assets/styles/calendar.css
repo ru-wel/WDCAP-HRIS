@@ -1,8 +1,8 @@
 .react-calendar{
   border-radius: 10px;
-  background-color: #EDEDED !important;
+  /*background-color: #EDEDED !important;*/
   border: none !important;
-  height: 250px;
+  height: 275px;
 }
 
 .react-calendar__tile--now {

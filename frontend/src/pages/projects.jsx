@@ -161,23 +161,28 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
       </div>
 
       {/* BALIKAN MO TO */}
-      <button
-        onClick={handleSaveClick}
-        disabled={loading}
-        className="bg-[#22C55E] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#16A34A] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
-      >
-        {loading ? 'Saving...' : 'Save'}
-      </button>
-      {/* BALIKAN MO TO */}
-      
-      <div className="flex justify-center">
+
+      <div className="flex justify-center items-center gap-4 ">
         <button
+          onClick={handleSaveClick}
+          disabled={loading}
+          className="bg-[#22C55E] text-white px-6 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#16A34A] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : 'Save'}
+        </button>
+
+       <button
           onClick={() => onDelete(project.id)}
-          className="bg-[#CC0000] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
+          className="bg-[#CC0000] text-white lg:px-6 px-5 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
         >
           Delete Project
         </button>
+      {/* BALIKAN MO TO */}
       </div>
+      
+      {/*<div className="flex justify-center">
+       
+      </div>*/}
     </div>
   );
 }
@@ -526,17 +531,17 @@ function Projects() {
         <div className="flex justify-end mt-6 gap-3 flex-wrap">
           {mode === "view" && (
             <>
-              <button className="bg-[#ad3332] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out">
+              <button className="generate-report-button">
                 Generate Report
               </button>
               <button
-                className="bg-[#22C55E] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out"
+                className="green-button"
                 onClick={handleEditClick}
               >
                 Edit Projects
               </button>
               <button
-                className="bg-[#F59E0B] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out"
+                className="mustard-button"
                 onClick={handleAddClick}
               >
                 Add New Project

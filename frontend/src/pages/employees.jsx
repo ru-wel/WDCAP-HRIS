@@ -375,25 +375,25 @@ function Employees(){
                 <hr className='text-[#990100] mt-6 '/>
 
                 <div className="flex justify-end mt-5">
-                    <button className='bg-[#ad3332] lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-md text-sm rounded-md text-white hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out'>Generate Report</button>
+                    <button className='generate-report-button'>Generate Report</button>
                 </div>
 
                 {/* TABLE */}
                 
 
-                <div className="overflow-x-auto bg-white border border-gray-300 rounded-lg overflow-hidden mt-5 shadow-lg lg:px-8 px-12 py-10">
-                    <table className="min-w-full text-center">
-                        <thead className="bg-[#990100] text-white ">
+                <div className="div-table">
+                    <table className="table-style">
+                        <thead className="thead-style">
                             <tr>
-                                <th className="px-6 py-3 text-xs tracking-wider rounded-tl-lg rounded-bl-lg">Employee ID</th>
-                                <th className="px-6 py-3 text-xs tracking-wider">Name</th>
-                                <th className="px-6 py-3 text-xs tracking-wider">Position</th>
-                                <th className="px-6 py-3 text-xs tracking-wider hidden sm:table-cell">Hire Date</th>
-                                <th className="px-6 py-3 text-xs tracking-wider hidden sm:table-cell">Personnel Type</th>
-                                <th className="px-6 py-3 text-xs tracking-wider rounded-tr-lg rounded-br-lg">Actions</th>
+                                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                                <th className="th-style">Name</th>
+                                <th className="th-style">Position</th>
+                                <th className="th-style hidden sm:table-cell">Hire Date</th>
+                                <th className="th-style hidden sm:table-cell">Personnel Type</th>
+                                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className='divide-y divide-[#990100]'>
+                        <tbody className='tbody-style'>
                             {employees.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
@@ -402,26 +402,26 @@ function Employees(){
                                 </tr>
                             ) : (
                                 employees.map((row) => (
-                                    <tr key={row.id} className="odd:bg-transparent even:bg-gray-100 hover:bg-[#f4e5e5]">
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 font-medium">
+                                    <tr key={row.id} className="tr-style">
+                                        <td className="td-style font-medium">
                                             {row.employee_id}
                                         </td>
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
+                                        <td className="td-style">
                                             {row.first_name} {row.last_name}
                                         </td>
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
+                                        <td className="td-style">
                                             {row.position_title}
                                         </td>
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
+                                        <td className="td-style hidden sm:table-cell">
                                             {row.hire_date}
                                         </td>
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900 hidden sm:table-cell">
+                                        <td className="td-style hidden sm:table-cell">
                                             {row.personnel_type}
                                         </td>
-                                        <td className="px-6 py-2 lg:text-sm text-xs text-gray-900">
+                                        <td className="td-style">
                                             <button
                                                 className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332]       
-hover:scale-105 transition duration-300 ease-in-out"
+hover:scale-105 transition duration-300 ease-in-out "
                                                 onClick={() => handleOpen(row)}
                                             >
                                                 View Details

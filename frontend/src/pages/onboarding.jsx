@@ -104,7 +104,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="text-sm pb-2"><b>Phone No.:</b></p>
-                        <input type="tel" maxLength="11" className="input-field" value={data.phone} placeholder="Employee's Phone No." onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
+                        <input type="tel" maxLength="11" className="input-field" value={data.phone} placeholder="09xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
                     </div>
                 </div>
 
@@ -120,7 +120,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                 <div className="mt-4">
                     <p className="text-sm pb-2"><b>Emergency Contact No.:</b></p>
-                    <input type="tel" maxLength="11" className="input-field w-full" placeholder="Emergency Contact No." value={data.emergencyPhone} onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, emergencyPhone: e.target.value })} required/>
+                    <input type="tel" maxLength="11" className="input-field w-full" placeholder="09xxxxxxxxx" value={data.emergencyPhone} onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, emergencyPhone: e.target.value })} required/>
                 </div>
 
             </div>
