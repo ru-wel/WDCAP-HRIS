@@ -14,8 +14,8 @@ status,
 notes,
 created_at,
 updated_at,
-employees (id, first_name, last_name),
-projects (id, project_name)
+employees (first_name, last_name, employee_id, personnel_type, positions (position_title)),
+projects (project_name)
 `;
 
 // CREATE ASSIGNMENT
@@ -104,6 +104,24 @@ export const getAssignmentById = async (assignmentId) => {
 
   } catch (error) {
     logger.error(`Error fetching assignment ${assignmentId}:`, error);
+    throw error;
+  }
+};
+
+// GET ASSIGNMENT BY PROJECT ID
+export const getAssignmentByProject = async (projectId) => {
+  try {
+    const { data: assignments, error } = await supabase
+      .from('project_assignments')
+      .select(assignmentFields)
+      .eq('project_id', projectId)
+      .order('assignment_date', { ascending: true });
+
+    if (error || !assignments) throw new NotFoundError('Assignment not found');
+    return assignments || [];
+
+  } catch (error) {
+    logger.error(`Error fetching assignments ${projectId}:`, error);
     throw error;
   }
 };

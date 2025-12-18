@@ -17,6 +17,9 @@ router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValid
 router.get('/', assignmentController.getAllAssignments);
 
 // GET ASSIGNMENT BY ID
+router.get('/by-project/:projectId', assignmentController.getAssignmentByProject);
+
+// GET ASSIGNMENT BY ID
 router.get('/:id', validate(assignmentValidation.assignmentIdSchema), assignmentController.getAssignmentById);
 
 // UPDATE ASSIGNMENT - Admin & HR

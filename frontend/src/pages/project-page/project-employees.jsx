@@ -1,33 +1,82 @@
-import React, { useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
+import { get, post, put, del } from "../../services/api.js";
 
-function AddEmployeeModal({ isOpen, onClose }) {
+function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded }) {
   const [searchTerm, setSearchTerm] = React.useState("");
-  const [selectedEmployee, setSelectedEmployee] = React.useState("");
-  
-  const employees = [
-    "Lance Cabe",
-    "Reuel Christian Sundiam",
-    "Gabrielle Delos Santos",
-    "Carl Paldeng",
-  ];
+  const [selectedEmployee, setSelectedEmployee] = React.useState(null);
+  const [availableEmployees, setAvailableEmployees] = React.useState([]);
+  const [assignmentDate, setAssignmentDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [status, setStatus] = React.useState("Active");
+  const [loading, setLoading] = React.useState(false);
+  const [addLoading, setAddLoading] = React.useState(false);
 
+  // fetch available employees when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchAvailableEmployees();
+    }
+  }, [isOpen, projectId]);
+
+  const fetchAvailableEmployees = async () => {
+    try {
+      setLoading(true);
+      const response = await get('/employees');
+
+      if (response.success) {
+        setAvailableEmployees(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch employees:', error);
+      alert('Failed to load employees');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   const filteredEmployees = searchTerm
-    ? employees.filter((name) =>
-        name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+    ? availableEmployees.filter((emp) => {
+        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+        return fullName.includes(searchTerm.toLowerCase());
+      })
     : [];
 
-  const handleSelectEmployee = (name) => {
-    setSelectedEmployee(name);
+  const handleSelectEmployee = (employee) => {
+    setSelectedEmployee(employee);
     setSearchTerm("");
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!selectedEmployee) return;
-    onClose();
+
+    try {
+      setAddLoading(true);
+
+      const response = await post('/projectassignments', {
+        project_id: projectId,
+        employee_id: selectedEmployee.id,
+        assignment_date: assignmentDate,
+        status: status
+      });
+
+      if (response.success) {
+        alert(`${selectedEmployee.first_name} ${selectedEmployee.last_name} added to project successfully!`);
+        onEmployeeAdded(); // Refresh the employee list
+        // Reset form
+        setSelectedEmployee(null);
+        setSearchTerm("");
+        setAssignmentDate(new Date().toISOString().split('T')[0]);
+        setStatus("Active");
+        onClose();
+      }
+    } catch (error) {
+      console.error('Failed to add employee:', error);
+      alert(error.message || 'Failed to add employee to project');
+    } finally {
+      setAddLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -47,88 +96,163 @@ function AddEmployeeModal({ isOpen, onClose }) {
         </div>
 
         <div className="mt-6 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3 w-full max-w-md">
-            <input
-              type="text"
-              placeholder="Search Name"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 border rounded-lg px-3 py-2 text-base shadow"
-            />
+          {loading ? (
+            <p className="text-gray-600">Loading employees...</p>
+          ): (
+            <>
+              <div className="flex items-center gap-3 w-full max-w-md">
+                <input
+                  type="text"
+                  placeholder="Search Name"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1 border rounded-lg px-3 py-2 text-base shadow"
+                />
 
-            <button
-              onClick={handleAdd}
-              disabled={!selectedEmployee}
-              className={`px-6 py-2 rounded-lg text-base font-medium transition
-                ${
-                  selectedEmployee
-                    ? "bg-[#990100] text-white hover:bg-[#7a0100] hover:scale-105"
-                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
-                }`}
-            >
-              Add
-            </button>
-          </div>
-
-          {filteredEmployees.length > 0 && (
-            <div className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto">
-              {filteredEmployees.map((name) => (
                 <button
-                  key={name}
-                  type="button"
-                  onClick={() => handleSelectEmployee(name)}
-                  className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F5F5]"
+                  onClick={handleAdd}
+                  disabled={!selectedEmployee || addLoading}
+                  className={`px-6 py-2 rounded-lg text-base font-medium transition
+                    ${
+                      selectedEmployee && !addLoading
+                        ? "bg-[#990100] text-white hover:bg-[#7a0100] hover:scale-105"
+                        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                    }`}
                 >
-                  {name}
+                  {addLoading ? 'Adding ...' : 'Add'}
                 </button>
-              ))}
-            </div>
+              </div>
+
+              {filteredEmployees.length > 0 && (
+                <div className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto">
+                  {filteredEmployees.map((employee) => (
+                    <button
+                      key={employee.id}
+                      type="button"
+                      onClick={() => handleSelectEmployee(employee)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F5F5]"
+                    >
+                      {employee.first_name} {employee.last_name} ({employee.employee_id})
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedEmployee && (
+                <input
+                  type="text"
+                  value={`${selectedEmployee.first_name} ${selectedEmployee.last_name} (${selectedEmployee.employee_id})`}
+                  readOnly
+                  className="w-full max-w-md border rounded-lg px-3 py-2 text-base shadow bg-gray-50"
+                />
+              )}
+
+              {selectedEmployee && (
+                <>
+                  <div className="w-full max-w-md mt-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assignment Date
+                    </label>
+                    <input
+                      type="date"
+                      value={assignmentDate}
+                      onChange={(e) => setAssignmentDate(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 text-base shadow"
+                    />
+                  </div>
+
+                  <div className="w-full max-w-md">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                      className="w-full border rounded-lg px-3 py-2 text-base shadow"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </>
           )}
 
-          {selectedEmployee && (
-            <input
-              type="text"
-              value={selectedEmployee}
-              readOnly
-              className="w-full max-w-md border rounded-lg px-3 py-2 text-base shadow"
-            />
-          )}
         </div>
       </div>
     </div>
   );
 }
 
-const employeeRows = [
-  {
-    id: "AC-00001",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    personnelType: "Regular",
-    dateAdded: "10/20/25",
-  },
-  {
-    id: "AC-00002",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    personnelType: "Regular",
-    dateAdded: "10/20/25",
-  },
-  {
-    id: "AC-00003",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    personnelType: "Regular",
-    dateAdded: "10/20/25",
-  },
-];
-
 function ProjectEmployees() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
+
+  // state for project employees
+  const [projectEmployees, setProjectEmployees] = useState([]);
+  const [projectDetails, setProjectDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const openAddModal = () => setAddModalOpen(true);
   const closeAddModal = () => setAddModalOpen(false);
+
+  // fetch project details
+  const fetchProjectDetails = async () => {
+    try {
+      const response = await get(`/projects/${projectId}`);
+
+      if (response.success) {
+        setProjectDetails(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch project details:', error);
+    }
+  };
+
+  // fetch project employees
+  const fetchProjectEmployees = async () => {
+    try {
+        setLoading(true);
+        const response = await get(`/projectassignments/by-project/${projectId}`);
+
+        if (response.success) {
+          setProjectEmployees(response.data);
+        }
+
+      } catch (error) {
+        console.error('Failed to fetch project employees:', error);
+        setError(error.message || 'Failed to load employees');
+      } finally { setLoading(false); }
+    };
+
+  const handleDeleteEmployee = async (assignmentId) => {
+    const confirmDelete = window.confirm('Are you sure you want to remove this employee from the project?');
+
+    if (!confirmDelete) return;
+
+    try {
+      const response = await del(`/projectassignments/${assignmentId}`);
+
+      if (response.success) {
+        alert('Employee removed from project successfully!');
+        fetchProjectEmployees();
+      }
+    } catch (error) {
+      console.error('Failed to remove employee:', error);
+      alert(error.message || 'Failed to remove employee from project');
+    }
+  };
+
+  useEffect(() => {
+    if (projectId) {
+      fetchProjectDetails();
+      fetchProjectEmployees();
+    }
+  }, [projectId]);
 
   return (
     <div>
@@ -136,9 +260,16 @@ function ProjectEmployees() {
 
       <div className="p-7 lg:mx-18 md:mx-10">
         <div className="flex justify-between items-center">
-          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-            Project #{projectId || 1} Employees
-          </h1>
+
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/projects')} className="text-[#990100] hover:text-[#CC0000] transition-colors flex items-center gap-1 text-sm font-medium cursor-pointer">
+              <span className="text-xl">←</span>Back
+            </button>
+            <span className="text-gray-300">|</span>
+            <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
+              {projectDetails?.project_name || `Project #${projectId}`} Employees
+            </h1>
+          </div>
 
           <div className="flex items-center gap-3">
             <DropDownFilter />
@@ -158,15 +289,32 @@ function ProjectEmployees() {
         </div>
 
         <hr className="text-[#990100] mt-6" />
+        
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <p className="text-gray-600">Loading employees...</p>
+          </div>
+        )}
 
-        <div className="flex justify-end mt-5">
-          <button
-            onClick={openAddModal}
-            className="generate-report-button"
-          >
-            Add Employee
-          </button>
-        </div>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+            <button onClick={() => window.location.reload()} className="mt-2 bg-red-600 text-white px-4 py-2 rounded text-sm">Retry</button>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
+            <div className="flex justify-end mt-5">
+              <button
+                onClick={openAddModal}
+                className="generate-report-button"
+              >
+                Add Employee
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="div-table">
           <table className="table-style">
@@ -182,19 +330,26 @@ function ProjectEmployees() {
             </thead>
 
             <tbody className="tbody-style">
-              {employeeRows.map((row) => (
+              {projectEmployees.map((assignment) => (
                 <tr
-                  key={row.id}
+                  key={assignment.id}
                   className="tr-style"
                 >
-                  <td className="td-style font-medium">{row.id}</td>
-                  <td className="td-style">{row.name}</td>
-                  <td className="td-style">{row.position}</td>
-                  <td className="td-style">{row.personnelType}</td>
-                  <td className="td-style">{row.dateAdded}</td>
+                  <td className="td-style font-medium">{assignment.employees?.employee_id || 'N/A'}</td>
+                  <td className="td-style">{assignment.employees?.first_name + " " + assignment.employees?.last_name || 'Unknown'}</td>
+                  <td className="td-style">{assignment.employees?.positions?.position_title || 'N/A'}</td>
+                  <td className="td-style">{assignment.employees?.personnel_type}</td>
+                  <td className="td-style">
+                    {assignment.assignment_date
+                      ? new Date(assignment.assignment_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
+                      : 'N/A'}
+                  </td>
 
                   <td className="td-style">
-                    <button className="bg-[#CC0000] text-white text-sm px-4 py-[6px] rounded-lg hover:bg-[#aa0000] hover:scale-105 transition">
+                    <button
+                      onClick={() => handleDeleteEmployee(assignment.id)}
+                      className="bg-[#CC0000] text-white text-sm px-4 py-[6px] rounded-lg hover:bg-[#aa0000] hover:scale-105 transition"
+                    >
                       Delete
                     </button>
                   </td>
@@ -205,7 +360,7 @@ function ProjectEmployees() {
 
           <div className="flex justify-between mt-5">
             <p>
-              Showing <b>{employeeRows.length}</b> employees
+              Showing <b>{projectEmployees.length}</b> employees
             </p>
 
             <div className="flex items-center space-x-2">
@@ -213,7 +368,7 @@ function ProjectEmployees() {
                 &lt;
               </span>
               <span className="text-sm font-medium">1</span>
-              <span className="text-sm">to {employeeRows.length}</span>
+              <span className="text-sm">to {projectEmployees.length}</span>
               <span className="text-[#990100] hover:underline cursor-pointer">
                 &gt;
               </span>
@@ -222,7 +377,12 @@ function ProjectEmployees() {
         </div>
       </div>
 
-      <AddEmployeeModal isOpen={isAddModalOpen} onClose={closeAddModal} />
+      <AddEmployeeModal
+        isOpen={isAddModalOpen}
+        onClose={closeAddModal}
+        projectId={projectId}
+        onEmployeeAdded={fetchProjectEmployees}
+      />
     </div>
   );
 }

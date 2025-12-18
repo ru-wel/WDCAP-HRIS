@@ -46,6 +46,21 @@ export const getAssignmentById = async (req, res, next) => {
   }
 };
 
+// GET ASSIGNMENT BY ID
+export const getAssignmentByProject = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const assignment = await assignmentService.getAssignmentByProject(projectId);
+    res.status(200).json({
+      success: true,
+      message: 'Assignments per project retrieved successfully',
+      data: assignment
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // UPDATE ASSIGNMENT
 export const updateAssignment = async (req, res, next) => {
   try {
