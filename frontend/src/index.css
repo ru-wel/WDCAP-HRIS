@@ -41,6 +41,10 @@
     @apply px-6 py-2 lg:text-sm text-xs text-gray-900;
   }
 
+  .td-style-nobtn{
+    @apply px-6 py-3 lg:text-sm text-xs text-gray-900;
+  }
+
   .generate-report-button{
     @apply bg-[#ad3332] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out;
   }

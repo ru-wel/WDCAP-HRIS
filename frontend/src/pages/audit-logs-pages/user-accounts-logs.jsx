@@ -20,7 +20,7 @@ const accountLogs = [
   {
     time: "9:00 AM PHT",
     date: "12/18/25",
-    email: "lcabe@acdc.ph",
+    email: "lpcabe@acdc.ph",
     action: "Logged In",
     changes: "Successfully logged in",
   },
@@ -41,7 +41,6 @@ function UserAccountsLogs (){
                     </div>
 
                     <div className="flex items-center justify-end md:gap-4 gap-3"> 
-
                         <DropDownFilter />
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
@@ -86,16 +85,16 @@ function UserAccountsLogs (){
                             ) : (
                                 accountLogs.map((row) => (
                                     <tr key={row.email} className="tr-style">
-                                        <td className="td-style">
+                                        <td className="td-style-nobtn">
                                             {row.date} | {row.time}
                                         </td>
-                                        <td className="td-style font-medium">
+                                        <td className="td-style-nobtn font-medium">
                                             {row.email}
                                         </td>
-                                        <td className="td-style">
+                                        <td className="td-style-nobtn">
                                             {row.action}
                                         </td>
-                                        <td className="td-style hidden sm:table-cell">
+                                        <td className="td-style-nobtn hidden sm:table-cell">
                                             {row.changes}
                                         </td>
                                     </tr>
@@ -103,6 +102,17 @@ function UserAccountsLogs (){
                             )}
                         </tbody>
                     </table>
+                    <br />
+                    <div className="lg:flex items-center lg:justify-between">
+                        <p className='lg:text-md text-sm'>Showing <b>{accountLogs.length}</b> employee{accountLogs.length !== 1 ? 's' : ''}</p>
+                        
+                        <div className="flex items-center space-x-2 md:pt-0 pt-4">
+                            <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
+                            <span className="text-sm font-medium text-body">1</span>
+                            <span className="text-sm text-body">to 10</span>
+                            <span className='text-[#990100] hover:underline'><a href = "#"> &gt; </a></span>
+                        </div>                       
+                    </div>
                 </div>
             </div>
         </div>

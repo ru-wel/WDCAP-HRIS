@@ -76,51 +76,47 @@ function LeaveRequest() {
         </div>
 
         <hr className="text-[#990100] mt-6" />
-        <div className="overflow-x-auto bg-white border rounded-lg overflow-hidden mt-8 shadow-lg px-8 py-10">
-          <table className="min-w-full text-center">
-            <thead className="bg-[#990100] text-white">
+        <div className="div-table">
+          <table className="table-style">
+            <thead className="thead-style">
               <tr>
-                <th className="px-6 py-3 text-xs tracking-wider rounded-tl-lg rounded-bl-lg">
+                <th className="th-style rounded-tl-lg rounded-bl-lg">
                   Employee ID
                 </th>
-                <th className="px-6 py-3 text-xs tracking-wider">Name</th>
-                <th className="px-6 py-3 text-xs tracking-wider">Leave Type</th>
-                <th className="px-6 py-3 text-xs tracking-wider">Date</th>
-                <th className="px-6 py-3 text-xs tracking-wider">Status</th>
-                <th className="px-6 py-3 text-xs tracking-wider rounded-tr-lg rounded-br-lg">
+                <th className="th-style">Name</th>
+                <th className="th-style">Leave Type</th>
+                <th className="th-style">Date</th>
+                <th className="th-style">Status</th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">
                   Actions
                 </th>
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-[#990100]">
+            <tbody className="tbody-style">
               {leaveRequests.map((row, index) => (
                 <tr
                   key={row.id}
-                  className={
-                    index % 2 === 1
-                      ? "bg-gray-100 hover:bg-[#f4e5e5]"
-                      : "hover:bg-[#f4e5e5]"
-                  }
+                  className= "tr-style"
                 >
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
+                  <td className="td-style font-medium">
                     {row.id}
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="td-style">
                     {row.name}
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="td-style">
                     {row.type}
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="td-style">
                     {row.date}
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="td-style">
                     <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
                       {row.status}
                     </span>
                   </td>
-                  <td className="px-6 py-3 whitespace-nowrap text-sm text-gray-900">
+                  <td className="td-style">
                     <button className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out">
                       View Details
                     </button>
@@ -129,6 +125,17 @@ function LeaveRequest() {
               ))}
             </tbody>
           </table>
+          <br />
+                    <div className="lg:flex items-center lg:justify-between">
+                        <p className='lg:text-md text-sm'>Showing <b>{leaveRequests.length}</b> employee{leaveRequests.length !== 1 ? 's' : ''}</p>
+                        
+                        <div className="flex items-center space-x-2 md:pt-0 pt-4">
+                            <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
+                            <span className="text-sm font-medium text-body">1</span>
+                            <span className="text-sm text-body">to 10</span>
+                            <span className='text-[#990100] hover:underline'><a href = "#"> &gt; </a></span>
+                        </div>                       
+                    </div>
         </div>
       </div>
     </div>

@@ -30,7 +30,7 @@ function DropDownFilter(){
                 <div className="flex justify-end">
                     <button  onClick={filterDropdown} className="flex items-center bg-white lg:h-10 md:h-9 h-8 rounded-lg py-1 cursor-pointer px-3 md:text-sm text-xs text-[#990100] md:gap-8 gap-4">
                         Filter By
-                        <img src = "icons/red-dropdown.png" width={"10px"} height={"10px"} className={`${isOpen ? "rotate-180" : "" }`} />
+                        <img src = "/icons/red-dropdown.png" width={"10px"} height={"10px"} className={`${isOpen ? "rotate-180" : "" }`} />
                     </button>
                 </div>
             </div>

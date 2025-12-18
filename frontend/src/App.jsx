@@ -13,6 +13,13 @@ import LeaveRequest from './pages/leave-page/request';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
 import { ROLES } from './constants/config.js';
 import UserAccountsLogs from './pages/audit-logs-pages/user-accounts-logs.jsx';
+import EmployeesLogs from './pages/audit-logs-pages/employees-logs.jsx';
+import DepartmentsLogs from './pages/audit-logs-pages/departments-logs.jsx';
+import ProjectsLogs from './pages/audit-logs-pages/projects-logs.jsx';
+import LeaveLogs from './pages/audit-logs-pages/leave-logs.jsx';
+import EvaluationLogs from './pages/audit-logs-pages/evaluation-logs.jsx';
+import ReportsLogs from './pages/audit-logs-pages/reports-logs.jsx';
+
 { /*  
 
 import Evaluation from './pages/evaluation';
@@ -65,9 +72,18 @@ function App() {
 
             <Route path="/leave/request" element={<LeaveRequest />} />
 
-            {/* FOR AUDIT LOGS */}
+            {/* START -  FOR AUDIT LOGS */}
 
             <Route path = "/audit/user-accounts" element = {<UserAccountsLogs />} />
+            <Route path = "/audit/employees" element = {<EmployeesLogs />} />
+            <Route path = "/audit/departments" element = {<DepartmentsLogs />} />
+            <Route path = "/audit/projects" element = {<ProjectsLogs />} />
+            <Route path = "/audit/leave" element = {<LeaveLogs />} />
+            <Route path = "/audit/evaluation" element = {<EvaluationLogs />} />
+            <Route path = "/audit/reports" element = {<ReportsLogs />} />
+
+            {/* END -  FOR AUDIT LOGS */}
+
 
             {/*
             <Route path="/evaluation" element={<Evaluation />} />
