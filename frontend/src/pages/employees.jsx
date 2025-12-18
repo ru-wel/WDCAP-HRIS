@@ -420,8 +420,7 @@ function Employees(){
                                         </td>
                                         <td className="td-style">
                                             <button
-                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332]       
-hover:scale-105 transition duration-300 ease-in-out "
+                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out "
                                                 onClick={() => handleOpen(row)}
                                             >
                                                 View Details

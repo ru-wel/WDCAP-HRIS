@@ -12,7 +12,7 @@ import Leave from './pages/leave';
 import LeaveRequest from './pages/leave-page/request';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
 import { ROLES } from './constants/config.js';
-
+import UserAccountsLogs from './pages/audit-logs-pages/user-accounts-logs.jsx';
 { /*  
 
 import Evaluation from './pages/evaluation';
@@ -64,6 +64,10 @@ function App() {
             <Route path="/leave" element={<Leave />} />
 
             <Route path="/leave/request" element={<LeaveRequest />} />
+
+            {/* FOR AUDIT LOGS */}
+
+            <Route path = "/audit/user-accounts" element = {<UserAccountsLogs />} />
 
             {/*
             <Route path="/evaluation" element={<Evaluation />} />
