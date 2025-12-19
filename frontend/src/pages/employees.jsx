@@ -98,7 +98,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto h-100 overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Information of {data.first_name} {data.last_name}</h1>
-                    <button className="text-white text-lg font-medium hover:scale-105 transition duration-300 ease-in-out" onClick={() => {
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition" onClick={() => {
                         if (unsavedChanges){
                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
                             if (!confirmCancel) return;

@@ -19,6 +19,7 @@ import ProjectsLogs from './pages/audit-logs-pages/projects-logs.jsx';
 import LeaveLogs from './pages/audit-logs-pages/leave-logs.jsx';
 import EvaluationLogs from './pages/audit-logs-pages/evaluation-logs.jsx';
 import ReportsLogs from './pages/audit-logs-pages/reports-logs.jsx';
+import UserAccounts from './pages/employees-pages/user-accounts.jsx';
 
 { /*  
 
@@ -61,15 +62,13 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
 
             <Route path="/employees" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Employees /> </ProtectedRoute> } />
-
             <Route path="/employees/onboarding" element={<Onboarding />} />
+            <Route path="/employees/user-accounts" element={<UserAccounts />} />
 
             <Route path="/projects" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Projects /> </ProtectedRoute>} />
-
             <Route path="/projects/:projectId" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <ProjectEmployees /> </ProtectedRoute>} />
 
             <Route path="/leave" element={<Leave />} />
-
             <Route path="/leave/request" element={<LeaveRequest />} />
 
             {/* START -  FOR AUDIT LOGS */}
