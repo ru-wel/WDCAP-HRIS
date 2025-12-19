@@ -6,28 +6,28 @@ import DropDownFilter from "../components/dropdownfilter";
 const userAcc = [
   {
     id: "AC-00001",
-    username: "rcsundiam@acdc.ph",
+    email: "rcsundiam@acdc.ph",
     role: "Admin",
     createdAt: "12/10/25",
     status: "ACTIVE",
   },
   {
     id: "AC-00002",
-    username: "gmrdelossantos@acdc.ph",
+    email: "gmrdelossantos@acdc.ph",
     role: "Admin",
     createdAt: "12/10/25",
     status: "INACTIVE",
   },
   {
     id: "AC-00003",
-    username: "clpaldeng@acdc.ph",
+    email: "clpaldeng@acdc.ph",
     role: "Admin",
     createdAt: "12/10/25",
     status: "ACTIVE",
   },
   {
     id: "AC-00004",
-    username: "clpcabe@acdc.ph",
+    email: "clpcabe@acdc.ph",
     role: "Admin",
     createdAt: "12/10/25",
     status: "ACTIVE",
@@ -64,7 +64,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
-             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto h-100 overflow-y-auto border border-gray-300">
+             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {data.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition" 
@@ -76,28 +76,46 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                     }}> ✕ </button>
                 </div>
 
-                <div className="pt-5 px-3">
+                <div className="pt-5 md:px-35 px-10">
 
-                    <p>hello</p>
-                    <div className="">
-                        <p>Role</p>
-                        <select name="role" className='input-field disabled:text-gray-600 w-75' value={data.role} disabled = {!editData} onChange={handleChange} >
+                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.id}</p>
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Role</p>
+                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.role} disabled = {!editData} onChange={handleChange} required>
                             <option value="">Select Role</option>
-                            <option value="Active">ACTIVE</option>
-                            <option value="Inactive">INACTIVE</option>
+                            <option value="Admin">Admin</option>
+                            <option value="HR">HR</option>
+                            <option value="Employee">Employee</option>
                         </select>
                     </div>
+
+                    {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Email</p>
+                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={data.email} disabled />
+                    </div>
+
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Status</p>
+                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.status} disabled = {!editData} onChange={handleChange} required>
+                            <option value="">Select Status</option>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+
+
                 </div>
 
                  <div className="pt-7">
                     {!editData ? (
                         <div className="flex justify-center gap-4">
-                            <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-md text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-md text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
+                            <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
+                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
                         </div>
                     ):(
                         <div className="flex justify-center gap-4">
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-md text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
                                     onClick = {() => {
                                         if (unsavedChanges){
                                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
@@ -107,7 +125,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                                 >Cancel Changes</button>
                             <button onClick={() => {
 
-                                    if (!data.role) {
+                                    if (!data.role || !data.status) {
                                         alert("Please fill out all fields and do not leave any of them blank.");
                                         return;
                                     }
@@ -123,7 +141,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                                     }
 
                                     
-                                }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-md text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out'>Save Changes</button>
+                                }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>Save Changes</button>
                         </div>
                     )}
                  </div>
@@ -197,7 +215,7 @@ function UserAccounts (){
                         <thead className="thead-style">
                             <tr>
                                 <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
-                                <th className="th-style">Username</th>
+                                <th className="th-style">Email</th>
                                 <th className="th-style">Role</th>
                                 <th className="th-style">Created At</th>
                                 <th className="th-style">Status</th>
@@ -218,7 +236,7 @@ function UserAccounts (){
                                             {row.id}
                                         </td>
                                         <td className="td-style-nobtn ">
-                                            {row.username}
+                                            {row.email}
                                         </td>
                                         <td className="td-style-nobtn">
                                             {row.role}
@@ -227,7 +245,7 @@ function UserAccounts (){
                                             {row.createdAt}
                                         </td>
                                         <td className= " td-style-nobtn">
-                                            <p className={` py-[6px] rounded-xl text-xs font-semibold  ${row.status === 'ACTIVE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{row.status}</p>
+                                            <p className={` lg:py-[6px] lg:px-0 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${row.status === 'ACTIVE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{row.status}</p>
                                         </td>
                                         <td className="td-style-nobtn">
                                             <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
