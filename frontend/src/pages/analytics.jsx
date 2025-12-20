@@ -1,17 +1,6 @@
 import React, { useMemo, useState } from "react";
 import Navbar from "./components/navbar";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const COLORS = ["#990100", "#F59E0B", "#22C55E", "#2563EB", "#6B7280"];
 
