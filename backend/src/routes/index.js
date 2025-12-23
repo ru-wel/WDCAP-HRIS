@@ -6,6 +6,7 @@ import employeeRoutes from './employees.js';
 import projectRoutes from './projects.js';
 import projectAssignmentRoutes from './projectassignments.routes.js';
 import documentRoutes from './documents.js';
+import auditLogRoutes from "./auditLog.routes.js";
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use('/employees', employeeRoutes); //localhost:3000/api/employees/...
 router.use('/projects', projectRoutes); // localhost:3000/api/projects/...
 router.use('/projectassignments', projectAssignmentRoutes); // localhost:3000/api/projectassignments/...
 router.use('/documents', documentRoutes); //localhost:3000/api/documents/...
+router.use("/audit-logs", auditLogRoutes);
 
 export default router;
