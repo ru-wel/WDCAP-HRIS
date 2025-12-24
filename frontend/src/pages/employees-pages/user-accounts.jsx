@@ -1,56 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
+import { del, get, put } from "../../services/api.js";
 
+function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
-const userAcc = [
-  {
-    id: "AC-00001",
-    email: "rcsundiam@acdc.ph",
-    role: "Admin",
-    createdAt: "12/10/25",
-    status: "ACTIVE",
-  },
-  {
-    id: "AC-00002",
-    email: "gmrdelossantos@acdc.ph",
-    role: "Admin",
-    createdAt: "12/10/25",
-    status: "INACTIVE",
-  },
-  {
-    id: "AC-00003",
-    email: "clpaldeng@acdc.ph",
-    role: "Admin",
-    createdAt: "12/10/25",
-    status: "ACTIVE",
-  },
-  {
-    id: "AC-00004",
-    email: "clpcabe@acdc.ph",
-    role: "Admin",
-    createdAt: "12/10/25",
-    status: "ACTIVE",
-  },
-];
-
-function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
-
-    if (!isOpen || !employeeAcc) return null;
     const [data, setData] = useState(employeeAcc);
     const [editData, setEditData] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // WHEN EDITING THE VALUE
     const handleChange = (a) => {
         const { name, value } = a.target;
-        setData(prev => ({...prev, [name]:value}));
+        setData(prev => ({...(prev ?? employeeAcc ?? {}), [name]:value}));
     };
-
-    const handleSave = () => {
-        onSave(data);  
-        setEditData(false);
-    };
-
 
     const [initialData, setInitialData] = useState(employeeAcc);
 
@@ -60,13 +23,17 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
         setEditData(false);
     }, [employeeAcc]);
 
-    const unsavedChanges = JSON.stringify(data) !== JSON.stringify(initialData);
+    if (!isOpen || !employeeAcc) return null;
+
+    const currentData = data ?? employeeAcc;
+    const originalData = initialData ?? employeeAcc;
+    const unsavedChanges = JSON.stringify(currentData) !== JSON.stringify(originalData);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
+        <div className="fixed inset-0 flex items-center justify-center z-[1000] bg-[#EDEDED]/50">
              <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
-                    <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {data.id}</h1>
+                    <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition" 
                     onClick={() => {
                         if (unsavedChanges){
@@ -78,10 +45,10 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
 
                 <div className="pt-5 md:px-35 px-10">
 
-                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.id}</p>
+                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {currentData.id}</p>
                     <div className="lg:pt-3 pt-2">
                         <p className='lg:text-sm text-xs pb-2 font-medium'>Role</p>
-                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.role} disabled = {!editData} onChange={handleChange} required>
+                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.role || ""} disabled = {!editData || loading} onChange={handleChange} required>
                             <option value="">Select Role</option>
                             <option value="Admin">Admin</option>
                             <option value="HR">HR</option>
@@ -92,12 +59,12 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                     {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
                     <div className="lg:pt-3 pt-2">
                         <p className='lg:text-sm text-xs pb-2 font-medium'>Email</p>
-                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={data.email} disabled />
+                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={currentData.email || ""} disabled />
                     </div>
 
                     <div className="lg:pt-3 pt-2">
                         <p className='lg:text-sm text-xs pb-2 font-medium'>Status</p>
-                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.status} disabled = {!editData} onChange={handleChange} required>
+                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.status || ""} disabled = {!editData || loading} onChange={handleChange} required>
                             <option value="">Select Status</option>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="INACTIVE">INACTIVE</option>
@@ -110,8 +77,30 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                  <div className="pt-7">
                     {!editData ? (
                         <div className="flex justify-center gap-4">
-                            <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
+                            <button
+                                onClick={() => setEditData(true)}
+                                disabled={loading}
+                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                Update Record
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const confirmDelete = window.confirm("Delete this account? This action cannot be undone.");
+                                    if (!confirmDelete) return;
+                                    setLoading(true);
+                                    try {
+                                        await onDelete(currentData.id);
+                                        onClose();
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                                disabled={loading}
+                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                {loading ? "Deleting..." : "Delete Record"}
+                            </button>
                         </div>
                     ):(
                         <div className="flex justify-center gap-4">
@@ -123,25 +112,31 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave}){
                                         } setData(initialData); setEditData(false);
                                     }}
                                 >Cancel Changes</button>
-                            <button onClick={() => {
-
-                                    if (!data.role || !data.status) {
+                            <button
+                                onClick={async () => {
+                                    if (!currentData.role || !currentData.status) {
                                         alert("Please fill out all fields and do not leave any of them blank.");
                                         return;
                                     }
 
-                                    handleSave();
-                                    onClose();
-
                                     const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
-                                    if (confirmUpdate) {
-                                        handleSave();
-                                        onClose();
-                                        alert(`You've successfully updated the record of ${data.id}!`)
-                                    }
+                                    if (!confirmUpdate) return;
 
-                                    
-                                }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>Save Changes</button>
+                                    setLoading(true);
+                                    try {
+                                        await onSave(currentData);
+                                        setEditData(false);
+                                        onClose();
+                                        alert(`You've successfully updated the record of ${currentData.id}!`);
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                                disabled={loading}
+                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                {loading ? "Saving..." : "Save Changes"}
+                            </button>
                         </div>
                     )}
                  </div>
@@ -157,7 +152,46 @@ function UserAccounts (){
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployeeAcc, setViewEmployeeAcc] = useState(null);
-    const [employeesAcc, setEmployeesAcc] = useState(userAcc);
+    const [employeesAcc, setEmployeesAcc] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await get("/users");
+            if (!res?.success) {
+                throw new Error(res?.message || "Failed to fetch user accounts");
+            }
+
+            const rows = (res.data || []).map((u) => ({
+                id: u.employee_id || u.id,
+                email: u.email,
+                role: u.role,
+                createdAt: u.created_at
+                    ? new Date(u.created_at).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                    })
+                    : "",
+                status: u.status || "ACTIVE",
+            }));
+            setEmployeesAcc(rows);
+            setError("");
+        } catch (e) {
+            console.error(e);
+            setEmployeesAcc([]);
+            setError(e?.message || "Failed to load user accounts");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
 
     const handleOpen = (employeeAcc) => {
         setViewEmployeeAcc(employeeAcc);
@@ -166,11 +200,53 @@ function UserAccounts (){
 
     const handleClose = () => setModalOpen(false);
 
-    const updateEmployeeAcc = (updated) => {
-        setEmployeesAcc(prev =>
-            prev.map(emp => emp.id === updated.id ? updated : emp)
-        );
+    const updateEmployeeAcc = async (updated) => {
+        // optimistic UI
+        setEmployeesAcc(prev => prev.map(emp => emp.id === updated.id ? updated : emp));
+        try {
+            const res = await put(`/users/${updated.id}`, {
+                role: updated.role,
+                status: updated.status,
+            });
+
+            const u = res.data;
+            const normalized = {
+                id: u.employee_id || u.id,
+                email: u.email,
+                role: u.role,
+                createdAt: u.created_at
+                    ? new Date(u.created_at).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                    })
+                    : "",
+                status: u.status || "ACTIVE",
+            };
+
+            setEmployeesAcc(prev => prev.map(emp => emp.id === normalized.id ? normalized : emp));
+        } catch (e) {
+            alert(e.message || "Failed to update user");
+            await fetchUsers();
+        }
     };
+
+    const deleteEmployeeAcc = async (employeeId) => {
+        // optimistic UI
+        setEmployeesAcc(prev => prev.filter(emp => emp.id !== employeeId));
+        try {
+            await del(`/users/${employeeId}`);
+            alert("Account deleted successfully");
+        } catch (e) {
+            alert(e.message || "Failed to delete user");
+            await fetchUsers();
+        }
+    }
+
+    const filteredEmployeesAcc = employeesAcc.filter((row) => {
+        const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
+        return haystack.includes(searchTerm.toLowerCase());
+    });
 
     return(
         <div className="">
@@ -189,7 +265,14 @@ function UserAccounts (){
                         <DropDownFilter />
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
-                            <input type="search" name="search" placeholder="Search" className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none" />
+                            <input
+                                type="search"
+                                name="search"
+                                placeholder="Search"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
+                            />
                             <button
                                 type="submit"
                                 className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
@@ -223,14 +306,32 @@ function UserAccounts (){
                             </tr>
                         </thead>
                         <tbody className='tbody-style'>
-                            {employeesAcc.length === 0 ? (
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        <p className="mb-3">{error}</p>
+                                        <button
+                                            onClick={fetchUsers}
+                                            className="bg-[#990100] text-white px-4 py-2 rounded hover:bg-[#ad3332]"
+                                        >
+                                            Retry
+                                        </button>
+                                    </td>
+                                </tr>
+                            ) : filteredEmployeesAcc.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                                         No employees found
                                     </td>
                                 </tr>
                             ) : (
-                               employeesAcc.map((row) => (
+                               filteredEmployeesAcc.map((row) => (
                                     <tr key={row.id} className="tr-style">
                                         <td className="td-style-nobtn font-medium">
                                             {row.id}
@@ -263,10 +364,11 @@ function UserAccounts (){
                         onClose={handleClose}
                         employeeAcc = {viewEmployeeAcc}
                         onSave={updateEmployeeAcc}
+                        onDelete={deleteEmployeeAcc}
                     />
                     <br />
                     <div className="lg:flex items-center lg:justify-between">
-                        <p className='lg:text-md text-sm'>Showing <b>{employeesAcc.length}</b> employee{employeesAcc.length !== 1 ? 's' : ''}</p>
+                        <p className='lg:text-md text-sm'>Showing <b>{filteredEmployeesAcc.length}</b> employee{filteredEmployeesAcc.length !== 1 ? 's' : ''}</p>
                         
                         <div className="flex items-center space-x-2 md:pt-0 pt-4">
                             <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
@@ -279,4 +381,6 @@ function UserAccounts (){
             </div>
         </div>
     )
-} export default UserAccounts;
+}
+
+export default UserAccounts;

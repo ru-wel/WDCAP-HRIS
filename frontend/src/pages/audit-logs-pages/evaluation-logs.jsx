@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
-import { get } from "../../services/api.js"; // Your API helper
+import { get } from "../../services/api.js";
 
 function EvaluationLogs() {
   const [logs, setLogs] = useState([]);
@@ -13,7 +13,7 @@ function EvaluationLogs() {
   const fetchEvalLogs = async () => {
     try {
       setLoading(true);
-      const response = await get("/audit-logs/table/evaluations"); // Adjust API endpoint
+      const response = await get("/audit-logs/table/evaluations"); 
 
       if (response.success) {
         setLogs(response.data);
