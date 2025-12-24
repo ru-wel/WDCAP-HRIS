@@ -1,12 +1,12 @@
 import { supabase } from "../config/supabase.js";
 import { NotFoundError, InternalServerError, BadRequestError } from "../utils/errors.js";
-import { AUDIT_ACTIONS, FILE_VALIDATION } from "../config/constants.js";
+import { AUDIT_ACTIONS, FILE_VALIDATION, ONBOARDING_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
 // upload a document
 export const uploadDocument = async (fileData, userId) => {
   try {
-    const { employee_id, document_name, file, file_name, file_type, file_size } = fileData;
+    const { employee_id, document_name, file, file_name, file_type, file_size, checklist_item_id } = fileData;
 
     // check if employee exists
     const { data: employee, error: empError } = await supabase
@@ -70,6 +70,30 @@ export const uploadDocument = async (fileData, userId) => {
         .remove([uploadData.path]);
 
       throw new InternalServerError('Failed to save document metadata:', insertError.message);
+    }
+
+    if (checklist_item_id) {
+      try {
+        // Update the checklist item with the document link and submitted status
+        const { error: checklistError } = await supabase
+          .from('onboarding_checklists')
+          .update({
+            document_id: newDocument.id,
+            status: ONBOARDING_STATUSES.SUBMITTED,
+            submitted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', checklist_item_id)
+          .eq('employee_id', employee_id);  // ensure checklist belongs to employee
+
+        if (checklistError) {
+          logger.error('Failed to update checklist item:', checklistError);
+        } else {
+          logger.info(`Checklist item ${checklist_item_id} updated with document ${newDocument.id}`);
+        }
+      } catch (checklistUpdateError) {
+        logger.error('Error updating checklist:', checklistUpdateError);
+      }
     }
 
     // log to audit

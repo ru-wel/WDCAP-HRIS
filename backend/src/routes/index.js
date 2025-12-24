@@ -4,9 +4,11 @@ import departmentRoutes from './departments.js';
 import positionRoutes from './positions.js';
 import employeeRoutes from './employees.js';
 import projectRoutes from './projects.js';
-import projectAssignmentRoutes from './projectassignments.routes.js';
+import projectAssignmentRoutes from './projectassignments.js';
 import documentRoutes from './documents.js';
-import auditLogRoutes from "./auditLog.routes.js";
+import auditLogRoutes from "./auditLog.js";
+import onboardingItemRoutes from './onboardingitems.js';
+import onboardingRoutes from './onboarding.js';        
 
 const router = express.Router();
 
@@ -22,6 +24,8 @@ router.use('/employees', employeeRoutes); //localhost:3000/api/employees/...
 router.use('/projects', projectRoutes); // localhost:3000/api/projects/...
 router.use('/projectassignments', projectAssignmentRoutes); // localhost:3000/api/projectassignments/...
 router.use('/documents', documentRoutes); //localhost:3000/api/documents/...
-router.use("/audit-logs", auditLogRoutes);
+router.use("/audit-logs", auditLogRoutes); //localhost:3000/api/audit-logs/...
+router.use('/onboarding-items', onboardingItemRoutes); // localhost:3000/api/onboarding-items/...  
+router.use('/onboarding', onboardingRoutes); // localhost:3000/api/onboarding/...              
 
 export default router;

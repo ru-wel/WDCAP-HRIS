@@ -15,27 +15,27 @@ export const AUDIT_ACTIONS = {
 export const EMPLOYMENT_STATUSES = {
   ACTIVE: 'Active',
   INACTIVE: 'Inactive'
-}
+};
 
 export const PERSONNEL_TYPES = {
   REGULAR: 'Regular',
   PROJECT_BASED: 'Project-Based',
   PROBATIONARY: 'Probationary'
-}
+};
 
 export const PROJECT_STATUSES = {
   ACTIVE: 'Active',
   COMPLETED: 'Completed',
   ON_HOLD: 'On Hold',
   CANCELLED: 'Cancelled'
-}
+};
 
 export const ASSIGNMENT_STATUSES = {
   ACTIVE: 'Active',
   ON_HOLD: 'On Hold',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled'
-}
+};
 
 export const DOCUMENT_TYPES = {
   EMPLOYEE_CONTRACT: 'Employee Contract',
@@ -58,10 +58,17 @@ export const ALLOWED_FILE_TYPES = {
   'application/vnd.openxmlformats-officedocument.wordpressingml.document': '.docx',
   'image/jpeg': '.jpg',
   'image/png': '.png'
-}
+};
 
 export const FILE_VALIDATION = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10 MB
   ALLOWED_MIME_TYPES: Object.keys(ALLOWED_FILE_TYPES),
   ALLOWED_EXTENSIONS: Object.values(ALLOWED_FILE_TYPES)
-}
+};
+
+export const ONBOARDING_STATUSES = {
+  PENDING: 'pending',
+  SUBMITTED: 'submitted',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+};

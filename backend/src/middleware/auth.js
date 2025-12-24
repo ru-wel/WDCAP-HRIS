@@ -1,5 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { UnauthorizedError, ForbiddenError } from "../utils/errors.js";
+import { ROLES } from "../config/constants.js";
 
 // verify JWT token and authenticate user
 export const authenticate = async (req, res, next) => {
@@ -70,3 +71,65 @@ export const authorizeRoles = (...allowedRoles) => { // parameter for array of a
     }
 }
 }
+
+// only employee can access their own data
+export const verifyEmployeeOwnership = async (req, res, next) => {
+  try {
+    // HR and Admin can access any employee's data
+    if (req.user.role === ROLES.ADMIN || req.user.role === ROLES.HR) {
+      return next();
+    }
+
+    // regular employees, verify they're accessing their own data
+    const { employeeId } = req.params;
+
+    if (!req.user.employee_id) {
+      throw new ForbiddenError('You do not have an associated employee profile');
+    }
+
+    if (req.user.employee_id !== employeeId) {
+      throw new ForbiddenError('You can only access your own employee data');
+    }
+
+    next();
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+// only employee can access their own checklist data
+export const verifyChecklistOwnership = async (req, res, next) => {
+  try {
+    // HR and Admin can access any checklist item
+    if (req.user.role === ROLES.ADMIN || req.user.role === ROLES.HR) {
+      return next();
+    }
+
+    // for regular employees, verify the checklist item belongs to them
+    const { id } = req.params;
+
+    if (!req.user.employee_id) {
+      throw new ForbiddenError('You do not have an associated employee profile');
+    }
+
+    const { data: checklistItem, error } = await supabase
+      .from('onboarding_checklists')
+      .select('employee_id')
+      .eq('id', id)
+      .single();
+
+    if (error || !checklistItem) {
+      throw new ForbiddenError('Checklist item not found');
+    }
+
+    if (checklistItem.employee_id !== req.user.employee_id) {
+      throw new ForbiddenError('You can only access your own checklist items');
+    }
+
+    next();
+
+  } catch (error) {
+    next(error);
+  }
+};
