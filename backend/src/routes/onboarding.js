@@ -10,6 +10,9 @@ const router = express.Router();
 // all routes require authentication
 router.use(authenticate);
 
+// creation of new employee + user route
+router.post('/complete', authorizeRoles(ROLES.ADMIN, ROLES.HR), onboardingController.createEmployeeWithAccount);
+
 // get all checklists
 router.get('/checklists', authorizeRoles(ROLES.ADMIN, ROLES.HR), onboardingController.getAllChecklists);
 

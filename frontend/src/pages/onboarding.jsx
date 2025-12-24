@@ -277,26 +277,23 @@ function Onboarding(){
     const handleSubmit = async () => {
         setError("");
 
-        // validate all fields
+        // validate all fields from both steps
+        if (!validateStep1()) {
+            setSteps(1); // go back to Step 1 to show errors
+            return;
+        }
+
         if (!validateStep2()) return;
 
         try {
             setLoading(true);
 
-            // step 2 (create user account)
-            const userResponse = await post('/auth/register', {
+            const response = await post('/onboarding/complete', {
+                // account info
                 email: formData.email,
                 password: formData.password,
-                role: formData.role
-            });
-
-            if (!userResponse.success) throw new Error(userResponse.message || 'Failed to create user account');
-
-            const userId = userResponse.data.id;
-
-            // step 1 (create employee record)
-            const employeeResponse = await post('/employees', {
-                user_id: userId,
+                role: formData.role,
+                // employee info
                 first_name: formData.fname,
                 last_name: formData.lname,
                 department_id: formData.department_id,
@@ -311,15 +308,19 @@ function Onboarding(){
                 emergency_contact_number: formData.emergencyPhone
             });
 
-            if (!employeeResponse.success) throw new Error(employeeResponse.message || 'Failed to create employee record');
-            
-            alert("Employee record successfully created!");
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to onboard employee');
+            }
+
+            alert("Employee onboarded successfully!");
             navigate('/employees');
 
         } catch (err) {
             console.error('Onboarding error:', err);
-            setError(err.message || 'Failed to create employee record. Please try again.');
-        } finally { setLoading(false); }
+            setError(err.message || 'Failed to onboard employee. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleNext = () => {

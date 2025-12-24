@@ -1,5 +1,18 @@
 import * as onboardingService from '../services/onboarding.service.js';
 
+export const createEmployeeWithAccount = async (req, res, next) => {
+  try {
+    const result = await onboardingService.createEmployeeWithAccount(req.body);
+    res.status(201).json({
+      success: true,
+      message: 'Employee onboarded successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getEmployeeChecklist = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
