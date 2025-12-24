@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import { get, post, put, del } from "../../services/api.js";
+import ReactPaginate from 'react-paginate';
 
 function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded }) {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -254,6 +255,21 @@ function ProjectEmployees() {
     }
   }, [projectId]);
 
+  //REACT-PAGINATE
+  
+  const [itemOffset, setItemOffset] = useState(0);
+  const itemsPerPage = 15;
+  const endOffset = itemOffset + itemsPerPage;
+  const currentProjEmp = projectEmployees.slice(itemOffset, endOffset);
+  const pageCount = Math.ceil(projectEmployees.length / itemsPerPage);
+  const multiPages = pageCount > 1;
+  
+  const handlePageClick = (event) => {
+    const newOffset = (event.selected * itemsPerPage);
+    setItemOffset(newOffset);
+  };
+      
+
   return (
     <div>
       <Navbar />
@@ -330,7 +346,7 @@ function ProjectEmployees() {
             </thead>
 
             <tbody className="tbody-style">
-              {projectEmployees.map((assignment) => (
+              {currentProjEmp.map((assignment) => (
                 <tr
                   key={assignment.id}
                   className="tr-style"
@@ -358,20 +374,33 @@ function ProjectEmployees() {
             </tbody>
           </table>
 
-          <div className="flex justify-between mt-5">
-            <p>
-              Showing <b>{projectEmployees.length}</b> employees
+          <br />
+          <div className="lg:flex items-center lg:justify-between">
+            <p className="lg:text-md text-sm">
+              Showing <b>{currentProjEmp.length}</b> of <b>{projectEmployees.length}</b>
             </p>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-[#990100] hover:underline cursor-pointer">
-                &lt;
-              </span>
-              <span className="text-sm font-medium">1</span>
-              <span className="text-sm">to {projectEmployees.length}</span>
-              <span className="text-[#990100] hover:underline cursor-pointer">
-                &gt;
-              </span>
+            <div className=" ">
+              <ReactPaginate
+                breakLabel="..."
+                nextLabel=">"
+                onPageChange={handlePageClick}
+                pageRangeDisplayed={2}
+                pageCount={pageCount}
+                previousLabel="<"
+                renderOnZeroPageCount={null}
+                marginPagesDisplayed={2}
+                pageClassName=""
+                pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                previousLinkClassName="page-link"
+                nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                nextLinkClassName="page-link"
+                breakClassName="page-item"
+                breakLinkClassName="page-link"
+                containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                activeClassName="underline font-medium"
+                />
             </div>
           </div>
         </div>
