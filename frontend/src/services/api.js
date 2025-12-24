@@ -1,5 +1,23 @@
 import { API_BASE_URL, STORAGE_KEYS } from "../constants/config.js";
 
+const normalizeApiBaseUrl = (baseUrl) => {
+  const raw = String(baseUrl || '').trim();
+  if (!raw) return '';
+
+  const withoutTrailingSlash = raw.endsWith('/') ? raw.slice(0, -1) : raw;
+
+  if (withoutTrailingSlash.endsWith('/api')) return withoutTrailingSlash;
+  return `${withoutTrailingSlash}/api`;
+};
+
+const joinUrl = (baseUrl, endpoint) => {
+  const ep = String(endpoint || '');
+  const normalizedEndpoint = ep.startsWith('/') ? ep : `/${ep}`;
+  return `${baseUrl}${normalizedEndpoint}`;
+};
+
+const BASE_URL = normalizeApiBaseUrl(API_BASE_URL);
+
 // get access token
 const getAccessToken = () => {
   return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
@@ -29,7 +47,7 @@ const refreshAccessToken = async () => {
     }
 
     // call supabase refresh endpoint
-    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const response = await fetch(joinUrl(BASE_URL, '/auth/refresh'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refeshToken })
@@ -124,7 +142,7 @@ const handleResponse = async (response, retryFn = null) => {
 export const get = async (endpoint, requireAuth = true) => {
   const makeRequest = async () => {
     const headers = await getHeaders(requireAuth);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(joinUrl(BASE_URL, endpoint), {
       method: 'GET',
       headers,
     });
@@ -143,7 +161,7 @@ export const get = async (endpoint, requireAuth = true) => {
 export const post = async (endpoint, body, requireAuth = true) => {
   const makeRequest = async () => {
     const headers = await getHeaders(requireAuth);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(joinUrl(BASE_URL, endpoint), {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
@@ -162,7 +180,7 @@ export const post = async (endpoint, body, requireAuth = true) => {
 export const put = async (endpoint, body, requireAuth = true) => {
   const makeRequest = async () => {
     const headers = await getHeaders(requireAuth);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(joinUrl(BASE_URL, endpoint), {
       method: 'PUT',
       headers,
       body: JSON.stringify(body),
@@ -181,7 +199,7 @@ export const put = async (endpoint, body, requireAuth = true) => {
 export const del = async (endpoint, requireAuth = true) => {
   const makeRequest = async () => {
     const headers = await getHeaders(requireAuth);
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(joinUrl(BASE_URL, endpoint), {
       method: 'DELETE',
       headers,
     });
@@ -205,7 +223,7 @@ export const upload = async (endpoint, formData) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(joinUrl(BASE_URL, endpoint), {
       method: 'POST',
       headers,
       body: formData,
