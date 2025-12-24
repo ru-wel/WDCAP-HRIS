@@ -63,11 +63,11 @@ function Navbar() {
         <div className="origin-top-right absolute right-0 md:w-50 w-27 rounded-md shadow-lg bg-white border-[1px] border-[#990100] lg:mr-15 md:mr-5 mr-2 z-1000" role="menu">
           <div className="md:py-1 py-0" role="none">
             <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium" role="menuitem">
-              <p className="pb-2 text-[#990100] hover:underline">MY PROFILE</p>
+              <p className="pb-2 text-[#990100] hover:underline cursor-pointer">MY PROFILE</p>
               <hr />
             </a>
             <button onClick={handleLogout} className="block px-4 py-2 md:text-sm text-xs hover:font-medium" role="menuitem">
-              <p className="text-[#990100] hover:underline">LOGOUT</p>
+              <p className="text-[#990100] hover:underline cursor-pointer">LOGOUT</p>
             </button>
           </div>
         </div>

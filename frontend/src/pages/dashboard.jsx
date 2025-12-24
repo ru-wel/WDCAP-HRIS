@@ -85,7 +85,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => setIsCalendarOpen(true)}
-            className="self-start md:self-auto text-xs md:text-sm bg-[#990100] hover:bg-[#ad3332] text-white px-4 py-2 rounded-full font-medium shadow-sm transition duration-200 ease-in-out"
+            className="self-start md:self-auto text-xs md:text-sm bg-[#990100] hover:bg-[#ad3332] text-white px-4 py-2 rounded-full font-medium shadow-sm transition duration-200 ease-in-out cursor-pointer"
           >
             View Calendar
           </button>

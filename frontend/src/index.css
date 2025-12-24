@@ -46,15 +46,15 @@
   }
 
   .generate-report-button{
-    @apply bg-[#ad3332] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out;
+    @apply bg-[#ad3332] cursor-pointer text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out;
   }
 
   .green-button{
-    @apply bg-[#22C55E] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out
+    @apply bg-[#22C55E] cursor-pointer text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out
   }
 
   .mustard-button{
-    @apply bg-[#F59E0B] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out
+    @apply bg-[#F59E0B] cursor-pointer text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out
   }
 
   

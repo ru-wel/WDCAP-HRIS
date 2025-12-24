@@ -43,22 +43,22 @@ function DropDownFilter(){
 
                     <div className="md:py-1 py-0" role="none">
 
-                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
+                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED] cursor-pointer" role="menuitem">
                             <p className='pb-2 text-[#990100] '>A - Z</p>
                             <hr /> 
                         </a>
 
-                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
+                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED] cursor-pointer" role="menuitem">
                             <p className='pb-2 text-[#990100] '>Z - A</p>
                             <hr /> 
                         </a>
 
-                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
+                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED] cursor-pointer" role="menuitem">
                             <p className='pb-2 text-[#990100] '>A - Z</p>
                             <hr /> 
                         </a>
 
-                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED]" role="menuitem">
+                        <a href="#" className="block px-4 pt-2 md:text-sm text-xs hover:font-medium hover:bg-[#EDEDED] cursor-pointer" role="menuitem">
                             <p className='pb-2 text-[#990100] '>A - Z</p>
                             
                         </a>
