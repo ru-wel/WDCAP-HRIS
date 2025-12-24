@@ -12,6 +12,9 @@ export const uploadDocumentSchema = Joi.object({
   document_name: Joi.string().valid(...validDocumentTypes).required().messages({
     'any.only': `Document name must be one of: ${validDocumentTypes.join(', ')}`,
     'any.required': 'Document name is required'
+  }),
+  checklist_item_id: Joi.string().uuid().optional().messages({
+    'string.guid': 'Checklist item ID must be a valid UUID'
   })
 });
 

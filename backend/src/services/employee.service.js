@@ -2,6 +2,7 @@ import { supabase } from "../config/supabase.js";
 import { NotFoundError, InternalServerError, ConflictError } from "../utils/errors.js";
 import { AUDIT_ACTIONS } from "../config/constants.js";
 import logger from "../utils/logger.js";
+import { createChecklistForEmployee } from "./onboarding.service.js";
 
 // this will be changed later on kapag alam na yung mga fields na need idisplay
 const employeeFields = 
@@ -128,6 +129,14 @@ export const createNewEmployee = async (employeeData, userId) => {
     });
 
     logger.info(`New employee created: ${completeEmployee.employee_id} - ${completeEmployee.first_name} ${completeEmployee.last_name}`);
+
+    // auto create onboarding checklist when employee is created
+    try {
+      await createChecklistForEmployee(completeEmployee.id, userId);
+      logger.info(`Onboarding checklist auto-created for employee: ${completeEmployee.employee_id}`);
+    } catch (checklistError) {
+      logger.error(`Failed to create onboarding checklist for employee ${completeEmployee.employee_id}:`, checklistError);
+    }
 
     return completeEmployee;
 

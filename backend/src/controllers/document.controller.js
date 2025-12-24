@@ -10,6 +10,7 @@ export const uploadDocument = async (req, res, next) => {
     const userId = req.user.id;
     const userRole = req.user.role;
     const userEmployeeId = req.user.employee_id;
+    const checklistItemId = req.body.checklist_item_id;
 
     // employee can only upload their own documents
     if (userRole == ROLES.EMPLOYEE && userEmployeeId !== employee_id) {
@@ -20,6 +21,7 @@ export const uploadDocument = async (req, res, next) => {
     const fileData = {
       employee_id,
       document_name,
+      checklist_item_id: checklistItemId,
       file: file.buffer,
       file_name: file.originalname,
       file_type: file.mimetype,
