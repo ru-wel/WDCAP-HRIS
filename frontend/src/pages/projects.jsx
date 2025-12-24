@@ -4,6 +4,7 @@ import Navbar from "./components/navbar";
 import DropDownFilter from "./components/dropdownfilter";
 import { get, post, put, del } from "../services/api.js";
 import { PROJECT_STATUSES } from "../constants/config.js";
+import ReactPaginate from 'react-paginate';
 
 function ViewProjectCard({ project, index, onClick }) {
   // format dates for display
@@ -301,6 +302,45 @@ function Projects() {
     status: PROJECT_STATUSES.ACTIVE,
   });
 
+  //REACT-PAGINATE
+  const [itemOffset, setItemOffset] = useState(0);
+
+
+  let cardDescriptors;
+
+  if (mode === "add") {
+    //const existing = projects.slice(0, 5);
+    cardDescriptors = [
+      { type: "new" },
+      ...projects.map((p) => ({ type: "view", project: p })),
+    ];
+  } else if (mode === "edit") {
+    cardDescriptors = projects.map((p) => ({
+      type: "edit",
+      project: p,
+    }));
+  } else {
+    cardDescriptors = projects.map((p) => ({
+      type: "view",
+      project: p,
+    }));
+  }
+
+  const itemsPerPage = 6;
+  const endOffset = itemOffset + itemsPerPage;
+  const currentProj = cardDescriptors.slice(itemOffset, endOffset);
+  const pageCount = Math.ceil(cardDescriptors.length / itemsPerPage);
+  const multiPages = pageCount > 1;
+      
+  const handlePageClick = (event) => {
+    const newOffset = (event.selected * itemsPerPage);
+    setItemOffset(newOffset);
+  };
+
+  useEffect(() => {
+    setItemOffset(0);
+  }, [mode, projects.length]);
+
   // fetch projects from backend
   useEffect(() => {
     const fetchProjects = async () => {
@@ -474,25 +514,7 @@ function Projects() {
     );
   }
 
-  let cardDescriptors;
-
-  if (mode === "add") {
-    const existing = projects.slice(0, 5);
-    cardDescriptors = [
-      { type: "new" },
-      ...existing.map((p) => ({ type: "view", project: p })),
-    ];
-  } else if (mode === "edit") {
-    cardDescriptors = projects.slice(0, 6).map((p) => ({
-      type: "edit",
-      project: p,
-    }));
-  } else {
-    cardDescriptors = projects.slice(0, 6).map((p) => ({
-      type: "view",
-      project: p,
-    }));
-  }
+  
 
   return (
     <div>
@@ -589,7 +611,7 @@ function Projects() {
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cardDescriptors.map((item, index) => {
+            {currentProj.map((item, index) => {
               if (item.type === "new") {
                 return (
                   <NewProjectCard
@@ -628,7 +650,7 @@ function Projects() {
           </div>
         )}
 
-        {projects.length > 0 && (
+        {/*projects.length > 0 && (
           <div className="flex items-center justify-end mt-10 space-x-2">
             <span className="text-[#990100] hover:underline cursor-pointer mr-3">
               &lt;
@@ -638,6 +660,32 @@ function Projects() {
             <span className="text-[#990100] hover:underline cursor-pointer">
               &gt;
             </span>
+          </div>
+        )*/}
+
+        {pageCount > 1 && (
+
+          <div className=" ">
+            <ReactPaginate
+              breakLabel="..."
+              nextLabel=">"
+              onPageChange={handlePageClick}
+              pageRangeDisplayed={2}
+              pageCount={pageCount}
+              previousLabel="<"
+              renderOnZeroPageCount={null}
+              marginPagesDisplayed={2}
+              pageClassName=""
+              pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+              previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+              previousLinkClassName="page-link"
+              nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+              nextLinkClassName="page-link"
+              breakClassName="page-item"
+              breakLinkClassName="page-link"
+              containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+              activeClassName="underline font-medium"
+            />
           </div>
         )}
       </div>
