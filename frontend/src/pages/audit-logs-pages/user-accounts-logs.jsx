@@ -35,10 +35,11 @@ function UserAccountsLogs() {
   //REACT-PAGINATE
   
     const [itemOffset, setItemOffset] = useState(0);
-    const itemsPerPage = 20;
+    const itemsPerPage = 15;
     const endOffset = itemOffset + itemsPerPage;
     const currentLogs = logs.slice(itemOffset, endOffset);
     const pageCount = Math.ceil(logs.length / itemsPerPage);
+    const multiPages = pageCount > 1;
   
     const handlePageClick = (event) => {
       const newOffset = (event.selected * itemsPerPage);
@@ -154,20 +155,11 @@ function UserAccountsLogs() {
             <br />
 
             <div className="lg:flex items-center lg:justify-between">
-              {/* AYUSIN MO DIN TO LA */}
               <p className="lg:text-md text-sm">
-                Showing <b>{logs.length}</b> log{logs.length !== 1 ? "s" : ""}
+                Showing <b>{currentLogs.length}</b> of <b>{logs.length}</b> log{logs.length !== 1 ? "s" : ""}
               </p>
 
-              <div className="flex items-center space-x-2 md:pt-0 pt-4">
-                {/*<span className="text-[#990100] hover:underline cursor-pointer">
-                  &lt;
-                </span>
-                <span className="text-sm font-medium">1</span>
-                <span className="text-sm">to {logs.length}</span>
-                <span className="text-[#990100] hover:underline cursor-pointer">
-                  &gt;
-                </span>*/}
+              <div className=" ">
                 <ReactPaginate
                   breakLabel="..."
                   nextLabel=">"
@@ -179,13 +171,13 @@ function UserAccountsLogs() {
                   marginPagesDisplayed={2}
                   pageClassName=""
                   pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                  previousClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                  previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
                   previousLinkClassName="page-link"
-                  nextClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                  nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
                   nextLinkClassName="page-link"
                   breakClassName="page-item"
                   breakLinkClassName="page-link"
-                  containerClassName="flex items-center space-x-2 md:pt-0 pt-4 text-[#990100]"
+                  containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
                   activeClassName="underline font-medium"
                 />
               </div>

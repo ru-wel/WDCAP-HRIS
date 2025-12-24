@@ -14,7 +14,7 @@
   }
 
   .div-table{
-    @apply overflow-x-auto bg-white border border-gray-300 rounded-lg overflow-hidden mt-5 shadow-lg lg:px-8 px-12 py-10;
+    @apply overflow-x-auto overflow-y-auto lg:h-auto h-150 bg-white border border-gray-300 rounded-lg overflow-hidden mt-5 shadow-lg lg:px-8 px-12 py-10;
   }
 
   .table-style{

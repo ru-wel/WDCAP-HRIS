@@ -1,6 +1,9 @@
 import React from "react";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
+import ReactPaginate from 'react-paginate';
+import { useState } from "react";
+
 
 const reportsLogs = [
   {
@@ -34,6 +37,20 @@ const reportsLogs = [
 ];
 
 function ReportsLogs (){
+    //REACT-PAGINATE
+            
+    /*const [itemOffset, setItemOffset] = useState(0);
+    const itemsPerPage = 15;
+    const endOffset = itemOffset + itemsPerPage;
+    const currentLogs = logs.slice(itemOffset, endOffset);
+    const pageCount = Math.ceil(logs.length / itemsPerPage);
+    const multiPages = pageCount > 1;
+            
+    const handlePageClick = (event) => {
+        const newOffset = (event.selected * itemsPerPage);
+        setItemOffset(newOffset);
+    };*/
+
     return(
         <div className="">
 
@@ -110,16 +127,34 @@ function ReportsLogs (){
                         </tbody>
                     </table>
                     <br />
-                    <div className="lg:flex items-center lg:justify-between">
-                        <p className='lg:text-md text-sm'>Showing <b>{reportsLogs.length}</b> employee{reportsLogs.length !== 1 ? 's' : ''}</p>
-                        
-                        <div className="flex items-center space-x-2 md:pt-0 pt-4">
-                            <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
-                            <span className="text-sm font-medium text-body">1</span>
-                            <span className="text-sm text-body">to 10</span>
-                            <span className='text-[#990100] hover:underline'><a href = "#"> &gt; </a></span>
-                        </div>                       
-                    </div>
+                    {/*<div className="lg:flex items-center lg:justify-between">
+                        <p className="lg:text-md text-sm">
+                            Showing <b>{currentLogs.length}</b> of <b>{logs.length}</b> log{logs.length !== 1 ? "s" : ""}
+                        </p>
+
+                        <div className=" ">
+                            <ReactPaginate
+                            breakLabel="..."
+                            nextLabel=">"
+                            onPageChange={handlePageClick}
+                            pageRangeDisplayed={2}
+                            pageCount={pageCount}
+                            previousLabel="<"
+                            renderOnZeroPageCount={null}
+                            marginPagesDisplayed={2}
+                            pageClassName=""
+                            pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                            previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                            previousLinkClassName="page-link"
+                            nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                            nextLinkClassName="page-link"
+                            breakClassName="page-item"
+                            breakLinkClassName="page-link"
+                            containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                            activeClassName="underline font-medium"
+                            />
+                        </div>
+                    </div>*/}
                 </div>
             </div>
         </div>
