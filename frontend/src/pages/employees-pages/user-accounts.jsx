@@ -317,7 +317,7 @@ function UserAccounts (){
                                 <th className="th-style">Role</th>
                                 <th className="th-style">Created At</th>
                                 <th className="th-style">Status</th>
-                                <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">Actions</th>
+                                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>
                         <tbody className='tbody-style'>
@@ -351,19 +351,19 @@ function UserAccounts (){
                                         <td className="td-style-nobtn font-medium">
                                             {row.id}
                                         </td>
-                                        <td className="td-style-nobtn ">
+                                        <td className="td-style">
                                             {row.email}
                                         </td>
-                                        <td className="td-style-nobtn">
+                                        <td className="td-style">
                                             {row.role}
                                         </td>
-                                        <td className="td-style-nobtn">
+                                        <td className="td-style">
                                             {row.createdAt}
                                         </td>
-                                        <td className= " td-style-nobtn">
-                                            <p className={` lg:py-[6px] lg:px-0 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${row.status === 'ACTIVE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{row.status}</p>
+                                        <td className= " td-style">
+                                            <p className={` lg:py-[4px] lg:px-0 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${row.status === 'ACTIVE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{row.status}</p>
                                         </td>
-                                        <td className="td-style-nobtn">
+                                        <td className="td-style">
                                             <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
                                                 View Details
                                             </button>
