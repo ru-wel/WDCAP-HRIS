@@ -34,6 +34,18 @@ const empFiles = [
     empPagibigStatus: "approved",
     empValidID: "ID.pdf",
     empValidIDStatus: "approved",
+    empContractComment: "",
+    empCVComment: "",
+    empApplicationComment: "",
+    empDataSheetComment: "",
+    empNDAComment: "",
+    empExamComment: "",
+    empDiplomaComment: "",
+    empTranscriptComment: "",
+    empSSSComment: "",
+    empPhilhealthComment: "",
+    empPagibigComment: "",
+    empValidIDComment: "",
   },
   {
     id: "AC-00002",
@@ -65,6 +77,18 @@ const empFiles = [
     empPagibigStatus: "approved",
     empValidID: "ID.pdf",
     empValidIDStatus: "approved",
+    empContractComment: "",
+    empCVComment: "",
+    empApplicationComment: "",
+    empDataSheetComment: "",
+    empNDAComment: "",
+    empExamComment: "",
+    empDiplomaComment: "",
+    empTranscriptComment: "",
+    empSSSComment: "",
+    empPhilhealthComment: "",
+    empPagibigComment: "",
+    empValidIDComment: "",
   },
   {
     id: "AC-00003",
@@ -96,6 +120,18 @@ const empFiles = [
     empPagibigStatus: "approved",
     empValidID: "ID.pdf",
     empValidIDStatus: "approved",
+    empContractComment: "",
+    empCVComment: "",
+    empApplicationComment: "",
+    empDataSheetComment: "",
+    empNDAComment: "",
+    empExamComment: "",
+    empDiplomaComment: "",
+    empTranscriptComment: "",
+    empSSSComment: "",
+    empPhilhealthComment: "",
+    empPagibigComment: "",
+    empValidIDComment: "",
   },
   {
     id: "AC-00004",
@@ -127,14 +163,106 @@ const empFiles = [
     empPagibigStatus: "approved",
     empValidID: "ID.pdf",
     empValidIDStatus: "approved",
+    empContractComment: "",
+    empCVComment: "",
+    empApplicationComment: "",
+    empDataSheetComment: "",
+    empNDAComment: "",
+    empExamComment: "",
+    empDiplomaComment: "",
+    empTranscriptComment: "",
+    empSSSComment: "",
+    empPhilhealthComment: "",
+    empPagibigComment: "",
+    empValidIDComment: "",
   },
 ];
 
-function ModalAccounts ({isOpen, onClose, employeeFiles, onSave}){
+
+const modalFiles = [
+    {
+        fileName: "Employee Contract",
+        file: "empContract",
+        status: "empContractStatus",
+        comment:"empContractComment"
+    },
+    {
+        fileName: "Resume/CV",
+        file: "empCV",
+        status: "empCVStatus",
+        comment:"empCVComment"
+    },
+    {
+        fileName: "Application for Employment",
+        file: "empApplication",
+        status: "empApplicationStatus",
+        comment:"empApplicationComment"
+    },
+    {
+        fileName: "Personal Data Sheet",
+        file: "empDataSheet",
+        status: "empDataSheetStatus",
+        comment:"empDataSheetComment"
+    },
+    {
+        fileName: "NDA",
+        file: "empNDA",
+        status: "empNDAStatus",
+        comment:"empNDAComment"
+    },
+    {
+        fileName: "Pre Employment Exam",
+        file: "empExam",
+        status: "empExamStatus",
+        comment:"empExamComment"
+    },
+    {
+        fileName: "Diploma",
+        file: "empDiploma",
+        status: "empDiplomaStatus",
+        comment:"empDiplomaComment"
+    },
+    {
+        fileName: "Transcript of Records",
+        file: "empTranscriptRec",
+        status: "empTranscriptRecStatus",
+        comment:"empTranscriptRecComment"
+    },
+    {
+        fileName: "SSS",
+        file: "empSSS",
+        status: "empSSS_Status",
+        comment:"empSSSComment"
+    },
+    {
+        fileName: "Philhealth",
+        file: "empPhilhealth",
+        status: "empPhilhealthStatus",
+        comment:"empPhilhealthComment"
+    },
+    {
+        fileName: "Pag ibig",
+        file: "empPagibig",
+        status: "empPagibigStatus",
+        comment:"empPagibigComment"
+    },
+    {
+        fileName: "Valid ID",
+        file: "empValidID",
+        status: "empValidIDStatus",
+        comment:"empValidIDComment"
+    },
+
+]
+
+
+function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
 
     if (!isOpen || !employeeFiles) return null;
     const [data, setData] = useState(employeeFiles);
     const [editData, setEditData] = useState(false);
+
+    const [files] = useState(modalFiles);
 
     // WHEN EDITING THE VALUE
     const handleChange = (a) => {
@@ -147,7 +275,6 @@ function ModalAccounts ({isOpen, onClose, employeeFiles, onSave}){
         setEditData(false);
     };
 
-
     const [initialData, setInitialData] = useState(employeeFiles);
 
     useEffect(() => {
@@ -158,15 +285,15 @@ function ModalAccounts ({isOpen, onClose, employeeFiles, onSave}){
 
     const unsavedChanges = JSON.stringify(data) !== JSON.stringify(initialData);
 
-    //RETURN TO THIS SETTING THE PAGES NEEDED
+    //RETURN TO THIS FFOR SETTING THE PAGES NEEDED
     //const [pages, setPages] = useState(1);
 
 
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
-             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-130 border border-gray-300 overflow-y-auto">
-                <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
+             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-190 md:w-140 w-75 md:h-130 h-120 border border-gray-300 overflow-y-auto overflow-x-auto">
+                <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3 w-full">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>201 Files of {data.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition" 
                     onClick={() => {
@@ -177,385 +304,117 @@ function ModalAccounts ({isOpen, onClose, employeeFiles, onSave}){
                     }}> ✕ </button>
                 </div>
 
-                <div className="px-3  overflow-x-auto ">
+                <div className="   ">
                     <table className='min-w-full text-center'>
                         <thead>
-                            <tr>
+                            <tr >
                                 <th></th>
-                                <th className='px-6 py-3'>File</th>
-                                <th className='px-6 py-3'>Status</th>
+                                <th className='px-6 py-3 text-sm'>File</th>
+                                <th className='px-6 py-3 text-sm'>Status</th>
+                                <th className='px-6 py-3 text-sm'>Comments</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Employee Contract</td>
+                            {files.map((row) => (
+                                <tr key={row.status}>
+                                <td className='text-left font-semibold pb-5 px-3 lg:text-sm text-xs'>{row.fileName}</td>
                                 <td className='pb-5 px-3'>
 
                                     {/* LMK PAANO FUNCTION NG SA BUTTON NA DOWNLOAD NG FILES KASI IM NOT SURE IF PAANO YUNG MAGIGING INTERFACE AND FUNCTION NIYA MWEHEHEH */}
                                     <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empContract || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empContractStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Resume/CV</td>
-                                <td className='pb-5 px-3'>
-                                    <button
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empCV || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empCVStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Application for Employment</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empApplication || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empApplicationStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Personal Data Sheet</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empDataSheet || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empDataSheetStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>NDA</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className={`border px-4 py-1 rounded-lg shadow-md w-35
-                                    ${data.empNDAStatus !== "pending"
+                                    className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden
+                                    ${data[row.status] !== "pending"
                                     ? "cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
-                                    : "text-gray-400"
+                                    : "text-gray-500"
                                     }`}
                                     download=""
                                     href= "#"
                                     target='_blank'
                                     rel="noreferrer"
                                     >
-                                        {data.empNDA || "Pending"}
+                                        {data[row.file] || "Pending"}
                                     </button>
                                 </td>
                                 <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empNDAStatus} disabled = {!editData} onChange={handleChange} required>
+                                    <select name={row.status} className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data[row.status]} disabled = {!editData} onChange={handleChange} required>
                                         <option value="">Select Status</option>
                                         <option value="pending">Pending</option>
                                         <option value="approved">Approved</option>
                                         <option value="disapproved">Disapproved</option>
                                     </select>
                                 </td>
-                            </tr>
 
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Pre-employment Exam</td>
                                 <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empExam || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empExamStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
+                                    {data[row.status] === "disapproved" &&(
+                                        editData ? (
+                                        <textarea name={row.comment}
+                                            value={data[row.comment] || ""}
+                                            onChange={handleChange}
+                                            required
+                                            placeholder="Reason"
+                                            className="input-field w-full lg:text-sm text-xs"
+                                            maxLength="25" />
+                                        ):(
+                                            <p className="lg:text-sm text-xs text-gray-700">
+                                                {data[row.comment] || "No comment provided"}
+                                            </p>
+                                        )
+                                    )}
 
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Diploma</td>
-                                <td className='pb-5 px-3'>
-                                    <button
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empDiploma || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empDiplomaStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
+                                    {data[row.status] === "approved" &&(
+                                        <p className='lg:text-sm text-xs'>DONE!</p>
+                                    )}
+
+                                    {data[row.status] === "pending" &&(
+                                        <p className='lg:text-sm text-xs'>Pending...</p>
+                                    )}
                                 </td>
                             </tr>
+                            ))}
 
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Transcript of Records</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empTranscriptRec || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empTranscriptRecStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Social Security System</td>
-                                <td className='pb-5 px-3'>
-                                    <button
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empSSS || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empSSS_Status} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Philhealth</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empPhilhealth || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empPhilhealthStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Pag ibig</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empPagibig || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empPagibigStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            <tr>
-                                <td className='text-left font-semibold pb-5 px-3'>Valid ID</td>
-                                <td className='pb-5 px-3'>
-                                    <button 
-                                    className='cursor-pointer border px-4 py-1 rounded-lg shadow-md hover:border-gray-400 hover:text-[#990100] hover:underline w-35'
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data.empValidID || "Pending"}
-                                    </button>
-                                </td>
-                                <td className='pb-5 px-3'>
-                                    <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.empValidIDStatus} disabled = {!editData} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
-                                    </select>
-                                </td>
-                            </tr>
-
-                            
                         </tbody>
                     </table>
-                </div>
+                    <div className="pt-7">
+                        {!editData ? (
+                            <div className="flex justify-center gap-4">
+                                <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
+                            </div>
+                        ):(
+                            <div className="flex justify-center gap-4">
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                                        onClick = {() => {
+                                            if (unsavedChanges){
+                                                const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
+                                                if (!confirmCancel) return;
+                                            } setData(initialData); setEditData(false);
+                                        }}
+                                    >Cancel Changes</button>
+                                <button onClick={() => {
 
-                
+                                        if (!data.empContractStatus || !data.empApplicationStatus || !data.empDataSheetStatus || !data.empNDAStatus || !data.empExamStatus || !data.empDiplomaStatus || !data.empTranscriptRecStatus || !data.empSSS_Status || !data.empPhilhealthStatus || !data.empPagibigStatus || !data.empValidIDStatus || !data.empCVStatus  ) {
+                                            alert("Please fill out all fields and do not leave any of them blank.");
+                                            return;
+                                        }
 
-                {/* ADD THE PAGES FUNCTIONALITY */}
+                                        //!data.empContractComment || !empCVComment || !empApplicationComment || !empDataSheetComment || !empNDAComment || !empExamComment || !empDiplomaComment || !empTranscriptComment || !empSSSComment || !empPhilhealthComment || !empPagibigComment || !empValidIDComment
 
-               {/*{pages === 1 &&(<Page1 onChange={handleChange} onNext={nextPage} />)}
-               {pages === 2 &&(<Page2 onChange={handleChange} onBack={prevPage} onSubmit={handleSubmit} />)}*/}
+                                        const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
+                                        if (!confirmUpdate) return; 
 
-                {/*<div className="pt-5 md:px-35 px-10">
-
-                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.id}</p>
-                    <div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Role</p>
-                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.role} disabled = {!editData} onChange={handleChange} required>
-                            <option value="">Select Role</option>
-                            <option value="Admin">Admin</option>
-                            <option value="HR">HR</option>
-                            <option value="Employee">Employee</option>
-                        </select>
-                    </div>*/}
-
-                    {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
-                    {/*<div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Email</p>
-                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={data.email} disabled />
-                    </div>
-
-                    <div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Status</p>
-                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data.status} disabled = {!editData} onChange={handleChange} required>
-                            <option value="">Select Status</option>
-                            <option value="ACTIVE">ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
-                        </select>
-                    </div>
-
-
-                </div>
-
-                 <div className="pt-7">
-                    {!editData ? (
-                        <div className="flex justify-center gap-4">
-                            <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
-                        </div>
-                    ):(
-                        <div className="flex justify-center gap-4">
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
-                                    onClick = {() => {
-                                        if (unsavedChanges){
-                                            const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
-                                            if (!confirmCancel) return;
-                                        } setData(initialData); setEditData(false);
-                                    }}
-                                >Cancel Changes</button>
-                            <button onClick={() => {
-
-                                    if (!data.role || !data.status) {
-                                        alert("Please fill out all fields and do not leave any of them blank.");
-                                        return;
-                                    }
-
-                                    handleSave();
-                                    onClose();
-
-                                    const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
-                                    if (confirmUpdate) {
                                         handleSave();
                                         onClose();
                                         alert(`You've successfully updated the record of ${data.id}!`)
-                                    }
-
-                                    
-                                }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>Save Changes</button>
-                        </div>
-                    )}
-                 </div>*/}
-
-
+                                        
+                                        
+                                    }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>Save Changes</button>
+                            </div>
+                        )}
+                    </div>      
+                </div>
              </div>
         </div>
     )
-
 }
 
 function OnboardingFiles (){
@@ -661,7 +520,7 @@ function OnboardingFiles (){
                                             {row.hireDate}
                                         </td>
                                         <td className= " td-style">
-                                            <p className={` lg:py-[4px] lg:px-0 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
+                                            <p className={` lg:py-[4px] lg:px-1.5 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
                                         </td>
                                         <td className="td-style">
                                             <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
@@ -674,7 +533,7 @@ function OnboardingFiles (){
                         </tbody>
                     </table>
                     {/* CONNECT WITH THE FUNCTION */}
-                    <ModalAccounts
+                    <ModalFiles
                         isOpen={isModalOpen}
                         onClose={handleClose}
                         employeeFiles = {viewEmployeeFiles}
