@@ -49,7 +49,7 @@ export const createAssignment = async (assignmentData, userId) => {
           updated_at: new Date().toISOString()
         }
       ])
-      .select()
+      .select(assignmentFields)
       .single();
 
     if (insertError) throw new InternalServerError('Failed to create assignment');
@@ -129,9 +129,10 @@ export const getAssignmentByProject = async (projectId) => {
 // UPDATE ASSIGNMENT
 export const updateAssignment = async (assignmentId, updateData, userId) => {
   try {
+    // fetch existing assignment with relations
     const { data: existing, error: fetchError } = await supabase
       .from('project_assignments')
-      .select('*')
+      .select(assignmentFields)
       .eq('id', assignmentId)
       .single();
 
@@ -160,7 +161,7 @@ export const updateAssignment = async (assignmentId, updateData, userId) => {
       .from('project_assignments')
       .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', assignmentId)
-      .select()
+      .select(assignmentFields)
       .single();
 
     if (updateError) throw new InternalServerError(updateError.message);
@@ -188,9 +189,10 @@ export const updateAssignment = async (assignmentId, updateData, userId) => {
 // DELETE ASSIGNMENT
 export const deleteAssignment = async (assignmentId, userId) => {
   try {
+    // fetch existing assignment with relations
     const { data: existing, error: fetchError } = await supabase
       .from('project_assignments')
-      .select('*')
+      .select(assignmentFields)
       .eq('id', assignmentId)
       .single();
 

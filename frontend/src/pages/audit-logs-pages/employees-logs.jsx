@@ -9,6 +9,125 @@ function EmployeesLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Extract target employee name from log
+  const getTargetEmployee = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // For CREATE and UPDATE, use new_values; for DELETE, use old_values
+    const values = new_values || old_values;
+
+    if (!values) return 'N/A';
+
+    const name = [values.first_name, values.middle_name, values.last_name]
+      .filter(Boolean)
+      .join(' ');
+
+    const employeeId = values.employee_id || 'N/A';
+
+    return `${name} (${employeeId})`;
+  };
+
+  // format logs in a readable way
+  const formatEmployeeChanges = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // fields to skip (technical/system fields, nested objects)
+    const skipFields = [
+      'id', 'user_id',
+      'created_at', 'updated_at', 'deleted_at',
+      'positions', 'departments', 'users' // nested objects
+    ];
+
+    // safely convert value to string
+    const formatValue = (value) => {
+      if (value === null || value === undefined) return 'N/A';
+      if (typeof value === 'object') return '[Complex Data]';
+      if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+      return String(value);
+    };
+
+    // make field names readable
+    const humanizeFieldName = (fieldName) => {
+      const specialCases = {
+        'position_id': 'Position',
+        'department_id': 'Department',
+        'employment_status': 'Employment Status',
+        'personnel_type': 'Personnel Type',
+        'hire_date': 'Hire Date',
+        'birth_date': 'Birth Date'
+      };
+
+      if (specialCases[fieldName]) {
+        return specialCases[fieldName];
+      }
+
+      return fieldName
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, char => char.toUpperCase());
+    };
+
+    // CREATE: show employee name and key details
+    if (action_type === 'CREATE' && new_values) {
+      const name = [new_values.first_name, new_values.middle_name, new_values.last_name]
+        .filter(Boolean)
+        .join(' ');
+      const dept = new_values.department_name || 'N/A';
+      const position = new_values.position_title || 'N/A';
+      return `${name} - ${dept}, ${position}`;
+    }
+
+    // UPDATE: show only changed fields
+    if (action_type === 'UPDATE' && old_values && new_values) {
+      const changes = [];
+
+      // handle position changes (compare nested objects)
+      if (new_values.positions && old_values.positions) {
+        if (new_values.positions.id !== old_values.positions.id) {
+          changes.push(`Position: ${old_values.positions.position_title} → ${new_values.positions.position_title}`);
+        }
+      }
+
+      // handle department changes (compare nested objects)
+      if (new_values.departments && old_values.departments) {
+        if (new_values.departments.id !== old_values.departments.id) {
+          changes.push(`Department: ${old_values.departments.department_name} → ${new_values.departments.department_name}`);
+        }
+      }
+
+      // handle other regular field changes
+      for (const key in new_values) {
+        // skip technical fields and nested objects
+        if (skipFields.includes(key)) continue;
+
+        // check if value actually changed
+        const oldVal = old_values[key];
+        const newVal = new_values[key];
+
+        //skip if value is an object or if values are the same
+        if (typeof newVal === 'object' || oldVal === newVal) continue;
+
+        const formattedOld = formatValue(oldVal);
+        const formattedNew = formatValue(newVal);
+
+        if (formattedOld !== formattedNew) {
+          changes.push(`${humanizeFieldName(key)}: ${formattedOld} → ${formattedNew}`);
+        }
+      }
+
+      return changes.length > 0 ? changes.join(', ') : 'No significant changes';
+    }
+
+    // DELETE: Show deleted employee name
+    if (action_type === 'DELETE' && old_values) {
+      const name = [old_values.first_name, old_values.middle_name, old_values.last_name]
+        .filter(Boolean)
+        .join(' ');
+      return `Deleted: ${name}`;
+    }
+
+    return '—';
+  };
+
   const fetchEmployeeLogs = async () => {
     try {
       setLoading(true);
@@ -105,7 +224,8 @@ function EmployeesLogs() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">
                     Date | Time
                   </th>
-                  <th className="th-style">Email</th>
+                  <th className="th-style">User</th>
+                  <th className="th-style">Employee</th>
                   <th className="th-style">Action</th>
                   <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
                     Changes
@@ -116,7 +236,7 @@ function EmployeesLogs() {
               <tbody className="tbody-style">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       No employee logs found
                     </td>
                   </tr>
@@ -135,14 +255,16 @@ function EmployeesLogs() {
                           {log.users?.email || "N/A"}
                         </td>
 
+                        <td className="td-style-nobtn font-medium">
+                          {getTargetEmployee(log)}
+                        </td>
+
                         <td className="td-style-nobtn">
                           {log.action_type}
                         </td>
 
                         <td className="td-style-nobtn hidden sm:table-cell">
-                          {log.old_values || log.new_values
-                            ? `${JSON.stringify(log.old_values)} → ${JSON.stringify(log.new_values)}`
-                            : "—"}
+                          {formatEmployeeChanges(log)}
                         </td>
                       </tr>
                     );

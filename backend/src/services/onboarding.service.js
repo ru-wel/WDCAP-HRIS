@@ -4,6 +4,25 @@ import { AUDIT_ACTIONS, ONBOARDING_STATUSES } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { ROLES } from '../config/constants.js';
 
+// Fields to select for checklist items with relations
+const checklistFields = `
+  id,
+  employee_id,
+  checklist_item_id,
+  is_required,
+  status,
+  remarks,
+  document_id,
+  submitted_at,
+  reviewed_at,
+  reviewed_by,
+  created_at,
+  updated_at,
+  onboarding_items (id, item_name),
+  documents (id, file_name, file_path),
+  reviewed_by_user:users!onboarding_checklists_reviewed_by_fkey (id, email)
+`;
+
 // create user account and employee record together, so if employee creation fails, fail user creation
 export const createEmployeeWithAccount = async (onboardingData) => {
   let authUserId = null;
@@ -381,9 +400,10 @@ export const getChecklistItemById = async (checklistId) => {
 
 export const updateChecklistItem = async (checklistId, updates, userId) => {
   try {
+    // fetch existing checklist item with relations
     const { data: existingItem, error: fetchError } = await supabase
       .from('onboarding_checklists')
-      .select('*')
+      .select(checklistFields)
       .eq('id', checklistId)
       .single();
 
@@ -398,7 +418,7 @@ export const updateChecklistItem = async (checklistId, updates, userId) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', checklistId)
-      .select()
+      .select(checklistFields)
       .single();
 
     if (error) {

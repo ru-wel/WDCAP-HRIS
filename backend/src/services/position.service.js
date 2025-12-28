@@ -3,6 +3,9 @@ import { NotFoundError, InternalServerError, ConflictError } from "../utils/erro
 import { AUDIT_ACTIONS } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
+// Fields to select with relations
+const positionFields = `id, position_title, department_id, created_at, updated_at, departments (id, department_name)`;
+
 // create a new position
 export const createNewPosition = async (positionTitle, departmentId, userId) => {
   try {
@@ -39,7 +42,7 @@ export const createNewPosition = async (positionTitle, departmentId, userId) => 
           updated_at: new Date().toISOString()
         }
       ])
-      .select()
+      .select(positionFields)
       .single();
 
     if (insertError){
@@ -106,9 +109,10 @@ export const getPositionById = async (positionId) => {
 
 export const updatePosition = async (positionId, updateData, userId) => {
   try {
+    // fetch existing position with relations
     const { data: existingPosition, error: fetchError } = await supabase
       .from('positions')
-      .select('*')
+      .select(positionFields)
       .eq('id', positionId)
       .single();
 
@@ -149,7 +153,7 @@ export const updatePosition = async (positionId, updateData, userId) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', positionId)
-      .select()
+      .select(positionFields)
       .single()
 
     if (updateError){
@@ -178,9 +182,10 @@ export const updatePosition = async (positionId, updateData, userId) => {
 
 export const deletePosition = async (positionId, userId) => {
   try {
+    // fetch existing position with relations
     const { data: existingPosition, error: fetchError } = await supabase
       .from('positions')
-      .select('*')
+      .select(positionFields)
       .eq('id', positionId)
       .single();
 

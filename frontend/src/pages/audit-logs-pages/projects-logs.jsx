@@ -9,6 +9,74 @@ function ProjectsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // extract target project name from log
+  const getTargetProject = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // for CREATE and UPDATE, use new_values; for DELETE, use old_values
+    const values = new_values || old_values;
+
+    if (!values) return 'N/A';
+
+    return values.project_name || 'N/A';
+  };
+
+  // format project changes
+  const formatProjectChanges = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // fields to skip
+    const skipFields = ['id', 'created_at', 'updated_at'];
+
+    // helper to format field names
+    const humanizeFieldName = (fieldName) => {
+      const specialCases = {
+        'project_name': 'Project Name',
+        'site_location': 'Site Location',
+        'start_date': 'Start Date',
+        'end_date': 'End Date'
+      };
+
+      if (specialCases[fieldName]) {
+        return specialCases[fieldName];
+      }
+
+      return fieldName
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, char => char.toUpperCase());
+    };
+
+    // CREATE: show project details
+    if (action_type === 'CREATE' && new_values) {
+      return `Created: ${new_values.project_name} - ${new_values.site_location || 'N/A'}`;
+    }
+
+    // UPDATE: show changed fields
+    if (action_type === 'UPDATE' && old_values && new_values) {
+      const changes = [];
+
+      for (const key in new_values) {
+        if (skipFields.includes(key)) continue;
+
+        const oldVal = old_values[key];
+        const newVal = new_values[key];
+
+        if (oldVal !== newVal) {
+          changes.push(`${humanizeFieldName(key)}: ${oldVal || 'N/A'} → ${newVal || 'N/A'}`);
+        }
+      }
+
+      return changes.length > 0 ? changes.join(', ') : 'No significant changes';
+    }
+
+    // DELETE: show deleted project
+    if (action_type === 'DELETE' && old_values) {
+      return `Deleted: ${old_values.project_name}`;
+    }
+
+    return '—';
+  };
+
   const fetchProjectLogs = async () => {
     try {
       setLoading(true);
@@ -104,7 +172,8 @@ function ProjectsLogs() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">
                     Date | Time
                   </th>
-                  <th className="th-style">Email</th>
+                  <th className="th-style">User</th>
+                  <th className="th-style">Project</th>
                   <th className="th-style">Action</th>
                   <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
                     Changes
@@ -115,7 +184,7 @@ function ProjectsLogs() {
               <tbody className="tbody-style">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       No project logs found
                     </td>
                   </tr>
@@ -134,14 +203,16 @@ function ProjectsLogs() {
                           {log.users?.email || "N/A"}
                         </td>
 
+                        <td className="td-style-nobtn font-medium">
+                          {getTargetProject(log)}
+                        </td>
+
                         <td className="td-style-nobtn">
                           {log.action_type}
                         </td>
 
                         <td className="td-style-nobtn hidden sm:table-cell">
-                          {log.old_values || log.new_values
-                            ? `${JSON.stringify(log.old_values)} → ${JSON.stringify(log.new_values)}`
-                            : "—"}
+                          {formatProjectChanges(log)}
                         </td>
                       </tr>
                     );

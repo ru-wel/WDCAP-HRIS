@@ -9,6 +9,43 @@ function DepartmentsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // extract target department name from logs
+  const getTargetDepartment = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // for CREATE and UPDATE, use new_values; for DELETE, use old_values
+    const values = new_values || old_values;
+
+    if (!values) return 'N/A';
+
+    return values.department_name || 'N/A';
+  };
+
+  // format department changes
+  const formatDepartmentChanges = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // CREATE: show department name
+    if (action_type === 'CREATE' && new_values) {
+      return `Created: ${new_values.department_name}`;
+    }
+
+    // UPDATE: show name change
+    if (action_type === 'UPDATE' && old_values && new_values) {
+      if (old_values.department_name !== new_values.department_name) {
+        return `Department Name: ${old_values.department_name} → ${new_values.department_name}`;
+      }
+      return 'No significant changes';
+    }
+
+    // DELETE: show deleted department
+    if (action_type === 'DELETE' && old_values) {
+      return `Deleted: ${old_values.department_name}`;
+    }
+
+    return '—';
+  };
+
   const fetchDepartmentLogs = async () => {
     try {
       setLoading(true);
@@ -105,7 +142,8 @@ function DepartmentsLogs() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">
                     Date | Time
                   </th>
-                  <th className="th-style">Email</th>
+                  <th className="th-style">User</th>
+                  <th className="th-style">Department</th>
                   <th className="th-style">Action</th>
                   <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
                     Changes
@@ -116,7 +154,7 @@ function DepartmentsLogs() {
               <tbody className="tbody-style">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       No department logs found
                     </td>
                   </tr>
@@ -135,14 +173,16 @@ function DepartmentsLogs() {
                           {log.users?.email || "N/A"}
                         </td>
 
+                        <td className="td-style-nobtn font-medium">
+                          {getTargetDepartment(log)}
+                        </td>
+
                         <td className="td-style-nobtn">
                           {log.action_type}
                         </td>
 
                         <td className="td-style-nobtn hidden sm:table-cell">
-                          {log.old_values || log.new_values
-                            ? `${JSON.stringify(log.old_values)} → ${JSON.stringify(log.new_values)}`
-                            : "—"}
+                          {formatDepartmentChanges(log)}
                         </td>
                       </tr>
                     );

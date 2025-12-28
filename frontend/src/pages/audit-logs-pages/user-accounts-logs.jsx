@@ -9,6 +9,30 @@ function UserAccountsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Extract target user email from log
+  const getTargetUser = (log) => {
+    const { action_type, old_values, new_values } = log;
+
+    // For CREATE and UPDATE, use new_values; for DELETE, use old_values
+    const values = new_values || old_values;
+
+    if (!values) return 'N/A';
+
+    return values.email || 'N/A';
+  };
+
+  // format logs in a readable way
+  const formatChanges = (newValues, actionType) => {
+    // no changes for these actions
+    if (!newValues || ['LOGIN', 'LOGOUT', 'DELETE'].includes(actionType)) {
+      return '—';
+    }
+
+    return Object.entries(newValues)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+  };
+
   // fetch audit logs (users only)
   const fetchAuditLogs = async () => {
     try {
@@ -106,7 +130,8 @@ function UserAccountsLogs() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">
                     Date | Time
                   </th>
-                  <th className="th-style">Email</th>
+                  <th className="th-style">User</th>
+                  <th className="th-style">User Account</th>
                   <th className="th-style">Action</th>
                   <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
                     Changes
@@ -117,7 +142,7 @@ function UserAccountsLogs() {
               <tbody className="tbody-style">
                 {logs.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
                       No audit logs found
                     </td>
                   </tr>
@@ -136,14 +161,16 @@ function UserAccountsLogs() {
                           {log.users?.email || "N/A"}
                         </td>
 
+                        <td className="td-style-nobtn font-medium">
+                          {getTargetUser(log)}
+                        </td>
+
                         <td className="td-style-nobtn">
                           {log.action_type}
                         </td>
 
                         <td className="td-style-nobtn hidden sm:table-cell">
-                          {log.new_values
-                            ? JSON.stringify(log.new_values)
-                            : "—"}
+                          {formatChanges(log.new_values, log.action_type)}
                         </td>
                       </tr>
                     );
