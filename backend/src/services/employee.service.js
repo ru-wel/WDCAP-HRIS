@@ -211,10 +211,10 @@ export const getEmployeeByUserId = async (userId) => {
 // update employee
 export const updateEmployee = async (employeeId, updateData, userId) => {
   try {
-    // fetch existing employee
+    // fetch existing employee with relations
     const { data: existingEmployee, error: fetchError } = await supabase
       .from('employees')
-      .select('*')
+      .select(employeeFields)
       .eq('id', employeeId)
       .single();
 
@@ -287,10 +287,10 @@ export const updateEmployee = async (employeeId, updateData, userId) => {
 // delete employee
 export const deleteEmployee = async (employeeId, userId) => {
   try {
-    // fetch existing employee
+    // fetch existing employee with relations
     const { data: existingEmployee, error: fetchError } = await supabase
       .from('employees')
-      .select('*')
+      .select(employeeFields)
       .eq('id', employeeId)
       .single();
 

@@ -50,7 +50,9 @@ function StepOne({ data, setData, departments, positions }) {
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <p className="text-sm pb-2"><b>Department:</b></p>
-                        <select className="input-select" value={data.department_id} onChange={(e) => setData({ ...data, department_id: e.target.value })} required>
+                        <select className="input-select" value={data.department_id} onChange={(e) => {
+                            setData({ ...data, department_id: e.target.value, position_id: "" }); // reset position when department changes
+                        }} required>
                             <option value="">Select Department</option>
                             {departments.map((dept) => (
                                 <option key={dept.id} value={dept.id}>
@@ -62,13 +64,15 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="text-sm pb-2"><b>Position:</b></p>
-                        <select className="input-select" value={data.position_id} onChange={(e) => setData({ ...data, position_id: e.target.value })} required>
+                        <select className="input-select" value={data.position_id} onChange={(e) => setData({ ...data, position_id: e.target.value })} required disabled={!data.department_id}>
                             <option value="">Select Position</option>
-                            {positions.map((pos) =>  (
-                                <option key={pos.id} value={pos.id}>
-                                    {pos.position_title}
-                                </option>
-                            ))}
+                            {positions
+                                .filter((pos) => pos.departments?.id === data.department_id)
+                                .map((pos) =>  (
+                                    <option key={pos.id} value={pos.id}>
+                                        {pos.position_title}
+                                    </option>
+                                ))}
                         </select>
                     </div>
                 </div>

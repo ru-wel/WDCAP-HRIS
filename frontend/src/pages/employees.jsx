@@ -24,7 +24,13 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     {/* WHEN EDITING THE VALUE */}
     const handleChange = (a) => {
         const { name, value } = a.target;
-        setData(prev => ({...prev, [name]:value}));
+
+        // reset position when department changes
+        if (name === 'department_id') {
+            setData(prev => ({...prev, [name]: value, position_id: ''}));
+        } else {
+            setData(prev => ({...prev, [name]: value}));
+        }
     };
 
     const handleSave = async () => {
@@ -150,13 +156,18 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         
                         <div className="flex items-center md:justify-between md:pl-2">
                             <p className='lg:text-sm text-xs md:pr-0 pr-8'><b>Position:</b></p>
-                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm border border-[#990100] lg:text-sm text-xs p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-40 md:w-35 w-45 disabled:text-gray-600'>
+                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading || !data.department_id} onChange={handleChange} className='shadow-sm border border-[#990100] lg:text-sm text-xs p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-40 md:w-35 w-45 disabled:text-gray-600'>
                                 <option value="">Select Position</option>
-                                    {positions.map((pos) => (
-                                        <option key={pos.id} value={pos.id}>
-                                            {pos.position_title}
-                                        </option>
-                                    ))}
+                                    {positions
+                                        .filter((pos) => {
+                                            // always include current position, or positions matching selected department
+                                            return pos.id === employee.position_id || pos.departments?.id === data.department_id;
+                                        })
+                                        .map((pos) => (
+                                            <option key={pos.id} value={pos.id}>
+                                                {pos.position_title}
+                                            </option>
+                                        ))}
                             </select>
                         </div>
                     </div>
