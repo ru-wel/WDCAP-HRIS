@@ -15,7 +15,7 @@ function LeaveRequestModal({
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
-      <div className="bg-white rounded-lg shadow-xl border border-gray-400 w-[600px] max-w-[95%]">
+      <div className="bg-white rounded-lg shadow-xl border border-gray-400 w-[900px] max-w-none">
         <div className="p-6">
           <div className="bg-[#990100] rounded-lg px-8 py-4 flex items-center justify-between">
             <h2 className="text-white font-semibold text-xl">

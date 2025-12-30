@@ -3,6 +3,7 @@ import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 
+
 function LeaveCreditsModal({ isOpen, onClose, data }) {
   if (!isOpen || !data) return null;
 
@@ -35,6 +36,7 @@ function LeaveCreditsModal({ isOpen, onClose, data }) {
             </div>
 
             <hr className="border-[#990100] my-6" />
+
             <div className="px-6">
               <div className="grid grid-cols-[1.2fr_.8fr_.8fr] text-center font-bold text-[18px] pb-4">
                 <p>Leave Type</p>
@@ -153,7 +155,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00004", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 1, used: 4, lastUpdated: "10/20/25",
+  {
+    id: "AC-00004",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 1,
+    used: 4,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 1, used: 4 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -163,7 +171,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00005", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 3, used: 2, lastUpdated: "10/20/25",
+  {
+    id: "AC-00005",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 3,
+    used: 2,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -173,7 +187,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00006", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 3, used: 2, lastUpdated: "10/20/25",
+  {
+    id: "AC-00006",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 3,
+    used: 2,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -183,7 +203,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00007", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 3, used: 2, lastUpdated: "10/20/25",
+  {
+    id: "AC-00007",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 3,
+    used: 2,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -193,7 +219,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00008", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 3, used: 2, lastUpdated: "10/20/25",
+  {
+    id: "AC-00008",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 3,
+    used: 2,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -203,7 +235,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00009", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 3, used: 2, lastUpdated: "10/20/25",
+  {
+    id: "AC-00009",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 3,
+    used: 2,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -213,7 +251,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00010", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 5, used: 1, lastUpdated: "10/20/25",
+  {
+    id: "AC-00010",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 5,
+    used: 1,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 5, used: 1 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -223,7 +267,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00011", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 2, used: 0, lastUpdated: "10/20/25",
+  {
+    id: "AC-00011",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 2,
+    used: 0,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 2, used: 0 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -233,7 +283,13 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  { id: "AC-00012", name: "Reuel Christian Sundiam", position: "Web Developer", credits: 4, used: 3, lastUpdated: "10/20/25",
+  {
+    id: "AC-00012",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    credits: 4,
+    used: 3,
+    lastUpdated: "10/20/25",
     details: [
       { type: "Service Incentive Leave", mode: "number", credit: 4, used: 3 },
       { type: "Maternity Leave", mode: "disabled" },
@@ -404,15 +460,24 @@ export default function LeaveCredits() {
                 pageCount={pageCount}
                 previousLabel="<"
                 renderOnZeroPageCount={null}
-                containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
-                pageClassName="m-0"
-                previousClassName="m-0"
-                nextClassName="m-0"
-                breakClassName="m-0"
+                marginPagesDisplayed={2}
+                pageClassName=""
                 pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                previousLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                nextLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                breakLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                previousClassName={
+                  multiPages
+                    ? "cursor-pointer hover:text-gray-500 hover:underline"
+                    : "text-gray-400 cursor-not-allowed pointer-events-none"
+                }
+                previousLinkClassName="page-link"
+                nextClassName={
+                  multiPages
+                    ? "cursor-pointer hover:text-gray-500 hover:underline"
+                    : "text-gray-400 cursor-not-allowed pointer-events-none"
+                }
+                nextLinkClassName="page-link"
+                breakClassName="page-item"
+                breakLinkClassName="page-link"
+                containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
                 activeClassName="underline font-medium"
               />
             )}

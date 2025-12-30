@@ -8,7 +8,7 @@ import Employees from './pages/employees';
 import Onboarding from './pages/onboarding';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
-import Leave from './pages/leave';
+import Leave from './pages/leave';``
 import LeaveRequest from './pages/leave-page/request';
 import Analytics from './pages/analytics.jsx';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';

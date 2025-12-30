@@ -78,17 +78,14 @@ export default function DepartmentEmployees() {
   }, [deptIdNum, search, positionsData]);
 
   const itemsPerPage = 10;
-
   const [empOffset, setEmpOffset] = useState(0);
   const empEnd = empOffset + itemsPerPage;
   const currentEmployees = employees.slice(empOffset, empEnd);
   const empPageCount = Math.ceil(employees.length / itemsPerPage);
-
   const [posOffset, setPosOffset] = useState(0);
   const posEnd = posOffset + itemsPerPage;
   const currentPositions = positions.slice(posOffset, posEnd);
   const posPageCount = Math.ceil(positions.length / itemsPerPage);
-
   const handlePageClick = (event) => {
     if (tab === "employees") setEmpOffset(event.selected * itemsPerPage);
     else setPosOffset(event.selected * itemsPerPage);
@@ -170,7 +167,7 @@ export default function DepartmentEmployees() {
   };
 
   const modalShellClass =
-    "relative w-[600px] max-w-[92vw] max-h-[350px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
+    "relative w-[700px] max-w-[92vw] max-h-[420px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
 
   return (
     <div>

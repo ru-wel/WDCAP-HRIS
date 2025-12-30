@@ -1,120 +1,103 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
+import ReactPaginate from "react-paginate";
 
-const seedRows = [
-  { id: "AC-00001", name: "Reuel Christian Sundiam", type: "SIL", date: "11/3/25 - 11/4/25", status: "APPROVED" },
-  { id: "AC-00002", name: "Reuel Christian Sundiam", type: "SIL", date: "11/11/25", status: "APPROVED" },
-  { id: "AC-00003", name: "Reuel Christian Sundiam", type: "SIL", date: "11/29/25", status: "REJECTED" },
-  { id: "AC-00004", name: "Reuel Christian Sundiam", type: "SIL", date: "12/1/25", status: "REJECTED" },
-  { id: "AC-00005", name: "Reuel Christian Sundiam", type: "SIL", date: "12/4/25", status: "APPROVED" },
-  { id: "AC-00002", name: "Reuel Christian Sundiam", type: "SIL", date: "11/11/25", status: "APPROVED" },
-  { id: "AC-00003", name: "Reuel Christian Sundiam", type: "SIL", date: "11/29/25", status: "REJECTED" },
-  { id: "AC-00004", name: "Reuel Christian Sundiam", type: "SIL", date: "12/1/25", status: "REJECTED" },
-  { id: "AC-00005", name: "Reuel Christian Sundiam", type: "SIL", date: "12/4/25", status: "APPROVED" },
-  { id: "AC-00006", name: "Reuel Christian Sundiam", type: "SIL", date: "12/6/25", status: "APPROVED" },
-  { id: "AC-00007", name: "Reuel Christian Sundiam", type: "SIL", date: "12/9/25", status: "REJECTED" },
-  { id: "AC-00008", name: "Reuel Christian Sundiam", type: "SIL", date: "12/10/25", status: "APPROVED" },
-];
-
-function StatusPill({ status }) {
-  const s = String(status).toUpperCase();
-  const approved = s === "APPROVED";
+function LeaveRequestModal({
+  isOpen,
+  onClose,
+  data,
+  statusValue,
+  onStatusChange,
+  onUpdate,
+}) {
+  if (!isOpen || !data) return null;
 
   return (
-    <span
-      className={`inline-flex items-center justify-center
-        px-4 py-1.5 rounded-md
-        text-xs font-semibold
-        ${approved ? "bg-[#BFE0B9] text-[#0B7A0B]" : "bg-[#F7B7B7] text-[#FF0000]"}
-      `}
-    >
-      {s}
-    </span>
-  );
-}
-
-function LeaveHistoryDetailsModal({ open, onClose, data }) {
-  if (!open) return null;
-
-  const approved = String(data?.status || "").toUpperCase() === "APPROVED";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-2xl w-[600px] max-w-[92%] relative border border-gray-400">
-        <div className="px-6 pt-6">
-          <div className="bg-[#990100] text-white rounded-lg px-8 py-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              Leave History of {data?.employeeId || "—"}
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
+      <div className="bg-white rounded-lg shadow-xl border border-gray-400 w-[760px] max-w-[95%]">
+        <div className="p-6">
+          <div className="bg-[#990100] rounded-lg px-8 py-4 flex items-center justify-between">
+            <h2 className="text-white font-semibold text-xl">
+              Leave Request of {data.id}
             </h2>
-
             <button
-              type="button"
               onClick={onClose}
-              className="text-3xl leading-none font-bold hover:opacity-80"
+              className="text-white text-3xl font-bold leading-none hover:scale-110 transition"
               aria-label="Close"
               title="Close"
             >
-              ×
+              ✕
             </button>
           </div>
-        </div>
 
-        <div className="px-10 pt-6 pb-10 text-black">
-          <div className="grid grid-cols-[190px_1fr] gap-y-3 items-start">
-            <div className="font-semibold">Date Requested:</div>
-            <div>{data?.dateRequested || "—"}</div>
+          <div className="pt-6">
+            <div className="grid grid-cols-[170px_1fr] gap-y-3 text-[15px]">
+              <p className="font-bold">Date Requested:</p>
+              <p>{data.dateRequested}</p>
 
-            <div className="font-semibold">Employee Name:</div>
-            <div>{data?.name || "—"}</div>
+              <p className="font-bold">Employee Name:</p>
+              <p>{data.name}</p>
 
-            <div className="font-semibold">Position:</div>
-            <div>{data?.position || "—"}</div>
+              <p className="font-bold">Position:</p>
+              <p>{data.position}</p>
 
-            <div className="font-semibold">Leave Type:</div>
-            <div>{data?.leaveType || "—"}</div>
+              <p className="font-bold">Leave Type:</p>
+              <p>{data.type}</p>
 
-            <div className="font-semibold">Date:</div>
-            <div>{data?.dateRange || "—"}</div>
+              <p className="font-bold">Date:</p>
+              <p>{data.leaveDate}</p>
+            </div>
 
-            <div className="font-semibold pt-2">Reason:</div>
-            <div>
+            <div className="grid grid-cols-[170px_1fr] gap-4 mt-6 items-start">
+              <p className="font-bold pt-2">Reason:</p>
+
               <textarea
-                readOnly
-                value={data?.reason || ""}
                 placeholder="Reason"
-                className="w-full h-[140px] border border-gray-500 rounded-md px-4 py-3 resize-none shadow-md focus:outline-none"
+                value={data.reason || ""}
+                readOnly
+                className="w-full h-[110px] border border-gray-400 rounded-md px-4 py-3 text-sm resize-none
+                           focus:outline-none bg-white placeholder:text-gray-500"
               />
             </div>
-          </div>
 
-          <hr className="my-8 border-red-200" />
+            <hr className="border-[#990100] my-8" />
 
-          <div className="flex items-center gap-6">
-            <div className="font-semibold">Status:</div>
+            <div className="flex items-center gap-5">
+              <p className="font-bold text-[15px]">Status:</p>
 
-            <span
-              className={`inline-flex items-center justify-center px-5 py-2 rounded-md text-xs font-semibold
-                ${approved ? "bg-[#BFE0B9] text-[#0B7A0B]" : "bg-[#F7B7B7] text-[#FF0000]"}
-              `}
-            >
-              {String(data?.status || "").toUpperCase() || "—"}
-            </span>
+              <div className="relative">
+                <select
+                  value={statusValue}
+                  onChange={(e) => onStatusChange(e.target.value)}
+                  className="appearance-none border border-gray-400 rounded-md px-4 py-2 pr-10 text-sm bg-white w-[170px]
+                             focus:outline-none"
+                >
+                  <option value="PENDING">PENDING</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
 
-            <select
-              disabled
-              value={String(data?.status || "").toUpperCase()}
-              className="w-[240px] h-10 border border-gray-500 rounded-md px-4 shadow-md bg-white text-gray-700 cursor-not-allowed"
-            >
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
-              <option value="PENDING">PENDING</option>
-            </select>
-          </div>
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#990100] text-lg">
+                  ▾
+                </span>
+              </div>
+            </div>
 
-          <div className="mt-10 text-[16px]">
-            <span className="font-semibold">Update Made By:</span>{" "}
-            <span>{data?.updatedBy || "—"}</span>
+            <p className="mt-6 text-[15px]">
+              <span className="font-bold">Update Made By:</span>{" "}
+              {data.updatedBy}
+            </p>
+
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={onUpdate}
+                className="bg-[#198C19] text-white px-6 py-2 rounded-md shadow-md
+                           hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out"
+              >
+                Update Request
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -122,44 +105,119 @@ function LeaveHistoryDetailsModal({ open, onClose, data }) {
   );
 }
 
-export default function LeaveHistory() {
-  const [rows] = useState(seedRows);
+const leaveRequestsSeed = [
+  {
+    id: "AC-4001",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    type: "SIL",
+    leaveDate: "November 2, 2025 to November 4, 2025",
+    dateRequested: "10/29/2025",
+    status: "PENDING",
+    reason: "",
+    updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
+  },
+  {
+    id: "AC-00002",
+    name: "Lance Paolo Cabe",
+    position: "Web Developer",
+    type: "SIL",
+    leaveDate: "November 11, 2025",
+    dateRequested: "10/29/2025",
+    status: "PENDING",
+    reason: "",
+    updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
+  },
+  {
+    id: "AC-00003",
+    name: "Gabrielle Delos Santos",
+    position: "Web Developer",
+    type: "SIL",
+    leaveDate: "November 29, 2025",
+    dateRequested: "10/29/2025",
+    status: "PENDING",
+    reason: "",
+    updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
+  },
+  {
+    id: "AC-00004",
+    name: "Reuel Christian Sundiam",
+    position: "Web Developer",
+    type: "SIL",
+    leaveDate: "December 1, 2025",
+    dateRequested: "10/29/2025",
+    status: "PENDING",
+    reason: "",
+    updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
+  },
+  {
+    id: "AC-00005",
+    name: "Carl Paldeng",
+    position: "Web Developer",
+    type: "SIL",
+    leaveDate: "December 4, 2025",
+    dateRequested: "10/29/2025",
+    status: "PENDING",
+    reason: "",
+    updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
+  },
+];
+
+export default function LeaveRequest() {
+  const [rows, setRows] = useState(leaveRequestsSeed);
   const [searchTerm, setSearchTerm] = useState("");
-  const itemsPerPage = 8;
-  const [pageIndex, setPageIndex] = useState(0);
   const [openModal, setOpenModal] = useState(false);
-  const [selected, setSelected] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [modalStatus, setModalStatus] = useState("PENDING");
+
+  const openDetails = (row) => {
+    setSelectedRequest(row);
+    setModalStatus(row.status || "PENDING");
+    setOpenModal(true);
+  };
+
+  const closeDetails = () => {
+    setOpenModal(false);
+    setSelectedRequest(null);
+  };
+
+  const handleUpdateRequest = () => {
+    if (!selectedRequest) return;
+
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === selectedRequest.id ? { ...r, status: modalStatus } : r
+      )
+    );
+
+    alert(`Updated ${selectedRequest.id} to ${modalStatus}`);
+    closeDetails();
+  };
+
   const filteredRows = useMemo(() => {
-    if (!searchTerm.trim()) return rows;
+    if (!searchTerm) return rows;
     const q = searchTerm.toLowerCase();
     return rows.filter((r) =>
-      `${r.id} ${r.name} ${r.type} ${r.date} ${r.status}`.toLowerCase().includes(q)
+      `${r.id} ${r.name} ${r.position} ${r.type} ${r.leaveDate} ${r.status}`
+        .toLowerCase()
+        .includes(q)
     );
   }, [rows, searchTerm]);
 
-  useEffect(() => setPageIndex(0), [searchTerm]);
+  const [itemOffset, setItemOffset] = useState(0);
+  const itemsPerPage = 10;
+  const endOffset = itemOffset + itemsPerPage;
+  const currentRows = filteredRows.slice(itemOffset, endOffset);
+  const pageCount = Math.ceil(filteredRows.length / itemsPerPage);
+  const multiPages = pageCount > 1;
 
-  const pageCount = Math.max(1, Math.ceil(filteredRows.length / itemsPerPage));
-  const start = pageIndex * itemsPerPage;
-  const end = start + itemsPerPage;
-  const currentRows = filteredRows.slice(start, end);
+  useEffect(() => {
+    setItemOffset(0);
+  }, [searchTerm]);
 
-  const prevPage = () => setPageIndex((p) => Math.max(0, p - 1));
-  const nextPage = () => setPageIndex((p) => Math.min(pageCount - 1, p + 1));
-
-  const openDetails = (row) => {
-    setSelected({
-      employeeId: row.id,
-      dateRequested: "10/29/2025",
-      name: row.name,
-      position: "Web Developer",
-      leaveType: row.type,
-      dateRange: "November 2, 2025 to November 4, 2025",
-      reason: "Reason",
-      status: row.status,
-      updatedBy: "Gabrielle Delos Santos (10/29/2025, 2:18 PM PHT)",
-    });
-    setOpenModal(true);
+  const handlePageClick = (event) => {
+    const newOffset = event.selected * itemsPerPage;
+    setItemOffset(newOffset);
   };
 
   return (
@@ -167,9 +225,9 @@ export default function LeaveHistory() {
       <Navbar />
 
       <div className="p-7 lg:mx-18 md:mx-10">
-        <div className="flex justify-between items-center">
-          <h1 className="text-[#990100] font-extrabold lg:text-4xl text-3xl">
-            Leave History
+        <div className="md:flex justify-between items-center w-full">
+          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
+            Leave Requests
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
@@ -201,42 +259,50 @@ export default function LeaveHistory() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="div-table mt-6">
+        <div className="div-table">
           <table className="table-style">
             <thead className="thead-style">
               <tr>
-                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                <th className="th-style rounded-tl-lg rounded-bl-lg">
+                  Employee ID
+                </th>
                 <th className="th-style">Name</th>
                 <th className="th-style">Leave Type</th>
                 <th className="th-style">Date</th>
                 <th className="th-style">Status</th>
-                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">
+                  Actions
+                </th>
               </tr>
             </thead>
 
             <tbody className="tbody-style">
               {currentRows.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                    No leave history found
+                  <td
+                    colSpan="6"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
+                    No leave requests found
                   </td>
                 </tr>
               ) : (
-                currentRows.map((row, idx) => (
-                  <tr key={`${row.id}-${idx}`} className="tr-style">
+                currentRows.map((row) => (
+                  <tr key={row.id} className="tr-style">
                     <td className="td-style font-medium">{row.id}</td>
                     <td className="td-style">{row.name}</td>
                     <td className="td-style">{row.type}</td>
-                    <td className="td-style">{row.date}</td>
+                    <td className="td-style">{row.leaveDate}</td>
                     <td className="td-style">
-                      <StatusPill status={row.status} />
+                      <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
+                        {row.status}
+                      </span>
                     </td>
                     <td className="td-style">
                       <button
-                        type="button"
-                        className="bg-[#990100] text-white text-sm px-4 py-[6px] rounded-lg
-                                   hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                         onClick={() => openDetails(row)}
+                        className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg
+                                   hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                       >
                         View Details
                       </button>
@@ -247,42 +313,42 @@ export default function LeaveHistory() {
             </tbody>
           </table>
 
-          <div className="flex justify-end mt-8">
-            <div className="flex items-center gap-4 text-[#990100]">
-              <button
-                type="button"
-                onClick={prevPage}
-                disabled={pageIndex === 0}
-                className="text-xl disabled:opacity-40 hover:opacity-80 transition"
-              >
-                &lt;
-              </button>
+          <br />
 
-              <div className="flex items-center gap-3 text-gray-900">
-                <div className="w-8 h-8 border border-gray-400 shadow-sm flex items-center justify-center">
-                  {pageIndex + 1}
-                </div>
-                <span>to</span>
-                <span>{pageCount}</span>
-              </div>
+          <div className="lg:flex items-center lg:justify-between">
+            <p className="lg:text-md text-sm">
+              Showing <b>{currentRows.length}</b> of{" "}
+              <b>{filteredRows.length}</b> request
+              {filteredRows.length !== 1 ? "s" : ""}
+            </p>
 
-              <button
-                type="button"
-                onClick={nextPage}
-                disabled={pageIndex >= pageCount - 1}
-                className="text-xl disabled:opacity-40 hover:opacity-80 transition"
-              >
-                &gt;
-              </button>
-            </div>
+            {multiPages && (
+              <ReactPaginate
+                breakLabel="..."
+                nextLabel=">"
+                onPageChange={handlePageClick}
+                pageRangeDisplayed={2}
+                pageCount={pageCount}
+                previousLabel="<"
+                renderOnZeroPageCount={null}
+                containerClassName="pagination"
+                pageClassName="page-num"
+                previousClassName="page-num"
+                nextClassName="page-num"
+                activeClassName="active"
+              />
+            )}
           </div>
         </div>
       </div>
 
-      <LeaveHistoryDetailsModal
-        open={openModal}
-        onClose={() => setOpenModal(false)}
-        data={selected}
+      <LeaveRequestModal
+        isOpen={openModal}
+        onClose={closeDetails}
+        data={selectedRequest}
+        statusValue={modalStatus}
+        onStatusChange={setModalStatus}
+        onUpdate={handleUpdateRequest}
       />
     </div>
   );
