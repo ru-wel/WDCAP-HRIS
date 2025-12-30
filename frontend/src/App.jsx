@@ -24,6 +24,8 @@ import UserAccounts from './pages/employees-pages/user-accounts.jsx';
 import OnboardingFiles from './pages/employees-pages/201-files.jsx';
 import Departments from './pages/employees-pages/departments.jsx';
 import DepartmentEmployees from "./pages/employees-pages/departments-employees.jsx";
+import Credits from "./pages/leave-page/credits.jsx";
+import LeaveHistory from "./pages/leave-page/history.jsx";
 
 function App() {
   return (
@@ -57,6 +59,8 @@ function App() {
 
             <Route path="/leave" element={<Leave />} />
             <Route path="/leave/request" element={<LeaveRequest />} />
+            <Route path="/leave/credits" element={<Credits />} />
+            <Route path="/leave/history" element={<LeaveHistory />} />
 
             <Route path="/analytics" element={<Analytics />} />
 

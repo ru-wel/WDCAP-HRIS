@@ -21,7 +21,6 @@ const seedPositions = [
 ];
 
 function nowStamp() {
-  // simple local string; replace with backend timestamp later
   const d = new Date();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
@@ -38,23 +37,15 @@ function nowStamp() {
 export default function DepartmentEmployees() {
   const { departmentId } = useParams();
   const location = useLocation();
-
   const deptFromState = location.state?.department;
   const departmentName = deptFromState?.name || "Department";
   const deptIdNum = Number(departmentId);
-
   const [tab, setTab] = useState("employees");
   const [search, setSearch] = useState("");
-
-  // ✅ positions state (so Add/Update/Delete reflect in UI)
   const [positionsData, setPositionsData] = useState(seedPositions);
-
-  // -------- Modal: View Details (Edit/Delete) ----------
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [positionTitleDraft, setPositionTitleDraft] = useState("");
-
-  // -------- Modal: Add Position ----------
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
 
@@ -86,7 +77,6 @@ export default function DepartmentEmployees() {
     );
   }, [deptIdNum, search, positionsData]);
 
-  // Pagination (separate per tab)
   const itemsPerPage = 10;
 
   const [empOffset, setEmpOffset] = useState(0);
@@ -110,7 +100,6 @@ export default function DepartmentEmployees() {
     if (nextTab) setTab(nextTab);
   };
 
-  // ===== Add Position modal handlers =====
   const openAdd = () => {
     setNewTitle("");
     setIsAddOpen(true);
@@ -146,7 +135,6 @@ export default function DepartmentEmployees() {
     closeAdd();
   };
 
-  // ===== View Details modal handlers =====
   const onViewPosition = (pos) => {
     setSelectedPosition(pos);
     setPositionTitleDraft(pos.title);
@@ -181,7 +169,6 @@ export default function DepartmentEmployees() {
     closeDetails();
   };
 
-  // ===== Shared modal sizing (smaller) =====
   const modalShellClass =
     "relative w-[600px] max-w-[92vw] max-h-[350px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
 
@@ -190,7 +177,6 @@ export default function DepartmentEmployees() {
       <Navbar />
 
       <div className="p-7 lg:mx-18 md:mx-10">
-        {/* HEADER */}
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
             {departmentName}
@@ -226,7 +212,6 @@ export default function DepartmentEmployees() {
 
         <hr className="text-[#990100] mt-6" />
 
-        {/* TABS + Add Position */}
         <div className="mt-6 relative">
           <div className="flex items-end justify-between">
             <div className="flex items-end">
@@ -268,7 +253,6 @@ export default function DepartmentEmployees() {
             )}
           </div>
 
-          {/* CONTENT CARD */}
           <div className="relative z-10 border border-gray-300 rounded-b-lg rounded-tr-lg p-6 shadow-lg bg-white">
             {tab === "employees" ? (
               <>
@@ -361,16 +345,12 @@ export default function DepartmentEmployees() {
         </div>
       </div>
 
-      {/* =========================
-          ADD POSITION MODAL (copied design)
-         ========================= */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeAdd}>
           <div className="absolute inset-0 bg-black/25" />
 
           <div className={modalShellClass} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              {/* inset red header */}
               <div className="bg-[#990100] rounded-lg px-10 py-6 flex items-center justify-between shadow-md">
                 <h2 className="text-white text-2xl font-bold">Add New Position</h2>
                 <button
@@ -383,7 +363,6 @@ export default function DepartmentEmployees() {
                 </button>
               </div>
 
-              {/* body */}
               <div className="py-10">
                 <div className="flex items-center justify-center gap-5">
                   <span className="font-bold text-lg">Position Title:</span>
@@ -424,16 +403,12 @@ export default function DepartmentEmployees() {
         </div>
       )}
 
-      {/* =========================
-          VIEW DETAILS MODAL (copied design)
-         ========================= */}
       {isDetailsOpen && selectedPosition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeDetails}>
           <div className="absolute inset-0 bg-black/25" />
 
           <div className={modalShellClass} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              {/* inset red header */}
               <div className="bg-[#990100] rounded-lg px-10 py-6 flex items-center justify-between shadow-md">
                 <h2 className="text-white text-2xl font-bold">
                   Details of {selectedPosition.title}
@@ -449,7 +424,6 @@ export default function DepartmentEmployees() {
                 </button>
               </div>
 
-              {/* body */}
               <div className="py-10">
                 <div className="flex items-center justify-center gap-5">
                   <span className="font-bold text-lg">Position Title:</span>
