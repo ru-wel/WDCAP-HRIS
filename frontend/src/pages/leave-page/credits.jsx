@@ -3,6 +3,142 @@ import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 
+function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [fileType, setFileType] = useState("CSV");
+
+  if (!isOpen) return null;
+
+  const handleClose = () => {
+    onClose?.();
+  };
+
+  const handleGenerate = () => {
+    onGenerate?.({ startDate, endDate, fileType });
+    handleClose();
+  };
+
+  const CalendarIcon = () => (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      className="text-[#990100]"
+    >
+      <path
+        d="M7 2v2M17 2v2M3.5 9h17"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6 5h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
+      <div className="bg-white rounded-lg shadow-xl border border-gray-400 w-[600px] h-[380px]">
+        <div className="p-4">
+          {/* HEADER (same look) */}
+          <div className="bg-[#990100] rounded-lg px-7 py-4 flex items-center justify-between">
+            <h2 className="text-white font-semibold text-lg md:text-xl">
+              Generate Report - Leave Credits
+            </h2>
+
+            <button
+              onClick={handleClose}
+              className="text-white text-4xl font-bold leading-none hover:scale-110 transition"
+              aria-label="Close"
+              title="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* BODY */}
+          <div className="py-10 px-4 md:px-10">
+            <div className="max-w-[520px] mx-auto">
+              <div className="grid grid-cols-[180px_1fr] gap-y-5 items-center">
+                {/* Starting Date */}
+                <p className="font-semibold text-[15px] text-right pr-4">
+                  Starting Date:
+                </p>
+                <div className="relative w-full max-w-[250px]">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full border border-gray-400 rounded-md px-4 py-2 pr-10 text-sm shadow-sm
+                               focus:outline-none bg-white"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <CalendarIcon />
+                  </span>
+                </div>
+
+                {/* End Date */}
+                <p className="font-semibold text-[15px] text-right pr-4">
+                  End Date:
+                </p>
+                <div className="relative w-full max-w-[250px]">
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full border border-gray-400 rounded-md px-4 py-2 pr-10 text-sm shadow-sm
+                               focus:outline-none bg-white"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <CalendarIcon />
+                  </span>
+                </div>
+
+                {/* File Type */}
+                <p className="font-semibold text-[15px] text-right pr-4">
+                  File Type:
+                </p>
+                <div className="relative w-full max-w-[250px]">
+                  <select
+                    value={fileType}
+                    onChange={(e) => setFileType(e.target.value)}
+                    className="appearance-none w-full border border-gray-400 rounded-md px-4 py-2 pr-10 text-sm bg-white
+                               focus:outline-none shadow-sm"
+                  >
+                    <option value="CSV">CSV</option>
+                    <option value="PDF">PDF</option>
+                    <option value="XLSX">XLSX</option>
+                  </select>
+
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#990100] text-lg">
+                    ▾
+                  </span>
+                </div>
+              </div>
+
+              {/* BUTTON bottom-right */}
+              <div className="flex justify-end mt-10">
+                <button
+                  onClick={handleGenerate}
+                  className="bg-[#990100] text-white text-sm px-6 py-2 rounded-lg shadow
+                             hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                >
+                  Generate Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function LeaveCreditsModal({ isOpen, onClose, data }) {
   if (!isOpen || !data) return null;
@@ -155,158 +291,16 @@ const leaveCreditsSeed = [
       { type: "Special Leave for Women", mode: "disabled" },
     ],
   },
-  {
-    id: "AC-00004",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 1,
-    used: 4,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 1, used: 4 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00005",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 3,
-    used: 2,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00006",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 3,
-    used: 2,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00007",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 3,
-    used: 2,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00008",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 3,
-    used: 2,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00009",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 3,
-    used: 2,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 3, used: 2 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00010",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 5,
-    used: 1,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 5, used: 1 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00011",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 2,
-    used: 0,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 2, used: 0 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
-  {
-    id: "AC-00012",
-    name: "Reuel Christian Sundiam",
-    position: "Web Developer",
-    credits: 4,
-    used: 3,
-    lastUpdated: "10/20/25",
-    details: [
-      { type: "Service Incentive Leave", mode: "number", credit: 4, used: 3 },
-      { type: "Maternity Leave", mode: "disabled" },
-      { type: "Paternity Leave", mode: "disabled" },
-      { type: "Parental Leave", mode: "disabled" },
-      { type: "Leave under VAWC", mode: "disabled" },
-      { type: "Special Leave for Women", mode: "disabled" },
-    ],
-  },
 ];
 
-export default function LeaveCredits() {
+export default function Credits() {
   const [rows] = useState(leaveCreditsSeed);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
+
+  const [openGenerate, setOpenGenerate] = useState(false);
 
   const openDetails = (row) => {
     setSelectedRow(row);
@@ -314,8 +308,8 @@ export default function LeaveCredits() {
   };
 
   const closeDetails = () => {
-    setOpenModal(false);
     setSelectedRow(null);
+    setOpenModal(false);
   };
 
   const filteredRows = useMemo(() => {
@@ -340,10 +334,6 @@ export default function LeaveCredits() {
   const handlePageClick = (event) => {
     const newOffset = event.selected * itemsPerPage;
     setItemOffset(newOffset);
-  };
-
-  const handleGenerateReport = () => {
-    alert("Generate Report (UI-only for now).");
   };
 
   return (
@@ -384,9 +374,10 @@ export default function LeaveCredits() {
         </div>
 
         <hr className="text-[#990100] mt-6" />
+
         <div className="flex justify-end mt-5">
           <button
-            onClick={handleGenerateReport}
+            onClick={() => setOpenGenerate(true)}
             className="bg-[#990100]/80 text-white px-6 py-2 rounded-lg shadow
                        hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out"
           >
@@ -404,9 +395,7 @@ export default function LeaveCredits() {
                 <th className="th-style">Name</th>
                 <th className="th-style">Leave Credits</th>
                 <th className="th-style">Used Leave</th>
-                <th className="th-style rounded-tr-lg rounded-br-lg">
-                  Actions
-                </th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
               </tr>
             </thead>
 
@@ -461,22 +450,17 @@ export default function LeaveCredits() {
                 previousLabel="<"
                 renderOnZeroPageCount={null}
                 marginPagesDisplayed={2}
-                pageClassName=""
                 pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
                 previousClassName={
                   multiPages
                     ? "cursor-pointer hover:text-gray-500 hover:underline"
                     : "text-gray-400 cursor-not-allowed pointer-events-none"
                 }
-                previousLinkClassName="page-link"
                 nextClassName={
                   multiPages
                     ? "cursor-pointer hover:text-gray-500 hover:underline"
                     : "text-gray-400 cursor-not-allowed pointer-events-none"
                 }
-                nextLinkClassName="page-link"
-                breakClassName="page-item"
-                breakLinkClassName="page-link"
                 containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
                 activeClassName="underline font-medium"
               />
@@ -485,6 +469,21 @@ export default function LeaveCredits() {
         </div>
       </div>
 
+      {/* Generate Report Modal */}
+      <GenerateReportLeaveCreditsModal
+        isOpen={openGenerate}
+        onClose={() => setOpenGenerate(false)}
+        onGenerate={(payload) => {
+          // UI-only for now (replace with your API later)
+          alert(
+            `Generate Report - Leave Credits\n\nStarting Date: ${
+              payload.startDate || "—"
+            }\nEnd Date: ${payload.endDate || "—"}\nFile Type: ${payload.fileType}`
+          );
+        }}
+      />
+
+      {/* View Details Modal */}
       <LeaveCreditsModal
         isOpen={openModal}
         onClose={closeDetails}
