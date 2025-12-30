@@ -12,28 +12,56 @@ const demoEmployees = [
   { id: "AC-00005", name: "John Dayrit", position: "HR Assistant", hireDate: "10/20/25", type: "Regular", deptId: 1 },
 ];
 
-const demoPositions = [
-  { id: "POS-001", title: "Talent Acquisition", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
-  { id: "POS-002", title: "HR Specialist", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
+const seedPositions = [
+  { id: "POS-001", title: "HR Staff", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
+  { id: "POS-002", title: "HR Staff", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
   { id: "POS-003", title: "HR Staff", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
   { id: "POS-004", title: "Accountant", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 2 },
   { id: "POS-005", title: "IT Senior", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 3 },
 ];
 
+function nowStamp() {
+  // simple local string; replace with backend timestamp later
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  let hours = d.getHours();
+  const mins = String(d.getMinutes()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const hh = String(hours).padStart(2, "0");
+  return `${mm}/${dd}/${yy} | ${hh}:${mins} ${ampm} PHT`;
+}
+
 export default function DepartmentEmployees() {
   const { departmentId } = useParams();
   const location = useLocation();
+
   const deptFromState = location.state?.department;
   const departmentName = deptFromState?.name || "Department";
   const deptIdNum = Number(departmentId);
+
   const [tab, setTab] = useState("employees");
   const [search, setSearch] = useState("");
+
+  // ✅ positions state (so Add/Update/Delete reflect in UI)
+  const [positionsData, setPositionsData] = useState(seedPositions);
+
+  // -------- Modal: View Details (Edit/Delete) ----------
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [positionTitleDraft, setPositionTitleDraft] = useState("");
+
+  // -------- Modal: Add Position ----------
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+
   const employees = useMemo(() => {
     const byDept = demoEmployees.filter((e) => e.deptId === deptIdNum);
     if (!search.trim()) return byDept;
+
     const s = search.toLowerCase();
     return byDept.filter(
       (e) =>
@@ -45,7 +73,7 @@ export default function DepartmentEmployees() {
   }, [deptIdNum, search]);
 
   const positions = useMemo(() => {
-    const byDept = demoPositions.filter((p) => p.deptId === deptIdNum);
+    const byDept = positionsData.filter((p) => p.deptId === deptIdNum);
     if (!search.trim()) return byDept;
 
     const s = search.toLowerCase();
@@ -56,29 +84,69 @@ export default function DepartmentEmployees() {
         p.createdAt.toLowerCase().includes(s) ||
         p.updatedAt.toLowerCase().includes(s)
     );
-  }, [deptIdNum, search]);
+  }, [deptIdNum, search, positionsData]);
+
+  // Pagination (separate per tab)
   const itemsPerPage = 10;
+
   const [empOffset, setEmpOffset] = useState(0);
   const empEnd = empOffset + itemsPerPage;
   const currentEmployees = employees.slice(empOffset, empEnd);
   const empPageCount = Math.ceil(employees.length / itemsPerPage);
+
   const [posOffset, setPosOffset] = useState(0);
   const posEnd = posOffset + itemsPerPage;
   const currentPositions = positions.slice(posOffset, posEnd);
   const posPageCount = Math.ceil(positions.length / itemsPerPage);
+
   const handlePageClick = (event) => {
     if (tab === "employees") setEmpOffset(event.selected * itemsPerPage);
     else setPosOffset(event.selected * itemsPerPage);
   };
+
   const resetPaginationOnSearchOrTab = (nextTab) => {
     setEmpOffset(0);
     setPosOffset(0);
     if (nextTab) setTab(nextTab);
   };
-  const onAddPosition = () => {
-    alert("Add Position clicked (connect to modal/backend next).");
+
+  // ===== Add Position modal handlers =====
+  const openAdd = () => {
+    setNewTitle("");
+    setIsAddOpen(true);
   };
 
+  const closeAdd = () => {
+    setIsAddOpen(false);
+    setNewTitle("");
+  };
+
+  const onResetAdd = () => setNewTitle("");
+
+  const onSaveAdd = () => {
+    if (!newTitle.trim()) return;
+
+    const createdAt = (() => {
+      const d = new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const yy = String(d.getFullYear()).slice(-2);
+      return `${mm}/${dd}/${yy}`;
+    })();
+
+    const newPos = {
+      id: `POS-${Date.now()}`,
+      title: newTitle.trim(),
+      createdAt,
+      updatedAt: nowStamp(),
+      deptId: deptIdNum,
+    };
+
+    setPositionsData((prev) => [newPos, ...prev]);
+    closeAdd();
+  };
+
+  // ===== View Details modal handlers =====
   const onViewPosition = (pos) => {
     setSelectedPosition(pos);
     setPositionTitleDraft(pos.title);
@@ -92,20 +160,37 @@ export default function DepartmentEmployees() {
   };
 
   const onUpdatePosition = () => {
-    alert(`Update Position: ${positionTitleDraft}`);
+    if (!selectedPosition) return;
+    const nextTitle = positionTitleDraft.trim();
+    if (!nextTitle) return;
+
+    setPositionsData((prev) =>
+      prev.map((p) =>
+        p.id === selectedPosition.id
+          ? { ...p, title: nextTitle, updatedAt: nowStamp() }
+          : p
+      )
+    );
+
     closeDetails();
   };
 
   const onDeletePosition = () => {
-    alert(`Delete Position: ${selectedPosition?.title}`);
+    if (!selectedPosition) return;
+    setPositionsData((prev) => prev.filter((p) => p.id !== selectedPosition.id));
     closeDetails();
   };
+
+  // ===== Shared modal sizing (smaller) =====
+  const modalShellClass =
+    "relative w-[600px] max-w-[92vw] max-h-[350px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
 
   return (
     <div>
       <Navbar />
 
       <div className="p-7 lg:mx-18 md:mx-10">
+        {/* HEADER */}
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
             {departmentName}
@@ -141,6 +226,7 @@ export default function DepartmentEmployees() {
 
         <hr className="text-[#990100] mt-6" />
 
+        {/* TABS + Add Position */}
         <div className="mt-6 relative">
           <div className="flex items-end justify-between">
             <div className="flex items-end">
@@ -172,7 +258,7 @@ export default function DepartmentEmployees() {
             {tab === "positions" && (
               <button
                 type="button"
-                onClick={onAddPosition}
+                onClick={openAdd}
                 className="cursor-pointer bg-[#B63A3A] text-white px-6 py-3 rounded-lg
                            shadow-md hover:opacity-90 hover:scale-105
                            transition duration-300 ease-in-out"
@@ -182,6 +268,7 @@ export default function DepartmentEmployees() {
             )}
           </div>
 
+          {/* CONTENT CARD */}
           <div className="relative z-10 border border-gray-300 rounded-b-lg rounded-tr-lg p-6 shadow-lg bg-white">
             {tab === "employees" ? (
               <>
@@ -245,7 +332,7 @@ export default function DepartmentEmployees() {
                             <button
                               type="button"
                               onClick={() => onViewPosition(p)}
-                              className="cursor-pointer bg-[#990100] text-white px-6 py-2 rounded-lg
+                              className="cursor-pointer bg-[#B63A3A] text-white px-6 py-2 rounded-lg
                                          hover:opacity-90 hover:scale-105
                                          transition duration-300 ease-in-out"
                             >
@@ -274,17 +361,83 @@ export default function DepartmentEmployees() {
         </div>
       </div>
 
+      {/* =========================
+          ADD POSITION MODAL (copied design)
+         ========================= */}
+      {isAddOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeAdd}>
+          <div className="absolute inset-0 bg-black/25" />
+
+          <div className={modalShellClass} onClick={(e) => e.stopPropagation()}>
+            <div className="p-5">
+              {/* inset red header */}
+              <div className="bg-[#990100] rounded-lg px-10 py-6 flex items-center justify-between shadow-md">
+                <h2 className="text-white text-2xl font-bold">Add New Position</h2>
+                <button
+                  type="button"
+                  onClick={closeAdd}
+                  aria-label="Close"
+                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* body */}
+              <div className="py-10">
+                <div className="flex items-center justify-center gap-5">
+                  <span className="font-bold text-lg">Position Title:</span>
+
+                  <input
+                    value={newTitle}
+                    onChange={(e) => setNewTitle(e.target.value)}
+                    placeholder="Position"
+                    className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                  />
+                </div>
+
+                <div className="flex justify-center gap-10 mt-12">
+                  <button
+                    type="button"
+                    onClick={onResetAdd}
+                    className="bg-[#B63A3A] text-white px-10 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:opacity-90 hover:scale-105
+                               transition duration-300 ease-in-out"
+                  >
+                    Reset
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onSaveAdd}
+                    className="bg-[#990100] text-white px-10 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:opacity-90 hover:scale-105
+                               transition duration-300 ease-in-out"
+                    disabled={!newTitle.trim()}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================
+          VIEW DETAILS MODAL (copied design)
+         ========================= */}
       {isDetailsOpen && selectedPosition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeDetails}>
           <div className="absolute inset-0 bg-black/25" />
 
-          <div
-            className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className={modalShellClass} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
-                <h2 className="text-white text-2xl font-bold">Details of {selectedPosition.title}</h2>
+              {/* inset red header */}
+              <div className="bg-[#990100] rounded-lg px-10 py-6 flex items-center justify-between shadow-md">
+                <h2 className="text-white text-2xl font-bold">
+                  Details of {selectedPosition.title}
+                </h2>
 
                 <button
                   type="button"
@@ -296,6 +449,7 @@ export default function DepartmentEmployees() {
                 </button>
               </div>
 
+              {/* body */}
               <div className="py-10">
                 <div className="flex items-center justify-center gap-5">
                   <span className="font-bold text-lg">Position Title:</span>
@@ -319,6 +473,7 @@ export default function DepartmentEmployees() {
                     className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
                                shadow-md hover:bg-green-600 hover:scale-105
                                transition duration-300 ease-in-out"
+                    disabled={!positionTitleDraft.trim()}
                   >
                     Update Position
                   </button>
