@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { NotFoundError, InternalServerError, ConflictError } from "../utils/errors.js";
-import { AUDIT_ACTIONS } from "../config/constants.js";
+import { AUDIT_ACTIONS, ASSIGNMENT_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
 // Fields to select with relations
@@ -39,6 +39,23 @@ export const createAssignment = async (assignmentData, userId) => {
 
     if (projError || !project) throw new NotFoundError('Project not found');
 
+    // prevent duplicate employee -> project assignment (while still active)
+    const { data: existingAssignment, error: existingError } = await supabase
+      .from('project_assignments')
+      .select('id, status')
+      .eq('employee_id', assignmentData.employee_id)
+      .eq('project_id', assignmentData.project_id)
+      .in('status', [ASSIGNMENT_STATUSES.ACTIVE, ASSIGNMENT_STATUSES.ON_HOLD])
+      .maybeSingle();
+
+    if (existingError) {
+      throw new InternalServerError(existingError.message);
+    }
+
+    if (existingAssignment) {
+      throw new ConflictError('Employee is already assigned to this project');
+    }
+
     // create assignment
     const { data: newAssignment, error: insertError } = await supabase
       .from('project_assignments')
@@ -52,7 +69,13 @@ export const createAssignment = async (assignmentData, userId) => {
       .select(assignmentFields)
       .single();
 
-    if (insertError) throw new InternalServerError('Failed to create assignment');
+    if (insertError) {
+      // If a DB constraint exists, map it to a user-friendly conflict
+      if (insertError.code === '23505') {
+        throw new ConflictError('Employee is already assigned to this project');
+      }
+      throw new InternalServerError('Failed to create assignment');
+    }
 
     // audit log
     await supabase.from('audit_logs').insert({
