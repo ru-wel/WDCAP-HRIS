@@ -46,7 +46,6 @@ function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20">
       <div className="bg-white rounded-lg shadow-xl border border-gray-400 w-[600px] h-[380px]">
         <div className="p-4">
-          {/* HEADER (same look) */}
           <div className="bg-[#990100] rounded-lg px-7 py-4 flex items-center justify-between">
             <h2 className="text-white font-semibold text-lg md:text-xl">
               Generate Report - Leave Credits
@@ -62,11 +61,9 @@ function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
             </button>
           </div>
 
-          {/* BODY */}
           <div className="py-10 px-4 md:px-10">
             <div className="max-w-[520px] mx-auto">
               <div className="grid grid-cols-[180px_1fr] gap-y-5 items-center">
-                {/* Starting Date */}
                 <p className="font-semibold text-[15px] text-right pr-4">
                   Starting Date:
                 </p>
@@ -83,7 +80,6 @@ function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
                   </span>
                 </div>
 
-                {/* End Date */}
                 <p className="font-semibold text-[15px] text-right pr-4">
                   End Date:
                 </p>
@@ -100,7 +96,6 @@ function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
                   </span>
                 </div>
 
-                {/* File Type */}
                 <p className="font-semibold text-[15px] text-right pr-4">
                   File Type:
                 </p>
@@ -122,7 +117,6 @@ function GenerateReportLeaveCreditsModal({ isOpen, onClose, onGenerate }) {
                 </div>
               </div>
 
-              {/* BUTTON bottom-right */}
               <div className="flex justify-end mt-10">
                 <button
                   onClick={handleGenerate}
@@ -469,12 +463,10 @@ export default function Credits() {
         </div>
       </div>
 
-      {/* Generate Report Modal */}
       <GenerateReportLeaveCreditsModal
         isOpen={openGenerate}
         onClose={() => setOpenGenerate(false)}
         onGenerate={(payload) => {
-          // UI-only for now (replace with your API later)
           alert(
             `Generate Report - Leave Credits\n\nStarting Date: ${
               payload.startDate || "—"
@@ -483,7 +475,6 @@ export default function Credits() {
         }}
       />
 
-      {/* View Details Modal */}
       <LeaveCreditsModal
         isOpen={openModal}
         onClose={closeDetails}
