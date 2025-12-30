@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
-import { get, post, put, del } from "../../services/api.js";
+import { get, post, del } from "../../services/api.js";
 import ReactPaginate from 'react-paginate';
 
-function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded }) {
+function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existingEmployeeIds }) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedEmployee, setSelectedEmployee] = React.useState(null);
   const [availableEmployees, setAvailableEmployees] = React.useState([]);
@@ -37,8 +37,12 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded }) {
     }
   };
   
+  const assignedIds = existingEmployeeIds instanceof Set ? existingEmployeeIds : new Set(existingEmployeeIds || []);
+
   const filteredEmployees = searchTerm
-    ? availableEmployees.filter((emp) => {
+    ? availableEmployees
+        .filter((emp) => !assignedIds.has(emp.id))
+        .filter((emp) => {
         const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
         return fullName.includes(searchTerm.toLowerCase());
       })
@@ -261,6 +265,7 @@ function ProjectEmployees() {
   const itemsPerPage = 15;
   const endOffset = itemOffset + itemsPerPage;
   const currentProjEmp = projectEmployees.slice(itemOffset, endOffset);
+  const assignedEmployeeIds = new Set(projectEmployees.map((a) => a.employee_id).filter(Boolean));
   const pageCount = Math.ceil(projectEmployees.length / itemsPerPage);
   const multiPages = pageCount > 1;
   
@@ -411,6 +416,7 @@ function ProjectEmployees() {
         onClose={closeAddModal}
         projectId={projectId}
         onEmployeeAdded={fetchProjectEmployees}
+        existingEmployeeIds={assignedEmployeeIds}
       />
     </div>
   );
