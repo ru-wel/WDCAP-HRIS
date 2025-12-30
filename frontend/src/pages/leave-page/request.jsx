@@ -94,7 +94,7 @@ function LeaveRequest() {
             </thead>
 
             <tbody className="tbody-style">
-              {leaveRequests.map((row, index) => (
+              {leaveRequests.map((row) => (
                 <tr
                   key={row.id}
                   className= "tr-style"

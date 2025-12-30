@@ -10,6 +10,8 @@ import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
 import Leave from './pages/leave';
 import LeaveRequest from './pages/leave-page/request';
+import LeaveCredits from './pages/leave-page/credits';
+import LeaveHistory from './pages/leave-page/history';
 import Analytics from './pages/analytics.jsx';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
 import { ROLES } from './constants/config.js';
@@ -57,6 +59,8 @@ function App() {
 
             <Route path="/leave" element={<Leave />} />
             <Route path="/leave/request" element={<LeaveRequest />} />
+            <Route path="/leave/credits" element={<LeaveCredits />} />
+            <Route path="/leave/history" element={<LeaveHistory />} />
 
             <Route path="/analytics" element={<Analytics />} />
 
