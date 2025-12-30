@@ -1,68 +1,39 @@
 import React, { useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 
 const demoEmployees = [
-  {
-    id: "AC-00001",
-    name: "Reuel Christian Sundiam",
-    position: "Talent Acquisition",
-    hireDate: "10/20/25",
-    type: "Regular",
-    deptId: 1,
-  },
-  {
-    id: "AC-00002",
-    name: "Lance Paolo Cabe",
-    position: "Accountant",
-    hireDate: "10/20/25",
-    type: "Regular",
-    deptId: 2,
-  },
-  {
-    id: "AC-00003",
-    name: "Gabrielle Delos Santos",
-    position: "HR Specialist",
-    hireDate: "10/20/25",
-    type: "Regular",
-    deptId: 1,
-  },
-  {
-    id: "AC-00004",
-    name: "Carl Paldeng",
-    position: "IT Senior",
-    hireDate: "10/20/25",
-    type: "Regular",
-    deptId: 3,
-  },
-  {
-    id: "AC-00005",
-    name: "John Dayrit",
-    position: "HR Assistant",
-    hireDate: "10/20/25",
-    type: "Regular",
-    deptId: 1,
-  },
+  { id: "AC-00001", name: "Reuel Christian Sundiam", position: "Talent Acquisition", hireDate: "10/20/25", type: "Regular", deptId: 1 },
+  { id: "AC-00002", name: "Lance Paolo Cabe", position: "Accountant", hireDate: "10/20/25", type: "Regular", deptId: 2 },
+  { id: "AC-00003", name: "Gabrielle Delos Santos", position: "HR Specialist", hireDate: "10/20/25", type: "Regular", deptId: 1 },
+  { id: "AC-00004", name: "Carl Paldeng", position: "IT Senior", hireDate: "10/20/25", type: "Regular", deptId: 3 },
+  { id: "AC-00005", name: "John Dayrit", position: "HR Assistant", hireDate: "10/20/25", type: "Regular", deptId: 1 },
+];
+
+const demoPositions = [
+  { id: "POS-001", title: "Talent Acquisition", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
+  { id: "POS-002", title: "HR Specialist", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
+  { id: "POS-003", title: "HR Staff", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
+  { id: "POS-004", title: "Accountant", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 2 },
+  { id: "POS-005", title: "IT Senior", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 3 },
 ];
 
 export default function DepartmentEmployees() {
-  const navigate = useNavigate();
   const { departmentId } = useParams();
   const location = useLocation();
-
   const deptFromState = location.state?.department;
   const departmentName = deptFromState?.name || "Department";
   const deptIdNum = Number(departmentId);
-
   const [tab, setTab] = useState("employees");
   const [search, setSearch] = useState("");
-
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState(null);
+  const [positionTitleDraft, setPositionTitleDraft] = useState("");
   const employees = useMemo(() => {
     const byDept = demoEmployees.filter((e) => e.deptId === deptIdNum);
     if (!search.trim()) return byDept;
-
     const s = search.toLowerCase();
     return byDept.filter(
       (e) =>
@@ -73,14 +44,61 @@ export default function DepartmentEmployees() {
     );
   }, [deptIdNum, search]);
 
-  const [itemOffset, setItemOffset] = useState(0);
-  const itemsPerPage = 10;
-  const endOffset = itemOffset + itemsPerPage;
-  const currentEmployees = employees.slice(itemOffset, endOffset);
-  const pageCount = Math.ceil(employees.length / itemsPerPage);
+  const positions = useMemo(() => {
+    const byDept = demoPositions.filter((p) => p.deptId === deptIdNum);
+    if (!search.trim()) return byDept;
 
+    const s = search.toLowerCase();
+    return byDept.filter(
+      (p) =>
+        p.id.toLowerCase().includes(s) ||
+        p.title.toLowerCase().includes(s) ||
+        p.createdAt.toLowerCase().includes(s) ||
+        p.updatedAt.toLowerCase().includes(s)
+    );
+  }, [deptIdNum, search]);
+  const itemsPerPage = 10;
+  const [empOffset, setEmpOffset] = useState(0);
+  const empEnd = empOffset + itemsPerPage;
+  const currentEmployees = employees.slice(empOffset, empEnd);
+  const empPageCount = Math.ceil(employees.length / itemsPerPage);
+  const [posOffset, setPosOffset] = useState(0);
+  const posEnd = posOffset + itemsPerPage;
+  const currentPositions = positions.slice(posOffset, posEnd);
+  const posPageCount = Math.ceil(positions.length / itemsPerPage);
   const handlePageClick = (event) => {
-    setItemOffset(event.selected * itemsPerPage);
+    if (tab === "employees") setEmpOffset(event.selected * itemsPerPage);
+    else setPosOffset(event.selected * itemsPerPage);
+  };
+  const resetPaginationOnSearchOrTab = (nextTab) => {
+    setEmpOffset(0);
+    setPosOffset(0);
+    if (nextTab) setTab(nextTab);
+  };
+  const onAddPosition = () => {
+    alert("Add Position clicked (connect to modal/backend next).");
+  };
+
+  const onViewPosition = (pos) => {
+    setSelectedPosition(pos);
+    setPositionTitleDraft(pos.title);
+    setIsDetailsOpen(true);
+  };
+
+  const closeDetails = () => {
+    setIsDetailsOpen(false);
+    setSelectedPosition(null);
+    setPositionTitleDraft("");
+  };
+
+  const onUpdatePosition = () => {
+    alert(`Update Position: ${positionTitleDraft}`);
+    closeDetails();
+  };
+
+  const onDeletePosition = () => {
+    alert(`Delete Position: ${selectedPosition?.title}`);
+    closeDetails();
   };
 
   return (
@@ -89,11 +107,9 @@ export default function DepartmentEmployees() {
 
       <div className="p-7 lg:mx-18 md:mx-10">
         <div className="md:flex justify-between items-center w-full">
-          <div className="flex items-center gap-3">
-            <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-              {departmentName}
-            </h1>
-          </div>
+          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
+            {departmentName}
+          </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3 md:mt-0 mt-5">
             <DropDownFilter />
@@ -105,7 +121,7 @@ export default function DepartmentEmployees() {
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
-                  setItemOffset(0);
+                  resetPaginationOnSearchOrTab();
                 }}
                 className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
               />
@@ -125,51 +141,59 @@ export default function DepartmentEmployees() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="mt-6">
-          <div className="flex">
-            <button
-              type="button"
-              onClick={() => setTab("employees")}
-              className={`px-8 py-3 font-medium rounded-t-lg transition duration-200
-                ${
+        <div className="mt-6 relative">
+          <div className="flex items-end justify-between">
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => resetPaginationOnSearchOrTab("employees")}
+                className={`px-8 py-3 font-medium rounded-t-lg transition ${
                   tab === "employees"
-                    ? "bg-[#990100] text-white"
-                    : "bg-[#D9D9D9] text-black hover:bg-gray-300"
+                    ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
+                    : "bg-[#D9D9D9] text-black z-10"
                 }`}
-            >
-              Employees
-            </button>
+              >
+                Employees
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setTab("positions")}
-              className={`px-8 py-3 font-medium rounded-t-lg ml-1 transition duration-200
-                ${
+              <button
+                type="button"
+                onClick={() => resetPaginationOnSearchOrTab("positions")}
+                className={`px-8 py-3 font-medium rounded-t-lg transition ${
                   tab === "positions"
-                    ? "bg-[#990100] text-white"
-                    : "bg-[#D9D9D9] text-black hover:bg-gray-300"
+                    ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
+                    : "bg-[#D9D9D9] text-black z-10"
                 }`}
-            >
-              Positions
-            </button>
+              >
+                Positions
+              </button>
+            </div>
+
+            {tab === "positions" && (
+              <button
+                type="button"
+                onClick={onAddPosition}
+                className="cursor-pointer bg-[#B63A3A] text-white px-6 py-3 rounded-lg
+                           shadow-md hover:opacity-90 hover:scale-105
+                           transition duration-300 ease-in-out"
+              >
+                Add Position
+              </button>
+            )}
           </div>
 
-          <div className="border border-gray-300 rounded-b-lg rounded-tr-lg p-6 shadow-lg bg-white">
+          <div className="relative z-10 border border-gray-300 rounded-b-lg rounded-tr-lg p-6 shadow-lg bg-white">
             {tab === "employees" ? (
               <>
                 <div className="div-table">
                   <table className="table-style">
                     <thead className="thead-style">
                       <tr>
-                        <th className="th-style rounded-tl-lg rounded-bl-lg">
-                          Employee ID
-                        </th>
+                        <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                         <th className="th-style">Name</th>
                         <th className="th-style">Position</th>
                         <th className="th-style">Hire Date</th>
-                        <th className="th-style rounded-tr-lg rounded-br-lg">
-                          Personnel Type
-                        </th>
+                        <th className="th-style rounded-tr-lg rounded-br-lg">Personnel Type</th>
                       </tr>
                     </thead>
 
@@ -191,7 +215,7 @@ export default function DepartmentEmployees() {
                   <ReactPaginate
                     previousLabel="<"
                     nextLabel=">"
-                    pageCount={pageCount}
+                    pageCount={empPageCount}
                     onPageChange={handlePageClick}
                     containerClassName="flex gap-3"
                     activeClassName="underline font-bold"
@@ -199,13 +223,121 @@ export default function DepartmentEmployees() {
                 </div>
               </>
             ) : (
-              <div className="text-gray-500">
-                Positions tab (hook this to your positions data next)
-              </div>
+              <>
+                <div className="div-table">
+                  <table className="table-style">
+                    <thead className="thead-style">
+                      <tr>
+                        <th className="th-style rounded-tl-lg rounded-bl-lg">Position Title</th>
+                        <th className="th-style">Created At</th>
+                        <th className="th-style">Last Updated At</th>
+                        <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="tbody-style">
+                      {currentPositions.map((p) => (
+                        <tr key={p.id} className="tr-style">
+                          <td className="td-style font-medium">{p.title}</td>
+                          <td className="td-style">{p.createdAt}</td>
+                          <td className="td-style">{p.updatedAt}</td>
+                          <td className="td-style">
+                            <button
+                              type="button"
+                              onClick={() => onViewPosition(p)}
+                              className="cursor-pointer bg-[#990100] text-white px-6 py-2 rounded-lg
+                                         hover:opacity-90 hover:scale-105
+                                         transition duration-300 ease-in-out"
+                            >
+                              View Details
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end mt-6 text-[#990100]">
+                  <ReactPaginate
+                    previousLabel="<"
+                    nextLabel=">"
+                    pageCount={posPageCount}
+                    onPageChange={handlePageClick}
+                    containerClassName="flex gap-3"
+                    activeClassName="underline font-bold"
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {isDetailsOpen && selectedPosition && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeDetails}>
+          <div className="absolute inset-0 bg-black/25" />
+
+          <div
+            className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
+                <h2 className="text-white text-2xl font-bold">Details of {selectedPosition.title}</h2>
+
+                <button
+                  type="button"
+                  onClick={closeDetails}
+                  aria-label="Close"
+                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="py-10">
+                <div className="flex items-center justify-center gap-5">
+                  <span className="font-bold text-lg">Position Title:</span>
+
+                  <div className="flex flex-col">
+                    <input
+                      value={positionTitleDraft}
+                      onChange={(e) => setPositionTitleDraft(e.target.value)}
+                      className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                    />
+                    <span className="text-sm text-gray-500 mt-2 font-medium">
+                      Last Updated: {selectedPosition.updatedAt}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-8 mt-10">
+                  <button
+                    type="button"
+                    onClick={onUpdatePosition}
+                    className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:bg-green-600 hover:scale-105
+                               transition duration-300 ease-in-out"
+                  >
+                    Update Position
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onDeletePosition}
+                    className="bg-red-700 text-white px-8 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:bg-red-600 hover:scale-105
+                               transition duration-300 ease-in-out"
+                  >
+                    Delete Position
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
