@@ -22,6 +22,8 @@ import EvaluationLogs from './pages/audit-logs-pages/evaluation-logs.jsx';
 import ReportsLogs from './pages/audit-logs-pages/reports-logs.jsx';
 import UserAccounts from './pages/employees-pages/user-accounts.jsx';
 import OnboardingFiles from './pages/employees-pages/201-files.jsx';
+import Departments from './pages/employees-pages/departments.jsx';
+import DepartmentEmployees from "./pages/employees-pages/departments-employees.jsx";
 
 function App() {
   return (
@@ -45,6 +47,8 @@ function App() {
             <Route path="/employees/onboarding" element={<Onboarding />} />
             <Route path="/employees/user-accounts" element={<UserAccounts />} />
             <Route path='/employees/201-files'element = {<OnboardingFiles />} />
+            <Route path="/employees/departments" element={<Departments />} />
+            <Route path="/employees/departments/:departmentId" element={<DepartmentEmployees />} />
 
             {/* END - EMPLOYEES */}
 
