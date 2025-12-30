@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 
@@ -46,6 +46,8 @@ const empFiles = [
     empPhilhealthComment: "",
     empPagibigComment: "",
     empValidIDComment: "",
+        lastUpdatedDate: "10/20/25",
+        lastUpdatedTime: "10:00 AM PHT",
   },
   {
     id: "AC-00002",
@@ -89,6 +91,8 @@ const empFiles = [
     empPhilhealthComment: "",
     empPagibigComment: "",
     empValidIDComment: "",
+        lastUpdatedDate: "10/20/25",
+        lastUpdatedTime: "10:00 AM PHT",
   },
   {
     id: "AC-00003",
@@ -132,6 +136,8 @@ const empFiles = [
     empPhilhealthComment: "",
     empPagibigComment: "",
     empValidIDComment: "",
+        lastUpdatedDate: "10/20/25",
+        lastUpdatedTime: "10:00 AM PHT",
   },
   {
     id: "AC-00004",
@@ -175,6 +181,8 @@ const empFiles = [
     empPhilhealthComment: "",
     empPagibigComment: "",
     empValidIDComment: "",
+        lastUpdatedDate: "10/20/25",
+        lastUpdatedTime: "10:00 AM PHT",
   },
 ];
 
@@ -258,8 +266,7 @@ const modalFiles = [
 
 function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
 
-    if (!isOpen || !employeeFiles) return null;
-    const [data, setData] = useState(employeeFiles);
+    const [data, setData] = useState(employeeFiles ?? null);
     const [editData, setEditData] = useState(false);
 
     const [files] = useState(modalFiles);
@@ -275,15 +282,28 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
         setEditData(false);
     };
 
-    const [initialData, setInitialData] = useState(employeeFiles);
+    const [initialData, setInitialData] = useState(employeeFiles ?? null);
 
     useEffect(() => {
-        setData(employeeFiles);
-        setInitialData(employeeFiles);
+        setData(employeeFiles ?? null);
+        setInitialData(employeeFiles ?? null);
         setEditData(false);
     }, [employeeFiles]);
 
-    const unsavedChanges = JSON.stringify(data) !== JSON.stringify(initialData);
+    const unsavedChanges = data && initialData ? JSON.stringify(data) !== JSON.stringify(initialData) : false;
+
+    if (!isOpen || !employeeFiles || !data || !initialData) return null;
+
+    const renderSectionHeaderRow = (title) => (
+        <tr key={`section-${title}`}>
+            <td colSpan={4} className="px-3 pt-5 pb-2">
+                <div className="flex items-center gap-4">
+                    <span className="font-extrabold text-base tracking-wide">{title}</span>
+                    <div className="flex-1 border-t border-[#990100]/40" />
+                </div>
+            </td>
+        </tr>
+    );
 
     //RETURN TO THIS FFOR SETTING THE PAGES NEEDED
     //const [pages, setPages] = useState(1);
@@ -316,7 +336,10 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
                         </thead>
                         <tbody>
                             {files.map((row) => (
-                                <tr key={row.status}>
+                                <React.Fragment key={row.status}>
+                                {row.file === 'empSSS' && renderSectionHeaderRow('BENEFITS')}
+                                {row.file === 'empValidID' && renderSectionHeaderRow('VALID ID')}
+                                <tr>
                                 <td className='text-left font-semibold pb-5 px-3 lg:text-sm text-xs'>{row.fileName}</td>
                                 <td className='pb-5 px-3'>
 
@@ -370,10 +393,18 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
                                     )}
                                 </td>
                             </tr>
+                                </React.Fragment>
                             ))}
 
                         </tbody>
                     </table>
+
+                    <div className="flex items-center justify-end px-3 pt-3 text-xs text-gray-700">
+                        <p>
+                            <b>Last Updated:</b> {data.lastUpdatedDate || data.hireDate} | {data.lastUpdatedTime || '10:00 AM PHT'}
+                        </p>
+                    </div>
+
                     <div className="pt-7">
                         {!editData ? (
                             <div className="flex justify-center gap-4">
@@ -421,7 +452,7 @@ function OnboardingFiles (){
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployeeFiles, setViewEmployeeFiles] = useState(null);
-    const [employeesFiles, setEmployeesFiles] = useState(empFiles);
+    const [, setEmployeesFiles] = useState(empFiles);
 
     const handleOpen = (empFiles) => {
         setViewEmployeeFiles(empFiles);
