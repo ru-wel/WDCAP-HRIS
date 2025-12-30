@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
+import { del, get, post, put } from "../../services/api.js";
 
 function DepartmentCard({
   id,
@@ -137,22 +138,52 @@ function NewDepartmentCard({ value, onChange }) {
 export default function Departments() {
   const navigate = useNavigate();
 
-  const [departments, setDepartments] = useState([
-    { id: 1, name: "HR Department", employees: 4 },
-    { id: 2, name: "Finance Department", employees: 6 },
-    { id: 3, name: "IT Department", employees: 5 },
-    { id: 4, name: "Marketing Department", employees: 3 },
-    { id: 5, name: "Operations Department", employees: 7 },
-    { id: 6, name: "Admin Department", employees: 2 },
-    { id: 7, name: "Legal Department", employees: 1 },
-    { id: 8, name: "Procurement Department", employees: 3 },
-    { id: 9, name: "Engineering Department", employees: 10 },
-  ]);
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [mode, setMode] = useState("view");
   const [newDeptName, setNewDeptName] = useState("");
   const [editedNames, setEditedNames] = useState({});
+
+  const fetchDepartments = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [deptRes, empRes] = await Promise.all([
+        get("/departments"),
+        get("/employees"),
+      ]);
+
+      const employees = empRes?.success ? (empRes.data || []) : [];
+      const counts = new Map();
+
+      employees.forEach((emp) => {
+        const deptId = emp?.departments?.id || emp?.department_id;
+        if (!deptId) return;
+        counts.set(deptId, (counts.get(deptId) || 0) + 1);
+      });
+
+      const list = (deptRes?.success ? (deptRes.data || []) : []).map((d) => ({
+        id: d.id,
+        name: d.department_name,
+        employees: counts.get(d.id) || 0,
+      }));
+
+      setDepartments(list);
+    } catch (e) {
+      console.error("Failed to fetch departments:", e);
+      setError(e.message || "Failed to load departments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
   const filteredDepartments = useMemo(() => {
     if (!searchTerm) return departments;
@@ -195,29 +226,70 @@ export default function Departments() {
 
   const startDelete = () => setMode("delete");
 
-  const saveChanges = () => {
-    if (mode === "add" && newDeptName.trim()) {
-      setDepartments((prev) => [
-        { id: Date.now(), name: newDeptName.trim(), employees: 0 },
-        ...prev,
-      ]);
-    }
+  const saveChanges = async () => {
+    try {
+      if (mode === "add") {
+        const name = newDeptName.trim();
+        if (!name) return;
 
-    if (mode === "edit") {
-      setDepartments((prev) =>
-        prev.map((d) => ({
-          ...d,
-          name: editedNames[d.id]?.trim() || d.name,
-        }))
-      );
-    }
+        const response = await post("/departments", { department_name: name });
 
-    setMode("view");
-    setNewDeptName("");
+        if (response?.success) {
+          const created = response.data;
+          setDepartments((prev) => [
+            {
+              id: created.id,
+              name: created.department_name,
+              employees: 0,
+            },
+            ...prev,
+          ]);
+        }
+      }
+
+      if (mode === "edit") {
+        const updates = departments
+          .map((d) => {
+            const nextName = (editedNames[d.id] ?? d.name).trim();
+            if (!nextName || nextName === d.name) return null;
+            return { id: d.id, name: nextName };
+          })
+          .filter(Boolean);
+
+        if (updates.length > 0) {
+          await Promise.all(
+            updates.map((u) =>
+              put(`/departments/${u.id}`, { department_name: u.name })
+            )
+          );
+
+          setDepartments((prev) =>
+            prev.map((d) => {
+              const match = updates.find((u) => u.id === d.id);
+              return match ? { ...d, name: match.name } : d;
+            })
+          );
+        }
+      }
+
+      setMode("view");
+      setNewDeptName("");
+    } catch (e) {
+      console.error("Failed to save changes:", e);
+      alert(e.message || "Failed to save changes");
+    }
   };
 
-  const confirmDelete = (id) => {
-    setDepartments((prev) => prev.filter((d) => d.id !== id));
+  const confirmDelete = async (id) => {
+    try {
+      const response = await del(`/departments/${id}`);
+      if (response?.success) {
+        setDepartments((prev) => prev.filter((d) => d.id !== id));
+      }
+    } catch (e) {
+      console.error("Failed to delete department:", e);
+      alert(e.message || "Failed to delete department");
+    }
   };
 
   const openDepartment = (dept) => {
@@ -260,6 +332,29 @@ export default function Departments() {
         </div>
 
         <hr className="text-[#990100] mt-6" />
+
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-gray-600">Loading departments...</p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchDepartments}
+                className="bg-[#990100] text-white px-4 py-2 rounded"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
 
         <div className="flex justify-end mt-6">
           {isWorking ? (
@@ -326,6 +421,9 @@ export default function Departments() {
             activeClassName="underline font-bold"
           />
         </div>
+
+          </>
+        )}
       </div>
     </div>
   );

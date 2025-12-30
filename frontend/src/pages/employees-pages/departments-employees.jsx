@@ -1,38 +1,85 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
-
-const demoEmployees = [
-  { id: "AC-00001", name: "Reuel Christian Sundiam", position: "Talent Acquisition", hireDate: "10/20/25", type: "Regular", deptId: 1 },
-  { id: "AC-00002", name: "Lance Paolo Cabe", position: "Accountant", hireDate: "10/20/25", type: "Regular", deptId: 2 },
-  { id: "AC-00003", name: "Gabrielle Delos Santos", position: "HR Specialist", hireDate: "10/20/25", type: "Regular", deptId: 1 },
-  { id: "AC-00004", name: "Carl Paldeng", position: "IT Senior", hireDate: "10/20/25", type: "Regular", deptId: 3 },
-  { id: "AC-00005", name: "John Dayrit", position: "HR Assistant", hireDate: "10/20/25", type: "Regular", deptId: 1 },
-];
-
-const demoPositions = [
-  { id: "POS-001", title: "Talent Acquisition", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
-  { id: "POS-002", title: "HR Specialist", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
-  { id: "POS-003", title: "HR Staff", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 1 },
-  { id: "POS-004", title: "Accountant", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 2 },
-  { id: "POS-005", title: "IT Senior", createdAt: "10/18/25", updatedAt: "10/20/25 | 10:00 AM PHT", deptId: 3 },
-];
+import { del, get, post, put } from "../../services/api.js";
 
 export default function DepartmentEmployees() {
   const { departmentId } = useParams();
   const location = useLocation();
   const deptFromState = location.state?.department;
-  const departmentName = deptFromState?.name || "Department";
-  const deptIdNum = Number(departmentId);
+  const [departmentName, setDepartmentName] = useState(deptFromState?.name || "Department");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [allPositions, setAllPositions] = useState([]);
   const [tab, setTab] = useState("employees");
   const [search, setSearch] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedPosition, setSelectedPosition] = useState(null);
+  const [addPositionTitleDraft, setAddPositionTitleDraft] = useState("");
   const [positionTitleDraft, setPositionTitleDraft] = useState("");
+  const [isEditingPosition, setIsEditingPosition] = useState(false);
+  const [positionSaving, setPositionSaving] = useState(false);
+  const [positionError, setPositionError] = useState("");
+  const formatShortDate = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+  };
+
+  const formatUpdated = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    const date = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+    const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return `${date} | ${time}`;
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [deptRes, empRes, posRes] = await Promise.all([
+        get(`/departments/${departmentId}`),
+        get('/employees'),
+        get('/positions'),
+      ]);
+
+      if (deptRes?.success) {
+        setDepartmentName(deptRes.data?.department_name || departmentName);
+      }
+
+      setAllEmployees(empRes?.success ? (empRes.data || []) : []);
+      setAllPositions(posRes?.success ? (posRes.data || []) : []);
+    } catch (e) {
+      console.error('Failed to fetch department data:', e);
+      setError(e.message || 'Failed to load department data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (departmentId) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departmentId]);
+
   const employees = useMemo(() => {
-    const byDept = demoEmployees.filter((e) => e.deptId === deptIdNum);
+    const byDept = allEmployees
+      .filter((e) => (e?.departments?.id || e?.department_id) === departmentId)
+      .map((e) => ({
+        id: e.employee_id,
+        name: `${e.first_name} ${e.last_name}`,
+        position: e.positions?.position_title || 'N/A',
+        hireDate: formatShortDate(e.hire_date),
+        type: e.personnel_type,
+      }));
     if (!search.trim()) return byDept;
     const s = search.toLowerCase();
     return byDept.filter(
@@ -42,10 +89,17 @@ export default function DepartmentEmployees() {
         e.position.toLowerCase().includes(s) ||
         e.type.toLowerCase().includes(s)
     );
-  }, [deptIdNum, search]);
+  }, [allEmployees, departmentId, search]);
 
   const positions = useMemo(() => {
-    const byDept = demoPositions.filter((p) => p.deptId === deptIdNum);
+    const byDept = allPositions
+      .filter((p) => (p?.departments?.id || p?.department_id) === departmentId)
+      .map((p) => ({
+        id: p.id,
+        title: p.position_title,
+        createdAt: formatShortDate(p.created_at),
+        updatedAt: formatUpdated(p.updated_at),
+      }));
     if (!search.trim()) return byDept;
 
     const s = search.toLowerCase();
@@ -56,7 +110,7 @@ export default function DepartmentEmployees() {
         p.createdAt.toLowerCase().includes(s) ||
         p.updatedAt.toLowerCase().includes(s)
     );
-  }, [deptIdNum, search]);
+  }, [allPositions, departmentId, search]);
   const itemsPerPage = 10;
   const [empOffset, setEmpOffset] = useState(0);
   const empEnd = empOffset + itemsPerPage;
@@ -76,29 +130,117 @@ export default function DepartmentEmployees() {
     if (nextTab) setTab(nextTab);
   };
   const onAddPosition = () => {
-    alert("Add Position clicked (connect to modal/backend next).");
+    setPositionError("");
+    setAddPositionTitleDraft("");
+    setIsAddOpen(true);
+  };
+
+  const closeAdd = ({ force = false } = {}) => {
+    if (positionSaving && !force) return;
+    setIsAddOpen(false);
+    setAddPositionTitleDraft("");
+    setPositionError("");
+  };
+
+  const onCreatePosition = async () => {
+    const title = addPositionTitleDraft.trim();
+    if (!title) {
+      setPositionError("Position title is required");
+      return;
+    }
+
+    try {
+      setPositionSaving(true);
+      setPositionError("");
+
+      const res = await post('/positions', {
+        position_title: title,
+        department_id: departmentId,
+      });
+
+      if (!res?.success) {
+        throw new Error(res?.message || 'Failed to create position');
+      }
+
+      closeAdd({ force: true });
+      await fetchData();
+    } catch (e) {
+      console.error('Failed to create position:', e);
+      setPositionError(e?.message || 'Failed to create position');
+    } finally {
+      setPositionSaving(false);
+    }
   };
 
   const onViewPosition = (pos) => {
     setSelectedPosition(pos);
     setPositionTitleDraft(pos.title);
+    setIsEditingPosition(false);
+    setPositionError("");
     setIsDetailsOpen(true);
   };
 
-  const closeDetails = () => {
+  const closeDetails = ({ force = false } = {}) => {
+    if (positionSaving && !force) return;
     setIsDetailsOpen(false);
     setSelectedPosition(null);
     setPositionTitleDraft("");
+    setIsEditingPosition(false);
+    setPositionError("");
   };
 
-  const onUpdatePosition = () => {
-    alert(`Update Position: ${positionTitleDraft}`);
-    closeDetails();
+  const onUpdatePosition = async () => {
+    if (!selectedPosition?.id) return;
+    const title = positionTitleDraft.trim();
+    if (!title) {
+      setPositionError('Position title is required');
+      return;
+    }
+
+    try {
+      setPositionSaving(true);
+      setPositionError("");
+
+      const res = await put(`/positions/${selectedPosition.id}`, {
+        position_title: title,
+      });
+
+      if (!res?.success) {
+        throw new Error(res?.message || 'Failed to update position');
+      }
+
+      closeDetails({ force: true });
+      await fetchData();
+    } catch (e) {
+      console.error('Failed to update position:', e);
+      setPositionError(e?.message || 'Failed to update position');
+    } finally {
+      setPositionSaving(false);
+    }
   };
 
-  const onDeletePosition = () => {
-    alert(`Delete Position: ${selectedPosition?.title}`);
-    closeDetails();
+  const onDeletePosition = async () => {
+    if (!selectedPosition?.id) return;
+    const ok = window.confirm(`Delete position "${selectedPosition.title}"?`);
+    if (!ok) return;
+
+    try {
+      setPositionSaving(true);
+      setPositionError("");
+
+      const res = await del(`/positions/${selectedPosition.id}`);
+      if (!res?.success) {
+        throw new Error(res?.message || 'Failed to delete position');
+      }
+
+      closeDetails({ force: true });
+      await fetchData();
+    } catch (e) {
+      console.error('Failed to delete position:', e);
+      setPositionError(e?.message || 'Failed to delete position');
+    } finally {
+      setPositionSaving(false);
+    }
   };
 
   return (
@@ -140,6 +282,22 @@ export default function DepartmentEmployees() {
         </div>
 
         <hr className="text-[#990100] mt-6" />
+
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <p className="text-gray-600">Loading...</p>
+          </div>
+        )}
+
+        {error && !loading && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+            <button onClick={fetchData} className="mt-2 bg-red-600 text-white px-4 py-2 rounded text-sm">Retry</button>
+          </div>
+        )}
+
+        {!loading && !error && (
+          <>
 
         <div className="mt-6 relative">
           <div className="flex items-end justify-between">
@@ -272,7 +430,79 @@ export default function DepartmentEmployees() {
             )}
           </div>
         </div>
+
+          </>
+        )}
       </div>
+
+      {isAddOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeAdd}>
+          <div className="absolute inset-0 bg-black/25" />
+
+          <div
+            className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
+                <h2 className="text-white text-2xl font-bold">Add Position</h2>
+
+                <button
+                  type="button"
+                  onClick={closeAdd}
+                  aria-label="Close"
+                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                  disabled={positionSaving}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="py-10">
+                <div className="flex items-center justify-center gap-5">
+                  <span className="font-bold text-lg">Position Title:</span>
+
+                  <div className="flex flex-col">
+                    <input
+                      value={addPositionTitleDraft}
+                      onChange={(e) => setAddPositionTitleDraft(e.target.value)}
+                      className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      disabled={positionSaving}
+                    />
+                    {positionError && (
+                      <span className="text-sm text-red-600 mt-2 font-medium">{positionError}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-center gap-8 mt-10">
+                  <button
+                    type="button"
+                    onClick={onCreatePosition}
+                    disabled={positionSaving}
+                    className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:bg-green-600 hover:scale-105
+                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {positionSaving ? 'Saving...' : 'Save Position'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeAdd}
+                    disabled={positionSaving}
+                    className="bg-gray-600 text-white px-8 py-3 rounded-lg cursor-pointer
+                               shadow-md hover:bg-gray-500 hover:scale-105
+                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isDetailsOpen && selectedPosition && (
         <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={closeDetails}>
@@ -305,32 +535,46 @@ export default function DepartmentEmployees() {
                       value={positionTitleDraft}
                       onChange={(e) => setPositionTitleDraft(e.target.value)}
                       className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      readOnly={!isEditingPosition || positionSaving}
+                      disabled={positionSaving}
                     />
                     <span className="text-sm text-gray-500 mt-2 font-medium">
                       Last Updated: {selectedPosition.updatedAt}
                     </span>
+                    {positionError && (
+                      <span className="text-sm text-red-600 mt-2 font-medium">{positionError}</span>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex justify-center gap-8 mt-10">
                   <button
                     type="button"
-                    onClick={onUpdatePosition}
+                    onClick={() => {
+                      if (!isEditingPosition) {
+                        setIsEditingPosition(true);
+                        setPositionError('');
+                        return;
+                      }
+                      onUpdatePosition();
+                    }}
+                    disabled={positionSaving}
                     className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
                                shadow-md hover:bg-green-600 hover:scale-105
-                               transition duration-300 ease-in-out"
+                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Update Position
+                    {positionSaving ? 'Saving...' : (isEditingPosition ? 'Save Changes' : 'Update Position')}
                   </button>
 
                   <button
                     type="button"
                     onClick={onDeletePosition}
+                    disabled={positionSaving}
                     className="bg-red-700 text-white px-8 py-3 rounded-lg cursor-pointer
                                shadow-md hover:bg-red-600 hover:scale-105
-                               transition duration-300 ease-in-out"
+                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Delete Position
+                    {positionSaving ? 'Working...' : 'Delete Position'}
                   </button>
                 </div>
               </div>
