@@ -8,7 +8,7 @@ function Login(){
     const [password, setPassword] = useState('');
 
     // state for loading and errors
-    const [loading, setLoading] = useState('');
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     // get login function from AuthContext
@@ -19,6 +19,7 @@ function Login(){
     // handle form submission
     const handleSubmit = async (e) => {
       e.preventDefault();
+      e.stopPropagation();
       setError('');
 
       if (!email || !password) {
@@ -28,11 +29,8 @@ function Login(){
 
       try {
         setLoading(true);
-
-        // get login function from AuthContext
         await login(email, password);
         navigate('/dashboard');
-
       } catch (err) {
         setError(err.message || 'Login failed. Please try again.');
       } finally {
@@ -67,7 +65,7 @@ function Login(){
                         )}
 
 												{/* Login Form */}
-												<form onSubmit={handleSubmit}>
+												<form onSubmit={handleSubmit} autoComplete="off">
 													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">EMAIL</p>
                         	<input type="email" name="email" placeholder='Enter Email' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required />
 
@@ -84,7 +82,7 @@ function Login(){
                        	 	</div>
 												</form>
 
-                        <a href = "#" className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm">Forgot Password?</a>	                     
+                        <button type="button" onClick={(e) => e.preventDefault()} className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm bg-transparent border-none cursor-pointer p-0">Forgot Password?</button>	                     
                     </div>
                 </div>
 

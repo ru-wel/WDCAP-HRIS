@@ -1,273 +1,114 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
-
-
-const empFiles = [
-  {
-    id: "AC-00001",
-    name: "Reuel Christian Sundiam",
-    personnelType: "Regular",
-    hireDate: "10/20/25",
-    remarks: "",
-    empContract: "Contract.pdf",
-    empContractStatus: "approved",
-    empCV: "CV.pdf",
-    empCVStatus: "approved",
-    empApplication: "Application.pdf",
-    empApplicationStatus: "approved",
-    empDataSheet:"DataSheet.pdf",
-    empDataSheetStatus: "disapproved",
-    empNDA: "",
-    empNDAStatus: "pending",
-    empExam: "",
-    empExamStatus: "pending",
-    empDiploma: "Diploma.pdf",
-    empDiplomaStatus: "disapproved",
-    empTranscriptRec: "Transcript.pdf",
-    empTranscriptRecStatus: "approved",
-    empSSS: "SSS.pdf",
-    empSSS_Status: "approved",
-    empPhilhealth: "Philhealth.pdf",
-    empPhilhealthStatus: "disapproved",
-    empPagibig: "Pagibig.pdf",
-    empPagibigStatus: "approved",
-    empValidID: "ID.pdf",
-    empValidIDStatus: "approved",
-    empContractComment: "",
-    empCVComment: "",
-    empApplicationComment: "",
-    empDataSheetComment: "",
-    empNDAComment: "",
-    empExamComment: "",
-    empDiplomaComment: "",
-    empTranscriptComment: "",
-    empSSSComment: "",
-    empPhilhealthComment: "",
-    empPagibigComment: "",
-    empValidIDComment: "",
-        lastUpdatedDate: "10/20/25",
-        lastUpdatedTime: "10:00 AM PHT",
-  },
-  {
-    id: "AC-00002",
-    name: "Gabrielle Delos Santos",
-    personnelType: "Probationary",
-    hireDate: "10/20/25",
-    remarks: "",
-    empContract: "Contract.pdf",
-    empContractStatus: "approved",
-    empCV: "CV.pdf",
-    empCVStatus: "approved",
-    empApplication: "Application.pdf",
-    empApplicationStatus: "approved",
-    empDataSheet:"DataSheet.pdf",
-    empDataSheetStatus: "approved",
-    empNDA: "NDA.pdf",
-    empNDAStatus: "approved",
-    empExam: "Exam.pdf",
-    empExamStatus: "approved",
-    empDiploma: "Diploma.pdf",
-    empDiplomaStatus: "approved",
-    empTranscriptRec: "Transcript.pdf",
-    empTranscriptRecStatus: "approved",
-    empSSS: "SSS.pdf",
-    empSSS_Status: "approved",
-    empPhilhealth: "Philhealth.pdf",
-    empPhilhealthStatus: "approved",
-    empPagibig: "Pagibig.pdf",
-    empPagibigStatus: "approved",
-    empValidID: "ID.pdf",
-    empValidIDStatus: "approved",
-    empContractComment: "",
-    empCVComment: "",
-    empApplicationComment: "",
-    empDataSheetComment: "",
-    empNDAComment: "",
-    empExamComment: "",
-    empDiplomaComment: "",
-    empTranscriptComment: "",
-    empSSSComment: "",
-    empPhilhealthComment: "",
-    empPagibigComment: "",
-    empValidIDComment: "",
-        lastUpdatedDate: "10/20/25",
-        lastUpdatedTime: "10:00 AM PHT",
-  },
-  {
-    id: "AC-00003",
-    name: "Carl Lester Paldeng",
-    personnelType: "Regular",
-    hireDate: "10/20/25",
-    remarks: "",
-    empContract: "Contract.pdf",
-    empContractStatus: "approved",
-    empCV: "CV.pdf",
-    empCVStatus: "approved",
-    empApplication: "Application.pdf",
-    empApplicationStatus: "approved",
-    empDataSheet:"DataSheet.pdf",
-    empDataSheetStatus: "disapproved",
-    empNDA: "",
-    empNDAStatus: "pending",
-    empExam: "",
-    empExamStatus: "pending",
-    empDiploma: "Diploma.pdf",
-    empDiplomaStatus: "disapproved",
-    empTranscriptRec: "Transcript.pdf",
-    empTranscriptRecStatus: "approved",
-    empSSS: "SSS.pdf",
-    empSSS_Status: "approved",
-    empPhilhealth: "Philhealth.pdf",
-    empPhilhealthStatus: "disapproved",
-    empPagibig: "Pagibig.pdf",
-    empPagibigStatus: "approved",
-    empValidID: "ID.pdf",
-    empValidIDStatus: "approved",
-    empContractComment: "",
-    empCVComment: "",
-    empApplicationComment: "",
-    empDataSheetComment: "",
-    empNDAComment: "",
-    empExamComment: "",
-    empDiplomaComment: "",
-    empTranscriptComment: "",
-    empSSSComment: "",
-    empPhilhealthComment: "",
-    empPagibigComment: "",
-    empValidIDComment: "",
-        lastUpdatedDate: "10/20/25",
-        lastUpdatedTime: "10:00 AM PHT",
-  },
-  {
-    id: "AC-00004",
-    name: "Lance Paolo Cabe",
-    personnelType: "Probationary",
-    hireDate: "10/20/25",
-    remarks: "",
-    empContract: "Contract.pdf",
-    empContractStatus: "approved",
-    empCV: "CV.pdf",
-    empCVStatus: "approved",
-    empApplication: "Application.pdf",
-    empApplicationStatus: "approved",
-    empDataSheet:"DataSheet.pdf",
-    empDataSheetStatus: "disapproved",
-    empNDA: "",
-    empNDAStatus: "pending",
-    empExam: "",
-    empExamStatus: "pending",
-    empDiploma: "Diploma.pdf",
-    empDiplomaStatus: "disapproved",
-    empTranscriptRec: "Transcript.pdf",
-    empTranscriptRecStatus: "approved",
-    empSSS: "SSS.pdf",
-    empSSS_Status: "approved",
-    empPhilhealth: "Philhealth.pdf",
-    empPhilhealthStatus: "disapproved",
-    empPagibig: "Pagibig.pdf",
-    empPagibigStatus: "approved",
-    empValidID: "ID.pdf",
-    empValidIDStatus: "approved",
-    empContractComment: "",
-    empCVComment: "",
-    empApplicationComment: "",
-    empDataSheetComment: "",
-    empNDAComment: "",
-    empExamComment: "",
-    empDiplomaComment: "",
-    empTranscriptComment: "",
-    empSSSComment: "",
-    empPhilhealthComment: "",
-    empPagibigComment: "",
-    empValidIDComment: "",
-        lastUpdatedDate: "10/20/25",
-        lastUpdatedTime: "10:00 AM PHT",
-  },
-];
-
+import { get, post } from '../../services/api';
+import { ONBOARDING_STATUSES } from '../../constants/config';
 
 const modalFiles = [
     {
         fileName: "Employee Contract",
         file: "empContract",
         status: "empContractStatus",
-        comment:"empContractComment"
+        comment:"empContractComment",
+        checklistId: "empContractChecklistId",
+        documentId: "empContractDocumentId"
     },
     {
         fileName: "Resume/CV",
         file: "empCV",
         status: "empCVStatus",
-        comment:"empCVComment"
+        comment:"empCVComment",
+        checklistId: "empCVChecklistId",
+        documentId: "empCVDocumentId"
     },
     {
         fileName: "Application for Employment",
         file: "empApplication",
         status: "empApplicationStatus",
-        comment:"empApplicationComment"
+        comment:"empApplicationComment",
+        checklistId: "empApplicationChecklistId",
+        documentId: "empApplicationDocumentId"
     },
     {
         fileName: "Personal Data Sheet",
         file: "empDataSheet",
         status: "empDataSheetStatus",
-        comment:"empDataSheetComment"
+        comment:"empDataSheetComment",
+        checklistId: "empDataSheetChecklistId",
+        documentId: "empDataSheetDocumentId"
     },
     {
         fileName: "NDA",
         file: "empNDA",
         status: "empNDAStatus",
-        comment:"empNDAComment"
+        comment:"empNDAComment",
+        checklistId: "empNDAChecklistId",
+        documentId: "empNDADocumentId"
     },
     {
         fileName: "Pre Employment Exam",
         file: "empExam",
         status: "empExamStatus",
-        comment:"empExamComment"
+        comment:"empExamComment",
+        checklistId: "empExamChecklistId",
+        documentId: "empExamDocumentId"
     },
     {
         fileName: "Diploma",
         file: "empDiploma",
         status: "empDiplomaStatus",
-        comment:"empDiplomaComment"
+        comment:"empDiplomaComment",
+        checklistId: "empDiplomaChecklistId",
+        documentId: "empDiplomaDocumentId"
     },
     {
         fileName: "Transcript of Records",
         file: "empTranscriptRec",
         status: "empTranscriptRecStatus",
-        comment:"empTranscriptRecComment"
+        comment:"empTranscriptRecComment",
+        checklistId: "empTranscriptRecChecklistId",
+        documentId: "empTranscriptRecDocumentId"
     },
     {
         fileName: "SSS",
         file: "empSSS",
         status: "empSSS_Status",
-        comment:"empSSSComment"
+        comment:"empSSSComment",
+        checklistId: "empSSSChecklistId",
+        documentId: "empSSSDocumentId"
     },
     {
         fileName: "Philhealth",
         file: "empPhilhealth",
         status: "empPhilhealthStatus",
-        comment:"empPhilhealthComment"
+        comment:"empPhilhealthComment",
+        checklistId: "empPhilhealthChecklistId",
+        documentId: "empPhilhealthDocumentId"
     },
     {
         fileName: "Pag ibig",
         file: "empPagibig",
         status: "empPagibigStatus",
-        comment:"empPagibigComment"
+        comment:"empPagibigComment",
+        checklistId: "empPagibigChecklistId",
+        documentId: "empPagibigDocumentId"
     },
     {
         fileName: "Valid ID",
         file: "empValidID",
         status: "empValidIDStatus",
-        comment:"empValidIDComment"
+        comment:"empValidIDComment",
+        checklistId: "empValidIDChecklistId",
+        documentId: "empValidIDDocumentId"
     },
 
 ]
 
-
-function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
+function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
 
     const [data, setData] = useState(employeeFiles ?? null);
     const [editData, setEditData] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const [files] = useState(modalFiles);
 
@@ -277,9 +118,78 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
         setData(prev => ({...prev, [name]:value}));
     };
 
-    const handleSave = () => {
-        onSave(data);  
-        setEditData(false);
+    const handleDownload = async (documentId, fileName) => {
+        if (!documentId) {
+            alert('No document available to download');
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            const response = await get(`/documents/${documentId}/download`);
+
+            if (response.success && response.data.signedUrl) {
+                // open download URL in new tab
+                window.open(response.data.signedUrl, '_blank');
+            } else {
+                alert('Failed to generate download link');
+            }
+        } catch (error) {
+            console.error('Download error:', error);
+            alert(error.message || 'Failed to download document');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!data) return;
+
+        const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
+        if (!confirmUpdate) return;
+
+        try {
+            setLoading(true);
+
+            // review each document that has a status and checklist ID
+            const reviewPromises = [];
+
+            files.forEach(file => {
+                const checklistId = data[file.checklistId];
+                const status = data[file.status];
+                const remarks = data[file.comment] || null;
+
+                // Only call API if status is approved or rejected (not pending/submitted)
+                if (checklistId && (status === ONBOARDING_STATUSES.APPROVED || status === ONBOARDING_STATUSES.REJECTED)) {
+                    const reviewPromise = post(`/onboarding/checklist/${checklistId}/review`, {
+                        status,
+                        remarks
+                    });
+                    reviewPromises.push(reviewPromise);
+                }
+            });
+
+            // wait for all promises to complete
+            await Promise.all(reviewPromises);
+
+            alert(`You've successfully updated the record of ${data.id}!`);
+
+            if (onRefresh) {
+                await onRefresh();
+            }
+
+            setEditData(false);
+            onClose();
+        } catch (error) {
+            console.error('Review error:', error);
+            alert(error.message || 'Failed to update documents');
+
+            // Revert to initial data on error
+            setData(initialData);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const [initialData, setInitialData] = useState(employeeFiles ?? null);
@@ -305,23 +215,24 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
         </tr>
     );
 
-    //RETURN TO THIS FFOR SETTING THE PAGES NEEDED
+    //RETURN TO THIS FOR SETTING THE PAGES NEEDED
     //const [pages, setPages] = useState(1);
-
-
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
              <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-190 md:w-140 w-75 md:h-130 h-120 border border-gray-300 overflow-y-auto overflow-x-auto">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3 w-full">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>201 Files of {data.id}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" 
-                    onClick={() => {
-                        if (unsavedChanges){
-                            const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
-                            if (!confirmCancel) return;
-                        } onClose();
-                    }}> ✕ </button>
+                    <button
+                        className="text-white text-2xl font-bold hover:scale-110 transition disabled:opacity-50"
+                        disabled={loading}
+                        onClick={() => {
+                            if (unsavedChanges){
+                                const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
+                                if (!confirmCancel) return;
+                            } onClose();
+                        }}
+                    > ✕ </button>
                 </div>
 
                 <div className="   ">
@@ -342,40 +253,50 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
                                 <tr>
                                 <td className='text-left font-semibold pb-5 px-3 lg:text-sm text-xs'>{row.fileName}</td>
                                 <td className='pb-5 px-3'>
-
-                                    {/* LMK PAANO FUNCTION NG SA BUTTON NA DOWNLOAD NG FILES KASI IM NOT SURE IF PAANO YUNG MAGIGING INTERFACE AND FUNCTION NIYA MWEHEHEH */}
-                                    <button 
-                                    className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden
-                                    ${data[row.status] !== "pending"
-                                    ? "cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
-                                    : "text-gray-500"
-                                    }`}
-                                    download=""
-                                    href= "#"
-                                    target='_blank'
-                                    rel="noreferrer"
-                                    >
-                                        {data[row.file] || "Pending"}
-                                    </button>
+                                    {data[row.file] && data[row.documentId] ? (
+                                        // has document - show as downloadable link
+                                        <button
+                                            onClick={() => {
+                                                const documentId = data[row.documentId];
+                                                const fileName = data[row.file];
+                                                handleDownload(documentId, fileName);
+                                            }}
+                                            disabled={loading}
+                                            className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left w-full"
+                                            title="Click to download"
+                                        >
+                                            📄 {data[row.file]}
+                                        </button>
+                                    ) : data[row.status] === ONBOARDING_STATUSES.SUBMITTED ? (
+                                        // submitted but no document link yet
+                                        <span className="text-yellow-600 lg:text-sm text-xs">
+                                            Submitted (Processing...)
+                                        </span>
+                                    ) : (
+                                        // pending or no document
+                                        <span className="text-gray-500 lg:text-sm text-xs">
+                                            {data[row.status] === ONBOARDING_STATUSES.PENDING ? "Pending Upload" : "No File"}
+                                        </span>
+                                    )}
                                 </td>
                                 <td className='pb-5 px-3'>
-                                    <select name={row.status} className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data[row.status]} disabled = {!editData} onChange={handleChange} required>
+                                    <select name={row.status} className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data[row.status]} disabled = {!editData || loading} onChange={handleChange} required>
                                         <option value="">Select Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="approved">Approved</option>
-                                        <option value="disapproved">Disapproved</option>
+                                        <option value={ONBOARDING_STATUSES.APPROVED}>Approved</option>
+                                        <option value={ONBOARDING_STATUSES.REJECTED}>Rejected</option>
                                     </select>
                                 </td>
 
                                 <td className='pb-5 px-3'>
-                                    {data[row.status] === "disapproved" &&(
+                                    {data[row.status] === ONBOARDING_STATUSES.REJECTED &&(
                                         editData ? (
                                         <textarea name={row.comment}
                                             value={data[row.comment] || ""}
                                             onChange={handleChange}
+                                            disabled={loading}
                                             required
                                             placeholder="Reason"
-                                            className="input-field w-full lg:text-sm text-xs"
+                                            className="input-field w-full lg:text-sm text-xs disabled:opacity-50"
                                             maxLength="25" />
                                         ):(
                                             <p className="lg:text-sm text-xs text-gray-700">
@@ -384,12 +305,12 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
                                         )
                                     )}
 
-                                    {data[row.status] === "approved" &&(
+                                    {data[row.status] === ONBOARDING_STATUSES.APPROVED &&(
                                         <p className='lg:text-sm text-xs'>DONE!</p>
                                     )}
 
-                                    {data[row.status] === "pending" &&(
-                                        <p className='lg:text-sm text-xs'>Pending...</p>
+                                    {(data[row.status] === ONBOARDING_STATUSES.PENDING || data[row.status] === ONBOARDING_STATUSES.SUBMITTED) &&(
+                                        <p className='lg:text-sm text-xs'>{data[row.status] === ONBOARDING_STATUSES.SUBMITTED ? "Awaiting Review..." : "Pending..."}</p>
                                     )}
                                 </td>
                             </tr>
@@ -408,37 +329,43 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave}){
                     <div className="pt-7">
                         {!editData ? (
                             <div className="flex justify-center gap-4">
-                                <button onClick = {() => setEditData(true)} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>Delete Record</button>
+                                <button
+                                    onClick={() => setEditData(true)}
+                                    disabled={loading}
+                                    className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                >
+                                    Update Record
+                                </button>
+                                <button
+                                    disabled={loading}
+                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                >
+                                    Delete Record
+                                </button>
                             </div>
                         ):(
                             <div className="flex justify-center gap-4">
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
-                                        onClick = {() => {
-                                            if (unsavedChanges){
-                                                const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
-                                                if (!confirmCancel) return;
-                                            } setData(initialData); setEditData(false);
-                                        }}
-                                    >Cancel Changes</button>
-                                <button onClick={() => {
-
-                                        if (!data.empContractStatus || !data.empApplicationStatus || !data.empDataSheetStatus || !data.empNDAStatus || !data.empExamStatus || !data.empDiplomaStatus || !data.empTranscriptRecStatus || !data.empSSS_Status || !data.empPhilhealthStatus || !data.empPagibigStatus || !data.empValidIDStatus || !data.empCVStatus  ) {
-                                            alert("Please fill out all fields and do not leave any of them blank.");
-                                            return;
+                                <button
+                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                    disabled={loading}
+                                    onClick={() => {
+                                        if (unsavedChanges){
+                                            const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
+                                            if (!confirmCancel) return;
                                         }
-
-                                        //!data.empContractComment || !empCVComment || !empApplicationComment || !empDataSheetComment || !empNDAComment || !empExamComment || !empDiplomaComment || !empTranscriptComment || !empSSSComment || !empPhilhealthComment || !empPagibigComment || !empValidIDComment
-
-                                        const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
-                                        if (!confirmUpdate) return; 
-
-                                        handleSave();
-                                        onClose();
-                                        alert(`You've successfully updated the record of ${data.id}!`)
-                                        
-                                        
-                                    }} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>Save Changes</button>
+                                        setData(initialData);
+                                        setEditData(false);
+                                    }}
+                                >
+                                    Cancel Changes
+                                </button>
+                                <button
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                >
+                                    {loading ? 'Saving...' : 'Save Changes'}
+                                </button>
                             </div>
                         )}
                     </div>      
@@ -452,7 +379,158 @@ function OnboardingFiles (){
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployeeFiles, setViewEmployeeFiles] = useState(null);
-    const [, setEmployeesFiles] = useState(empFiles);
+    const [employeesFiles, setEmployeesFiles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // fetch employee checklists from API
+    useEffect(() => {
+        fetchEmployeesWithChecklists();
+    }, []);
+
+    const fetchEmployeesWithChecklists = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await get('/onboarding/checklists');
+
+            if (response.success) {
+                // transform backend data to frontend format
+                const transformedData = transformChecklistData(response.data);
+                setEmployeesFiles(transformedData);
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to fetch employee checklists');
+            console.error('Failed to fetch checklists:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // transform backend checklist data to frontend format
+    const transformChecklistData = (backendData) => {
+        // group by employee_id
+        const employeeMap = {};
+
+        backendData.forEach(item => {
+            const empId = item.employee_id;
+
+            if (!employeeMap[empId]) {
+                employeeMap[empId] = {
+                    id: item.employees.employee_id, // AC-00001
+                    name: `${item.employees.first_name} ${item.employees.last_name}`,
+                    personnelType: item.employees.personnel_type || 'N/A',
+                    hireDate: formatDate(item.employees.hire_date),
+                    remarks: '',
+                    // initialize all document fields
+                    empContract: '',
+                    empContractStatus: ONBOARDING_STATUSES.PENDING,
+                    empContractComment: '',
+                    empCV: '',
+                    empCVStatus: ONBOARDING_STATUSES.PENDING,
+                    empCVComment: '',
+                    empApplication: '',
+                    empApplicationStatus: ONBOARDING_STATUSES.PENDING,
+                    empApplicationComment: '',
+                    empDataSheet: '',
+                    empDataSheetStatus: ONBOARDING_STATUSES.PENDING,
+                    empDataSheetComment: '',
+                    empNDA: '',
+                    empNDAStatus: ONBOARDING_STATUSES.PENDING,
+                    empNDAComment: '',
+                    empExam: '',
+                    empExamStatus: ONBOARDING_STATUSES.PENDING,
+                    empExamComment: '',
+                    empDiploma: '',
+                    empDiplomaStatus: ONBOARDING_STATUSES.PENDING,
+                    empDiplomaComment: '',
+                    empTranscriptRec: '',
+                    empTranscriptRecStatus: ONBOARDING_STATUSES.PENDING,
+                    empTranscriptComment: '',
+                    empSSS: '',
+                    empSSS_Status: ONBOARDING_STATUSES.PENDING,
+                    empSSSComment: '',
+                    empPhilhealth: '',
+                    empPhilhealthStatus: ONBOARDING_STATUSES.PENDING,
+                    empPhilhealthComment: '',
+                    empPagibig: '',
+                    empPagibigStatus: ONBOARDING_STATUSES.PENDING,
+                    empPagibigComment: '',
+                    empValidID: '',
+                    empValidIDStatus: ONBOARDING_STATUSES.PENDING,
+                    empValidIDComment: '',
+                    lastUpdatedDate: formatDate(new Date()),
+                    lastUpdatedTime: formatTime(new Date())
+                };
+            }
+
+            // map item to corresponding field
+            const employee = employeeMap[empId];
+            const itemName = item.onboarding_items.item_name;
+
+            // map backend document types to frontend fields
+            const fieldMapping = {
+                'Employee Contract': 'empContract',
+                'Resume/CV': 'empCV',
+                'Application for Employment': 'empApplication',
+                'Personal Data Sheet': 'empDataSheet',
+                'NDA': 'empNDA',
+                'Pre Employment Exam': 'empExam',
+                'Diploma': 'empDiploma',
+                'Transcript of Records': 'empTranscriptRec',
+                'SSS': 'empSSS',
+                'Philhealth': 'empPhilhealth',
+                'Pag ibig': 'empPagibig',
+                'Valid ID': 'empValidID'
+            };
+
+            const fieldName = fieldMapping[itemName];
+            if (fieldName) {
+                employee[fieldName] = item.documents?.file_name || '';
+                employee[`${fieldName}Status`] = item.status || ONBOARDING_STATUSES.PENDING;
+                employee[`${fieldName}Comment`] = item.remarks || '';
+                employee[`${fieldName}ChecklistId`] = item.id; // store checklist ID for API calls
+                employee[`${fieldName}DocumentId`] = item.documents?.id || null; // store document ID for download
+
+                if (fieldName === 'empSSS') {
+                    employee.empSSS_Status = item.status || ONBOARDING_STATUSES.PENDING;
+                }
+
+                // update last updated timestamp
+                if (item.reviewed_at) {
+                    employee.lastUpdatedDate = formatDate(item.reviewed_at);
+                    employee.lastUpdatedTime = formatTime(item.reviewed_at);
+                }
+            }
+        });
+
+        // calculate completion status for each employee
+        Object.values(employeeMap).forEach(emp => {
+            emp.remarks = getRemarks(emp);
+        });
+
+        return Object.values(employeeMap);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        return `${month}/${day}/${year}`;
+    };
+
+    const formatTime = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        return `${hours}:${minutes} ${ampm} PHT`;
+    };
 
     const handleOpen = (empFiles) => {
         setViewEmployeeFiles(empFiles);
@@ -468,9 +546,55 @@ function OnboardingFiles (){
     };
 
     const getRemarks = (empFiles) =>{
-        const isComplete = empFiles.empContractStatus === "approved" && empFiles.empApplicationStatus === "approved" && empFiles.empDataSheetStatus === "approved" && empFiles.empNDAStatus === "approved" && empFiles.empExamStatus === "approved" && empFiles.empDiplomaStatus === "approved" && empFiles.empTranscriptRecStatus === "approved" && empFiles.empSSS_Status === "approved" && empFiles.empPhilhealthStatus && empFiles.empPagibigStatus === "approved" && empFiles.empValidIDStatus === "approved" && empFiles.empCVStatus === "approved";
+        const isComplete = empFiles.empContractStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empApplicationStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empDataSheetStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empNDAStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empExamStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empDiplomaStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empTranscriptRecStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empSSS_Status === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empPhilhealthStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empPagibigStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empValidIDStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empCVStatus === ONBOARDING_STATUSES.APPROVED;
 
         return isComplete ? "COMPLETE" : "INCOMPLETE";
+    }
+
+    // loading state
+    if (loading) {
+        return (
+            <div className="">
+                <Navbar />
+                <div className="flex items-center justify-center h-screen">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#990100] mx-auto mb-4"></div>
+                        <p className="text-xl text-gray-700">Loading employee checklists...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // error state
+    if (error) {
+        return (
+            <div className="">
+                <Navbar />
+                <div className="flex items-center justify-center h-screen">
+                    <div className="text-center">
+                        <p className="text-xl text-red-600 mb-4">Error: {error}</p>
+                        <button
+                            onClick={fetchEmployeesWithChecklists}
+                            className="bg-[#990100] text-white px-6 py-2 rounded-lg hover:bg-[#ad3332] transition"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return(
@@ -486,7 +610,7 @@ function OnboardingFiles (){
                         <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5'>201 Files</h1>
                     </div>
 
-                    <div className="flex items-center justify-end md:gap-4 gap-3"> 
+                    <div className="flex items-center justify-end md:gap-4 gap-3">
                         <DropDownFilter />
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
@@ -502,7 +626,7 @@ function OnboardingFiles (){
                                 />
                             </button>
                         </div>
-                    </div> 
+                    </div>
                 </div>
 
                 <hr className='text-[#990100] mt-6 '/>
@@ -524,14 +648,14 @@ function OnboardingFiles (){
                             </tr>
                         </thead>
                         <tbody className='tbody-style'>
-                            {empFiles.length === 0 ? (
+                            {employeesFiles.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                                         No employees found
                                     </td>
                                 </tr>
                             ) : (
-                               empFiles.map((row) =>{ 
+                               employeesFiles.map((row) =>{
 
                                 const remarks = getRemarks(row);
 
@@ -567,12 +691,13 @@ function OnboardingFiles (){
                     <ModalFiles
                         isOpen={isModalOpen}
                         onClose={handleClose}
-                        employeeFiles = {viewEmployeeFiles}
+                        employeeFiles={viewEmployeeFiles}
                         onSave={updateEmployeeFiles}
+                        onRefresh={fetchEmployeesWithChecklists}
                     />
                     <br />
                     <div className="lg:flex items-center lg:justify-between">
-                        <p className='lg:text-md text-sm'>Showing <b>{empFiles.length}</b> employee{empFiles.length !== 1 ? 's' : ''}</p>
+                        <p className='lg:text-md text-sm'>Showing <b>{employeesFiles.length}</b> employee{employeesFiles.length !== 1 ? 's' : ''}</p>
                         
                         <div className="flex items-center space-x-2 md:pt-0 pt-4">
                             <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>

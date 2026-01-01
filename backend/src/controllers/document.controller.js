@@ -9,11 +9,11 @@ export const uploadDocument = async (req, res, next) => {
     const file = req.file;
     const userId = req.user.id;
     const userRole = req.user.role;
-    const userEmployeeId = req.user.employee_id;
+    const userEmployeeUUID = req.user.employee_uuid; // Use UUID instead of formatted ID
     const checklistItemId = req.body.checklist_item_id;
 
-    // employee can only upload their own documents
-    if (userRole == ROLES.EMPLOYEE && userEmployeeId !== employee_id) {
+    // employee can only upload their own documents (compare UUIDs)
+    if (userRole == ROLES.EMPLOYEE && userEmployeeUUID !== employee_id) {
       throw new ForbiddenError('You can only upload documents for yourself');
     }
 
@@ -46,10 +46,10 @@ export const getDocumentsByEmployee = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
     const userRole = req.user.role;
-    const userEmployeeId = req.user.employee_id;
+    const userEmployeeUUID = req.user.employee_uuid;
 
-    // employee can only view their own documents
-    if (userRole === ROLES.EMPLOYEE && userEmployeeId !== employee_id) {
+    // employee can only view their own documents (compare UUIDs)
+    if (userRole === ROLES.EMPLOYEE && userEmployeeUUID !== employee_id) {
       throw new ForbiddenError('You can only view your own documents');
     }
 

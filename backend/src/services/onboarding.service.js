@@ -340,11 +340,18 @@ export const getAllChecklists = async () => {
           id,
           employee_id,
           first_name,
-          last_name
+          last_name,
+          hire_date,
+          personnel_type
         ),
         onboarding_items (
           id,
           item_name
+        ),
+        documents (
+          id,
+          file_name,
+          file_path
         )
       `)
       .order('created_at', { ascending: false });

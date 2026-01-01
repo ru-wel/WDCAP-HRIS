@@ -8,7 +8,7 @@ import Employees from './pages/employees';
 import Onboarding from './pages/onboarding';
 import Projects from './pages/projects';
 import ProjectEmployees from './pages/project-page/project-employees';
-import Leave from './pages/leave';``
+import Leave from './pages/leave';
 import LeaveRequest from './pages/leave-page/request';
 import Analytics from './pages/analytics.jsx';
 import ProtectedRoute from './utils/ProtectedRoute.jsx';
@@ -22,6 +22,7 @@ import EvaluationLogs from './pages/audit-logs-pages/evaluation-logs.jsx';
 import ReportsLogs from './pages/audit-logs-pages/reports-logs.jsx';
 import UserAccounts from './pages/employees-pages/user-accounts.jsx';
 import OnboardingFiles from './pages/employees-pages/201-files.jsx';
+import MyDocuments from './pages/employees-pages/my-documents.jsx';
 import Departments from './pages/employees-pages/departments.jsx';
 import DepartmentEmployees from "./pages/employees-pages/departments-employees.jsx";
 import Credits from "./pages/leave-page/credits.jsx";
@@ -29,11 +30,10 @@ import LeaveHistory from "./pages/leave-page/history.jsx";
 
 function App() {
   return (
-    <React.StrictMode>
-      <BrowserRouter>
-        <Routes>
-          {/* public route (no auth needeed) */}
-          <Route path="/login" element={<Login />} />
+    <BrowserRouter>
+      <Routes>
+        {/* public route (no auth needeed) */}
+        <Route path="/login" element={<Login />} />
 
           {/* protected routes */}
           <Route element={<ProtectedLayoutWithSidebar />}>
@@ -46,9 +46,10 @@ function App() {
             {/* START - EMPLOYEES */}
 
             <Route path="/employees" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Employees /> </ProtectedRoute> } />
-            <Route path="/employees/onboarding" element={<Onboarding />} />
+            <Route path="/employees/onboarding" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Onboarding /> </ProtectedRoute>} />
             <Route path="/employees/user-accounts" element={<UserAccounts />} />
             <Route path='/employees/201-files'element = {<OnboardingFiles />} />
+            <Route path="/employees/my-documents" element={<MyDocuments />} />
             <Route path="/employees/departments" element={<Departments />} />
             <Route path="/employees/departments/:departmentId" element={<DepartmentEmployees />} />
 
@@ -81,7 +82,6 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-    </React.StrictMode>
   );
 }
 

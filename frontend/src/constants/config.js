@@ -45,6 +45,14 @@ export const DOCUMENT_TYPES = {
   OTHERS: 'Others'
 };
 
+// onboarding statuses
+export const ONBOARDING_STATUSES = {
+  PENDING: 'pending',
+  SUBMITTED: 'submitted',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
+};
+
 // local storage keys
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: 'access_token',
