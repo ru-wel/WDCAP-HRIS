@@ -101,6 +101,20 @@ export const login = async ({ email, password }) => {
       throw new InternalServerError('User not found in database');
     }
 
+    // fetch employee UUID if user has an employee record
+    let employeeUUID = null;
+    if (userData.employee_id) {
+      const { data: empData, error: empError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('employee_id', userData.employee_id)
+        .single();
+
+      if (!empError && empData) {
+        employeeUUID = empData.id;
+      }
+    }
+
     // update last_login timestamp
     await supabase
       .from('users')
@@ -122,7 +136,8 @@ export const login = async ({ email, password }) => {
         id: userData.id,
         email: userData.email,
         role: userData.role,
-        employee_id: userData.employee_id
+        employee_id: userData.employee_id,      // "AC-00001" format
+        employee_uuid: employeeUUID             // Employees table UUID
       },
       session: {
         access_token: authData.session.access_token,

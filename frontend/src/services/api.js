@@ -146,8 +146,8 @@ export const get = async (endpoint, requireAuth = true) => {
       method: 'GET',
       headers,
     });
-    
-    return handleResponse(response, makeRequest);
+
+    return handleResponse(response, requireAuth ? makeRequest : null);
   };
 
   try {
@@ -166,7 +166,8 @@ export const post = async (endpoint, body, requireAuth = true) => {
       headers,
       body: JSON.stringify(body),
     });
-    return handleResponse(response, makeRequest);
+
+    return handleResponse(response, requireAuth ? makeRequest : null);
   };
 
   try {
@@ -185,7 +186,8 @@ export const put = async (endpoint, body, requireAuth = true) => {
       headers,
       body: JSON.stringify(body),
     });
-    return handleResponse(response, makeRequest);
+
+    return handleResponse(response, requireAuth ? makeRequest : null);
   };
 
   try {
@@ -203,7 +205,8 @@ export const del = async (endpoint, requireAuth = true) => {
       method: 'DELETE',
       headers,
     });
-    return handleResponse(response, makeRequest);
+
+    return handleResponse(response, requireAuth ? makeRequest : null);
   };
 
   try {

@@ -71,7 +71,8 @@ export const getCurrentUser = async (req, res, next) => {
         id: req.user.id,
         email: req.user.email,
         role: req.user.role,
-        employee_id: req.user.employee_id
+        employee_id: req.user.employee_id,
+        employee_uuid: req.user.employee_uuid
       }
     });
   } catch (error) {

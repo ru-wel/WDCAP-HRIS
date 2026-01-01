@@ -36,11 +36,26 @@ export const authenticate = async (req, res, next) => {
       throw new UnauthorizedError('User not found');
     }
 
+    // Fetch employee UUID if user has an employee record
+    let employeeUUID = null;
+    if (userData.employee_id) {
+      const { data: empData, error: empError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('employee_id', userData.employee_id)
+        .single();
+
+      if (!empError && empData) {
+        employeeUUID = empData.id;
+      }
+    }
+
     req.user = {
       id: userData.id,
       email: userData.email,
       role: userData.role,
-      employee_id: userData.employee_id
+      employee_id: userData.employee_id,      // "AC-00001" format
+      employee_uuid: employeeUUID             // Employees table UUID
     };
 
     next();
@@ -81,13 +96,14 @@ export const verifyEmployeeOwnership = async (req, res, next) => {
     }
 
     // regular employees, verify they're accessing their own data
-    const { employeeId } = req.params;
+    const { employeeId } = req.params; // This is the employee UUID from URL
 
-    if (!req.user.employee_id) {
+    if (!req.user.employee_uuid) {
       throw new ForbiddenError('You do not have an associated employee profile');
     }
 
-    if (req.user.employee_id !== employeeId) {
+    // compare employee UUIDs directly
+    if (req.user.employee_uuid !== employeeId) {
       throw new ForbiddenError('You can only access your own employee data');
     }
 
@@ -109,7 +125,7 @@ export const verifyChecklistOwnership = async (req, res, next) => {
     // for regular employees, verify the checklist item belongs to them
     const { id } = req.params;
 
-    if (!req.user.employee_id) {
+    if (!req.user.employee_uuid) {
       throw new ForbiddenError('You do not have an associated employee profile');
     }
 
@@ -123,7 +139,8 @@ export const verifyChecklistOwnership = async (req, res, next) => {
       throw new ForbiddenError('Checklist item not found');
     }
 
-    if (checklistItem.employee_id !== req.user.employee_id) {
+    // compare employee UUIDs
+    if (checklistItem.employee_id !== req.user.employee_uuid) {
       throw new ForbiddenError('You can only access your own checklist items');
     }
 
