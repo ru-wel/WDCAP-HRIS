@@ -27,6 +27,8 @@ import Departments from './pages/employees-pages/departments.jsx';
 import DepartmentEmployees from "./pages/employees-pages/departments-employees.jsx";
 import Credits from "./pages/leave-page/credits.jsx";
 import LeaveHistory from "./pages/leave-page/history.jsx";
+import Evaluation from "./pages/evaluation.jsx";
+import EvaluationHistory from "./pages/evaluation-page/eval-history.jsx";
 
 function App() {
   return (
@@ -62,6 +64,9 @@ function App() {
             <Route path="/leave/request" element={<LeaveRequest />} />
             <Route path="/leave/credits" element={<Credits />} />
             <Route path="/leave/history" element={<LeaveHistory />} />
+
+            <Route path="/evaluation" element={<Evaluation />} />
+            <Route path="/evaluation/history" element={<EvaluationHistory />} />
 
             <Route path="/analytics" element={<Analytics />} />
 
