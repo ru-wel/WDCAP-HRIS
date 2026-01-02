@@ -35,7 +35,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
              <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" 
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" 
                     onClick={() => {
                         if (unsavedChanges){
                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
@@ -81,7 +81,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                             <button
                                 onClick={() => setEditData(true)}
                                 disabled={loading}
-                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
                                 Update Record
                             </button>
@@ -98,14 +98,14 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                                     }
                                 }}
                                 disabled={loading}
-                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
                                 {loading ? "Deleting..." : "Delete Record"}
                             </button>
                         </div>
                     ):(
                         <div className="flex justify-center gap-4">
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
                                     onClick = {() => {
                                         if (unsavedChanges){
                                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
@@ -134,7 +134,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                                     }
                                 }}
                                 disabled={loading}
-                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
                                 {loading ? "Saving..." : "Save Changes"}
                             </button>
@@ -364,7 +364,7 @@ function UserAccounts (){
                                             <p className={` lg:py-[4px] lg:px-0 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${row.status === 'ACTIVE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{row.status}</p>
                                         </td>
                                         <td className="td-style">
-                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
+                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => handleOpen(row)}>
                                                 View Details
                                             </button>
                                         </td>

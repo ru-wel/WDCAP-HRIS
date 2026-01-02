@@ -90,7 +90,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="text-sm pb-2"><b>Hire Date:</b></p>
-                        <input type="date" className="input-field" value={data.hireDate} onChange={(e) => setData({ ...data, hireDate: e.target.value })} min="2019-01-01" max={maxDate} required/>
+                        <input type="date" className="input-field cursor-pointer" value={data.hireDate} onChange={(e) => setData({ ...data, hireDate: e.target.value })} min="2019-01-01" max={maxDate} required/>
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ function StepOne({ data, setData, departments, positions }) {
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
                         <p className="text-sm pb-2"><b>Birth Date:</b></p>
-                        <input type="date" className="input-field" value={data.birthDate} onChange={(e) => setData({ ...data, birthDate: e.target.value })} max={maxDate} required/>
+                        <input type="date" className="input-field cursor-pointer" value={data.birthDate} onChange={(e) => setData({ ...data, birthDate: e.target.value })} max={maxDate} required/>
                     </div>
 
                     <div>
@@ -145,7 +145,7 @@ function StepTwo({ data, setData }) {
             <div className="flex items-center justify-center lg:pt-5 pt-3">
                 <div className="">
                     <p className='text-sm pb-2'><b>Role:</b></p>
-                    <select name="role" className='input-field lg:w-75 md:w-50 w-40' value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
+                    <select name="role" className='input-field lg:w-75 md:w-50 w-40 cursor-pointer' value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
                         <option value="">Select Role</option>
                         <option value={ROLES.ADMIN}>{ROLES.ADMIN}</option>
                         <option value={ROLES.HR}>{ROLES.HR}</option>

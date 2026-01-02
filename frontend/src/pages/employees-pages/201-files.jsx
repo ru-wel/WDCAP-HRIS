@@ -3,6 +3,7 @@ import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import { get, post } from '../../services/api';
 import { ONBOARDING_STATUSES } from '../../constants/config';
+import ReactPaginate from 'react-paginate';
 
 const modalFiles = [
     {
@@ -208,7 +209,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
         <tr key={`section-${title}`}>
             <td colSpan={4} className="px-3 pt-5 pb-2">
                 <div className="flex items-center gap-4">
-                    <span className="font-extrabold text-base tracking-wide">{title}</span>
+                    <span className="font-bold text-base tracking-wide">{title}</span>
                     <div className="flex-1 border-t border-[#990100]/40" />
                 </div>
             </td>
@@ -224,7 +225,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3 w-full">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>201 Files of {data.id}</h1>
                     <button
-                        className="text-white text-2xl font-bold hover:scale-110 transition disabled:opacity-50"
+                        className="text-white text-2xl font-bold hover:scale-110 transition disabled:opacity-50 cursor-pointer"
                         disabled={loading}
                         onClick={() => {
                             if (unsavedChanges){
@@ -262,7 +263,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                                 handleDownload(documentId, fileName);
                                             }}
                                             disabled={loading}
-                                            className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left w-full"
+                                            className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left w-full cursor-pointer"
                                             title="Click to download"
                                         >
                                             📄 {data[row.file]}
@@ -332,13 +333,13 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                 <button
                                     onClick={() => setEditData(true)}
                                     disabled={loading}
-                                    className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                    className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                 >
                                     Update Record
                                 </button>
                                 <button
                                     disabled={loading}
-                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                 >
                                     Delete Record
                                 </button>
@@ -346,7 +347,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                         ):(
                             <div className="flex justify-center gap-4">
                                 <button
-                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                     disabled={loading}
                                     onClick={() => {
                                         if (unsavedChanges){
@@ -362,7 +363,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                 <button
                                     onClick={handleSave}
                                     disabled={loading}
-                                    className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed'
+                                    className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                 >
                                     {loading ? 'Saving...' : 'Save Changes'}
                                 </button>
@@ -382,6 +383,9 @@ function OnboardingFiles (){
     const [employeesFiles, setEmployeesFiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    const [itemOffset, setItemOffset] = useState(0);
+    const itemsPerPage = 15;
 
     // fetch employee checklists from API
     useEffect(() => {
@@ -596,7 +600,19 @@ function OnboardingFiles (){
             </div>
         );
     }
-
+    
+    //REACT-PAGINATE
+    
+    
+    const endOffset = itemOffset + itemsPerPage;
+    const currentLogs = employeesFiles.slice(itemOffset, endOffset);
+    const pageCount = Math.ceil(employeesFiles.length / itemsPerPage);
+    const multiPages = pageCount > 1;
+    
+    const handlePageClick = (event) => {
+        const newOffset = (event.selected * itemsPerPage);
+        setItemOffset(newOffset);
+    };
     return(
         <div className="">
 
@@ -655,7 +671,7 @@ function OnboardingFiles (){
                                     </td>
                                 </tr>
                             ) : (
-                               employeesFiles.map((row) =>{
+                               currentLogs.map((row) =>{
 
                                 const remarks = getRemarks(row);
 
@@ -678,7 +694,7 @@ function OnboardingFiles (){
                                             <p className={` lg:py-[4px] lg:px-1.5 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
                                         </td>
                                         <td className="td-style">
-                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
+                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => handleOpen(row)}>
                                                 View Details
                                             </button>
                                         </td>
@@ -697,14 +713,30 @@ function OnboardingFiles (){
                     />
                     <br />
                     <div className="lg:flex items-center lg:justify-between">
-                        <p className='lg:text-md text-sm'>Showing <b>{employeesFiles.length}</b> employee{employeesFiles.length !== 1 ? 's' : ''}</p>
+                        <p className='lg:text-md text-sm'>Showing <b>{currentLogs.length}</b> of <b>{employeesFiles.length}</b> employee{employeesFiles.length !== 1 ? 's' : ''}</p>
                         
-                        <div className="flex items-center space-x-2 md:pt-0 pt-4">
-                            <span className='text-[#990100] hover:underline'><a href = "#"> &lt; </a></span>
-                            <span className="text-sm font-medium text-body">1</span>
-                            <span className="text-sm text-body">to 10</span>
-                            <span className='text-[#990100] hover:underline'><a href = "#"> &gt; </a></span>
-                        </div>                       
+                        <div className=" ">
+                            <ReactPaginate
+                            breakLabel="..."
+                            nextLabel=">"
+                            onPageChange={handlePageClick}
+                            pageRangeDisplayed={2}
+                            pageCount={pageCount}
+                            previousLabel="<"
+                            renderOnZeroPageCount={null}
+                            marginPagesDisplayed={2}
+                            pageClassName=""
+                            pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                            previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                            previousLinkClassName="page-link"
+                            nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                            nextLinkClassName="page-link"
+                            breakClassName="page-item"
+                            breakLinkClassName="page-link"
+                            containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                            activeClassName="underline font-medium"
+                            />
+                        </div>                    
                     </div>
                 </div>
             </div>

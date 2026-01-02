@@ -106,7 +106,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto h-100 overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Information of {data.first_name} {data.last_name}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" onClick={() => {
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={() => {
                         if (unsavedChanges){
                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
                             if (!confirmCancel) return;
@@ -122,7 +122,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         
                         <div className="flex items-center md:pl-2">
                             <p className='lg:text-sm text-xs pr-2'><b>Employment Status:</b></p>
-                            <select name="employment_status" value = {data.employment_status} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-25 md:w-20 w-35 disabled:text-gray-600'>
+                            <select name="employment_status" value = {data.employment_status} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-25 md:w-20 w-35 disabled:text-gray-600 cursor-pointer disabled:cursor-default'>
                                 <option value={EMPLOYMENT_STATUSES.ACTIVE}>{EMPLOYMENT_STATUSES.ACTIVE}</option>
                                 <option value={EMPLOYMENT_STATUSES.INACTIVE}>{EMPLOYMENT_STATUSES.INACTIVE}</option>
                             </select>
@@ -144,7 +144,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                     <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
                         <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Department:</b></p>
-                            <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-39 md:w-32 w-46 disabled:text-gray-600'>
+                            <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-39 md:w-32 w-46 disabled:text-gray-600 cursor-pointer disabled:cursor-default'>
                                 <option value="">Select Department</option>
                                 {departments.map((dept) => (
                                     <option key={dept.id} value={dept.id}>
@@ -156,7 +156,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         
                         <div className="flex items-center md:justify-between md:pl-2">
                             <p className='lg:text-sm text-xs md:pr-0 pr-8'><b>Position:</b></p>
-                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading || !data.department_id} onChange={handleChange} className='shadow-sm border border-[#990100] lg:text-sm text-xs p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-40 md:w-35 w-45 disabled:text-gray-600'>
+                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading || !data.department_id} onChange={handleChange} className='shadow-sm border border-[#990100] lg:text-sm text-xs p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-40 md:w-35 w-45 disabled:text-gray-600 cursor-pointer disabled:cursor-default'>
                                 <option value="">Select Position</option>
                                     {positions
                                         .filter((pos) => {
@@ -175,7 +175,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                     <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
                         <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Personnel Type:</b></p>
-                            <select name="personnel_type" className='shadow-sm border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-33 md:w-28 w-41 lg:text-sm text-xs disabled:text-gray-600' value = {data.personnel_type} disabled = {!editData || loading} onChange={handleChange}>
+                            <select name="personnel_type" className='shadow-sm border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-33 md:w-28 w-41 lg:text-sm text-xs disabled:text-gray-600 cursor-pointer disabled:cursor-default' value = {data.personnel_type} disabled = {!editData || loading} onChange={handleChange}>
                                 <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
                                 <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
                                 <option value={PERSONNEL_TYPES.PROJECT_BASED}>Project-{PERSONNEL_TYPES.PROJECT_BASED}</option>
@@ -184,7 +184,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         
                         <div className="flex items-center md:justify-between md:pl-2">
                             <p className='lg:text-sm text-xs md:pr-0 pr-7'><b>Hire Date:</b></p>
-                            <input type="date" name="hire_date" value = {data.hire_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-44 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" min = "2019-01-01" max = {maxDate} />
+                            <input type="date" name="hire_date" value = {data.hire_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-44 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600 cursor-pointer disabled:cursor-default" min = "2019-01-01" max = {maxDate} />
                         </div>
                     </div>
 
@@ -198,7 +198,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         
                         <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs md:pr-0 pr-5'><b>Birth Date:</b></p>
-                            <input type="date" name="birth_date" value={data.birth_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-45 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" max = {maxDate} />
+                            <input type="date" name="birth_date" value={data.birth_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-45 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600 cursor-pointer disabled:cursor-default" max = {maxDate} />
                         </div>
 
                         <div className="flex items-center md:justify-between md:pl-2">
@@ -229,12 +229,12 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
                         {!editData ? (
                             <div className="flex justify-end gap-4">
-                                <button onClick = {() => setEditData(true)} disabled={loading} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                                <button onClick={handleDelete} disabled={loading} className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>{loading ? 'Deleting ...' : 'Delete Record'}</button>
+                                <button onClick = {() => setEditData(true)} disabled={loading} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>Update Record</button>
+                                <button onClick={handleDelete} disabled={loading} className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>{loading ? 'Deleting ...' : 'Delete Record'}</button>
                             </div>
                         ) : (
                             <div className="flex justify-end gap-4">
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
                                     onClick = {() => {
                                         if (unsavedChanges){
                                             const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
@@ -244,7 +244,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                                     Cancel Changes
                                 </button>
 
-                                <button onClick={handleSave} disabled={loading} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>
+                                <button onClick={handleSave} disabled={loading} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'>
                                     {loading ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
@@ -448,7 +448,7 @@ function Employees(){
                                         </td>
                                         <td className="td-style">
                                             <button
-                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out "
+                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                                 onClick={() => handleOpen(row)}
                                             >
                                                 View Details

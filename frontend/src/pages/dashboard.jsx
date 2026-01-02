@@ -10,7 +10,7 @@ function StatCard({ title, icon, value, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left focus:outline-none"
+      className="w-full text-left focus:outline-none cursor-pointer"
     >
       <div className="bg-white rounded-xl border border-gray-200 px-5 py-4 flex items-center justify-between shadow-sm hover:shadow-md hover:-translate-y-[2px] transition duration-200 ease-in-out">
         <div>
@@ -47,7 +47,7 @@ function CalendarModal({ open, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-500 hover:text-[#990100] text-xl leading-none"
+            className="text-gray-500 hover:text-[#990100] text-xl leading-none cursor-pointer"
           >
             ✕
           </button>
