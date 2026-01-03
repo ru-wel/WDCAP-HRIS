@@ -170,6 +170,11 @@ export default function LeaveRequest() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalStatus, setModalStatus] = useState("PENDING");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | LEAVE REQUESTS"; 
+    }, []);
+
   const openDetails = (row) => {
     setSelectedRequest(row);
     setModalStatus(row.status || "PENDING");

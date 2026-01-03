@@ -296,6 +296,11 @@ export default function Credits() {
 
   const [openGenerate, setOpenGenerate] = useState(false);
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | LEAVE CREDITS"; 
+    }, []);
+
   const openDetails = (row) => {
     setSelectedRow(row);
     setOpenModal(true);

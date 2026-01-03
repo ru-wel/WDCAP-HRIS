@@ -9,6 +9,11 @@ function ProjectsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | PROJECTS LOGS"; 
+    }, []);
+
   // extract target project name from log
   const getTargetProject = (log) => {
     const { action_type, old_values, new_values } = log;

@@ -9,6 +9,11 @@ function DepartmentsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | DEPARTMENTS LOGS"; 
+    }, []);
+
   // extract target department name from logs
   const getTargetDepartment = (log) => {
     const { action_type, old_values, new_values } = log;

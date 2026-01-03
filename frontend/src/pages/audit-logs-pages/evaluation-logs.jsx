@@ -10,6 +10,11 @@ function EvaluationLogs() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | EVALUATION LOGS"; 
+    }, []);
+
   // Fetch evaluation audit logs from backend
   const fetchEvalLogs = async () => {
     try {

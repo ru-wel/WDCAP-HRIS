@@ -11,6 +11,11 @@ function LeaveLogs() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | LEAVE LOGS"; 
+    }, []);
+
   // Fetch leave audit logs from backend
   const fetchLeaveLogs = async () => {
     try {

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
+import { useEffect } from "react";
 
 function FilePill({ label }) {
   return (
@@ -220,6 +221,11 @@ export default function EvaluationHistory() {
       ],
     },
   ];
+
+  // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | EVALUATION HISTORY"; 
+    }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [openModal, setOpenModal] = useState(false);

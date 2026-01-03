@@ -170,6 +170,11 @@ export default function LeaveRequest() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [modalStatus, setModalStatus] = useState("PENDING");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | LEAVE HISTORY"; 
+    }, []);
+
   const openDetails = (row) => {
     setSelectedRequest(row);
     setModalStatus(row.status || "PENDING");
@@ -227,7 +232,7 @@ export default function LeaveRequest() {
       <div className="p-7 lg:mx-18 md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
-            Leave Requests
+            Leave History
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">

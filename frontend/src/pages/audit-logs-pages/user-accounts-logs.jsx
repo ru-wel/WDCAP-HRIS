@@ -9,6 +9,11 @@ function UserAccountsLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | USER ACCOUNTS LOGS"; 
+    }, []);
+
   // Extract target user email from log
   const getTargetUser = (log) => {
     const { action_type, old_values, new_values } = log;

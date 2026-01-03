@@ -3,6 +3,7 @@ import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from 'react-paginate';
 import { useState } from "react";
+import { useEffect } from "react";
 
 
 const reportsLogs = [
@@ -37,6 +38,12 @@ const reportsLogs = [
 ];
 
 function ReportsLogs (){
+
+      // PAGE TITLE
+      useEffect(() => {
+        document.title = "ARISE | REPORTS LOGS"; 
+      }, []); 
+
     //REACT-PAGINATE
             
     /*const [itemOffset, setItemOffset] = useState(0);
@@ -50,6 +57,8 @@ function ReportsLogs (){
         const newOffset = (event.selected * itemsPerPage);
         setItemOffset(newOffset);
     };*/
+
+    
 
     return(
         <div className="">

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import Navbar from "./components/navbar";
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useEffect } from "react";
 
 const COLORS = ["#990100", "#F59E0B", "#22C55E", "#2563EB", "#6B7280"];
 
@@ -81,6 +82,11 @@ function Analytics() {
   const [reportModule, setReportModule] = useState("All");
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSearch, setReportSearch] = useState("");
+
+  // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | ANALYTICS"; 
+    }, []);
 
   const filteredReports = useMemo(() => {
     return reportRows.filter((r) => {

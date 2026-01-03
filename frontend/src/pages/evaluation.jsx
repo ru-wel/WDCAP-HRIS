@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Navbar from "./components/navbar";
 import DropDownFilter from "./components/dropdownfilter";
+import { useEffect } from "react";
 
 function EvaluationScheduleModal({ open, onClose, data }) {
   if (!open || !data) return null;
@@ -171,6 +172,11 @@ export default function Evaluation() {
 
   const [openModal, setOpenModal] = useState(false);
   const [selected, setSelected] = useState(null);
+
+  // PAGE TITLE
+  useEffect(() => {
+    document.title = "ARISE | EVALUATION"; 
+  }, []);
 
   const openSchedule = (row) => {
     setSelected(row);

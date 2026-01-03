@@ -84,6 +84,12 @@ function EventPopover({ open, anchor, data, onClose }) {
 }
 
 export default function Leave() {
+
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | LEAVE"; 
+    }, []);
+
 const rawEvents = [
   {
     id: "1",

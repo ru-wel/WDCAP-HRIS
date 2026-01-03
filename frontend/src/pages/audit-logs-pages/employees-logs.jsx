@@ -9,6 +9,11 @@ function EmployeesLogs() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+      document.title = "ARISE | EMPLOYEES LOGS"; 
+    }, []);
+
   // Extract target employee name from log
   const getTargetEmployee = (log) => {
     const { action_type, old_values, new_values } = log;
