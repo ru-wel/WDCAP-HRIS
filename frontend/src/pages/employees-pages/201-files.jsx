@@ -378,6 +378,11 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
 
 function OnboardingFiles (){
 
+    // PAGE TITLE
+      useEffect(() => {
+        document.title = "ARISE | 201 FILES"; 
+      }, []);
+
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployeeFiles, setViewEmployeeFiles] = useState(null);
     const [employeesFiles, setEmployeesFiles] = useState([]);
@@ -691,7 +696,7 @@ function OnboardingFiles (){
                                             {row.hireDate}
                                         </td>
                                         <td className= " td-style">
-                                            <p className={` lg:py-[4px] lg:px-1.5 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
+                                            <p className={` lg:py-[4px] lg:px-2 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
                                         </td>
                                         <td className="td-style">
                                             <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => handleOpen(row)}>

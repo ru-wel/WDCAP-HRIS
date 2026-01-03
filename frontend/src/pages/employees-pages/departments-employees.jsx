@@ -3,6 +3,7 @@ import { useLocation, useParams } from "react-router-dom";
 import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
+import { useEffect } from "react";
 
 const demoEmployees = [
   { id: "AC-00001", name: "Reuel Christian Sundiam", position: "Talent Acquisition", hireDate: "10/20/25", type: "Regular", deptId: 1 },
@@ -35,6 +36,11 @@ function nowStamp() {
 }
 
 export default function DepartmentEmployees() {
+
+  // PAGE TITLE
+    useEffect(() => {
+      document.title = `ARISE | ${departmentName.toUpperCase()} EMPLOYEES`; 
+    }, []);
   const { departmentId } = useParams();
   const location = useLocation();
   const deptFromState = location.state?.department;
@@ -167,7 +173,7 @@ export default function DepartmentEmployees() {
   };
 
   const modalShellClass =
-    "relative w-[700px] max-w-[92vw] max-h-[420px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
+    "relative lg:w-[550px] md:w-[400px] w-[350px] max-w-[92vw] max-h-[420px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
 
   return (
     <div>
@@ -176,7 +182,7 @@ export default function DepartmentEmployees() {
       <div className="p-7 lg:mx-18 md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-            {departmentName}
+            {departmentName} Department
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3 md:mt-0 mt-5">
@@ -215,7 +221,7 @@ export default function DepartmentEmployees() {
               <button
                 type="button"
                 onClick={() => resetPaginationOnSearchOrTab("employees")}
-                className={`px-8 py-3 font-medium rounded-t-lg transition ${
+                className={`lg:px-4 lg:py-2 px-2.5 py-1.5 font-medium rounded-t-lg transition duration-300 cursor-pointer md:text-sm text-xs ${
                   tab === "employees"
                     ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
                     : "bg-[#D9D9D9] text-black z-10"
@@ -227,7 +233,7 @@ export default function DepartmentEmployees() {
               <button
                 type="button"
                 onClick={() => resetPaginationOnSearchOrTab("positions")}
-                className={`px-8 py-3 font-medium rounded-t-lg transition ${
+                className={`lg:px-4 lg:py-2 px-2.5 py-1.5 font-medium rounded-t-lg transition duration-300 cursor-pointer md:text-sm text-xs ${
                   tab === "positions"
                     ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
                     : "bg-[#D9D9D9] text-black z-10"
@@ -241,9 +247,7 @@ export default function DepartmentEmployees() {
               <button
                 type="button"
                 onClick={openAdd}
-                className="cursor-pointer bg-[#B63A3A] text-white px-6 py-3 rounded-lg
-                           shadow-md hover:opacity-90 hover:scale-105
-                           transition duration-300 ease-in-out"
+                className="generate-report-button mb-4 font-medium "
               >
                 Add Position
               </button>
@@ -348,37 +352,37 @@ export default function DepartmentEmployees() {
 
           <div className={modalShellClass} onClick={(e) => e.stopPropagation()}>
             <div className="p-5">
-              <div className="bg-[#990100] rounded-lg px-10 py-6 flex items-center justify-between shadow-md">
-                <h2 className="text-white text-2xl font-bold">Add New Position</h2>
+              <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
+                <h2 className="text-white text-lg font-medium lg:text-lg text-sm">Add New Position</h2>
                 <button
                   type="button"
                   onClick={closeAdd}
                   aria-label="Close"
-                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                  className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
                 >
-                  ×
+                  ✕
                 </button>
               </div>
 
-              <div className="py-10">
+              <div className="lg:py-10 py-7">
                 <div className="flex items-center justify-center gap-5">
-                  <span className="font-bold text-lg">Position Title:</span>
+                  <span className="font-bold lg:text-lg text-sm">Position Title:</span>
 
                   <input
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     placeholder="Position"
-                    className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                    className="lg:w-[280px] md:w-[200px] w-[180px] px-2 lg:py-1.5 py-1 rounded-md border border-gray-500 focus:outline-gray-400 shadow-sm"
                   />
                 </div>
 
-                <div className="flex justify-center gap-10 mt-12">
+                <div className="flex justify-center gap-8 lg:mt-12 mt-8">
                   <button
                     type="button"
                     onClick={onResetAdd}
-                    className="bg-[#B63A3A] text-white px-10 py-3 rounded-lg cursor-pointer
+                    className="bg-[#B63A3A] text-white px-7 py-1.5 rounded-lg cursor-pointer
                                shadow-md hover:opacity-90 hover:scale-105
-                               transition duration-300 ease-in-out"
+                               transition duration-300 ease-in-out lg:text-[15px] text-sm"
                   >
                     Reset
                   </button>
@@ -386,9 +390,9 @@ export default function DepartmentEmployees() {
                   <button
                     type="button"
                     onClick={onSaveAdd}
-                    className="bg-[#990100] text-white px-10 py-3 rounded-lg cursor-pointer
+                    className="bg-[#990100] text-white px-7 py-1.5 rounded-lg cursor-pointer
                                shadow-md hover:opacity-90 hover:scale-105
-                               transition duration-300 ease-in-out"
+                               transition duration-300 ease-in-out lg:text-[15px] text-sm"
                     disabled={!newTitle.trim()}
                   >
                     Save

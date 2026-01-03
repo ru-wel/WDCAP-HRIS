@@ -85,7 +85,7 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#990100] mb-2">
         {project.project_name || `Project #${index + 1}`}
       </h2>
@@ -194,7 +194,7 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
   };
 
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">
         {`New Project`}
       </h2>

@@ -258,6 +258,11 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
 function Employees(){
     
+    //PAGE TITLE
+    useEffect(() => {
+        document.title = "ARISE | EMPLOYEES"; 
+      }, []);
+    
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [employees, setEmployees] = useState([]);
@@ -416,8 +421,8 @@ function Employees(){
                                 <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                                 <th className="th-style">Name</th>
                                 <th className="th-style">Position</th>
-                                <th className="th-style hidden sm:table-cell">Hire Date</th>
-                                <th className="th-style hidden sm:table-cell">Personnel Type</th>
+                                <th className="th-style">Hire Date</th>
+                                <th className="th-style">Personnel Type</th>
                                 <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>

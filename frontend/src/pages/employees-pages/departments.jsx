@@ -30,7 +30,7 @@ function DepartmentCard({
     <CardWrapper
       type={isClickable ? "button" : undefined}
       onClick={isClickable ? onOpen : undefined}
-      className={`relative bg-[#EDEDED] rounded-lg shadow-lg px-7 pt-6 transition-all duration-300 text-left w-full
+      className={`relative bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 pt-6 transition-all duration-300 text-left w-full
         ${showDeleteOverlay ? "pb-20" : "pb-6"}
         ${isClickable ? "hover:scale-105 cursor-pointer" : ""}
       `}
@@ -40,9 +40,9 @@ function DepartmentCard({
         <input
           value={editedName}
           onChange={(e) => onNameChange(id, e.target.value)}
-          className="w-full bg-transparent text-xl font-bold outline-none
-                     text-[#990100] border-b border-transparent
-                     focus:border-[#990100]"
+          className="w-full text-xl font-bold 
+                     text-[#990100]/70
+                     focus:border-[#990100] project-field bg-gray-100"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
@@ -118,11 +118,11 @@ function DepartmentCard({
 
 function NewDepartmentCard({ value, onChange }) {
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-7 py-6 min-h-[140px]">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 py-6 min-h-[140px]">
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Type Department Name"
+        placeholder="Type Department Name.."
         className="w-full bg-transparent text-xl font-bold outline-none
                    text-[#990100] placeholder:text-[#c98b8b]"
       />
@@ -137,6 +137,11 @@ function NewDepartmentCard({ value, onChange }) {
 
 export default function Departments() {
   const navigate = useNavigate();
+
+  // PAGE TITLE
+  useEffect(() => {
+    document.title = "ARISE | DEPARTMENTS"; 
+  }, []);
 
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -356,22 +361,20 @@ export default function Departments() {
         {!loading && !error && (
           <>
 
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end flex-wrap">
           {isWorking ? (
             <button
-              className="green-button"
+              className="green-button mt-6"
               onClick={saveChanges}
               disabled={saveDisabled}
             >
               Save Changes
             </button>
           ) : (
-            <div className="flex gap-3">
+            <div className="flex justify-end mt-6 gap-3 flex-wrap">
               <button
                 onClick={startDelete}
-                className="cursor-pointer bg-red-700 text-white px-4 py-2 rounded-md
-                           hover:bg-red-600 hover:scale-105
-                           transition duration-300 ease-in-out"
+                className="generate-report-button"
               >
                 Delete Department
               </button>

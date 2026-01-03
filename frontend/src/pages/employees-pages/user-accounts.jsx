@@ -158,6 +158,11 @@ function UserAccounts (){
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
 
+    // PAGE TITLE
+    useEffect(() => {
+        document.title = "ARISE | USER ACCOUNTS"; 
+      }, []);
+
     const fetchUsers = async () => {
         setLoading(true);
         try {

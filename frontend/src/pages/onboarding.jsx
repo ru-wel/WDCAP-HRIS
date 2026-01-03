@@ -185,6 +185,11 @@ function StepTwo({ data, setData }) {
 function Onboarding(){
     const navigate = useNavigate();
 
+    //PAGE TITLE
+    useEffect(() => {
+        document.title = "ARISE | ONBOARDING"; 
+      }, []);
+
     const [formData, setFormData] = useState({
         fname: "",
         lname: "",
