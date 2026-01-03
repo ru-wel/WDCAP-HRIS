@@ -47,7 +47,7 @@ function DepartmentCard({
         />
       ) : (
         <h2
-          className={`text-xl font-bold ${
+          className={`lg:text-xl text-lg font-bold ${
             mode === "delete" ? "text-[#c98b8b]" : "text-[#990100]"
           }`}
         >
@@ -56,8 +56,8 @@ function DepartmentCard({
       )}
 
       <div className="flex items-center gap-4 pt-4">
-        <img src="/icons/red-employees.png" alt="employees" className="w-9 h-9" />
-        <p className="text-lg">
+        <img src="/icons/red-employees.png" alt="employees" className="md:w-9 md:h-9 w-8 h-8" />
+        <p className="lg:text-lg text-md">
           <span className="font-medium">{employeesCount}</span> employee
           {employeesCount !== 1 ? "s" : ""}
         </p>

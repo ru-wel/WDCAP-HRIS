@@ -4,6 +4,7 @@ import Navbar from "../components/navbar";
 import DropDownFilter from "../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const demoEmployees = [
   { id: "AC-00001", name: "Reuel Christian Sundiam", position: "Talent Acquisition", hireDate: "10/20/25", type: "Regular", deptId: 1 },
@@ -175,15 +176,24 @@ export default function DepartmentEmployees() {
   const modalShellClass =
     "relative lg:w-[550px] md:w-[400px] w-[350px] max-w-[92vw] max-h-[420px] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl";
 
+  const navigate = useNavigate();
+
   return (
     <div>
       <Navbar />
 
       <div className="p-7 lg:mx-18 md:mx-10">
         <div className="md:flex justify-between items-center w-full">
-          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-            {departmentName} Department
-          </h1>
+
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/employees/departments')} className="text-[#990100] hover:text-[#CC0000] transition-colors flex items-center gap-1 text-sm font-medium cursor-pointer">
+              <span className="text-xl">←</span>Back
+            </button>
+            <span className="text-gray-300">|</span>
+            <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
+              {departmentName} Employees
+            </h1>
+          </div>
 
           <div className="flex items-center justify-end md:gap-4 gap-3 md:mt-0 mt-5">
             <DropDownFilter />
