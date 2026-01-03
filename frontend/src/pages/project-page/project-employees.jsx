@@ -201,6 +201,13 @@ function ProjectEmployees() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // PAGE TITLE
+useEffect(() => {
+  if (!projectDetails?.project_name) return;
+
+  document.title = `ARISE | ${projectDetails.project_name.toUpperCase()} EMPLOYEES`;
+}, [projectDetails?.project_name]);
+
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const openAddModal = () => setAddModalOpen(true);
   const closeAddModal = () => setAddModalOpen(false);

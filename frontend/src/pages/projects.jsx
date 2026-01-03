@@ -38,9 +38,9 @@ function ViewProjectCard({ project, index, onClick }) {
       onClick={onClick}
       className="text-left w-full hover:scale-105 transition duration-300 ease-in-out"
     >
-      <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+      <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between cursor-pointer">
         <div>
-          <h2 className="text-xl font-bold text-[#990100] mb-3">
+          <h2 className="lg:text-xl text-lg font-bold text-[#990100] mb-3">
             {project.project_name || `Project #${index + 1}`}
           </h2>
 
@@ -50,7 +50,7 @@ function ViewProjectCard({ project, index, onClick }) {
               alt="location"
               className="w-4 h-4"
             />
-            <span>{project.site_location}</span>
+            <span className="lg:text-md text-sm">{project.site_location}</span>
           </div>
 
           <div className="flex items-center text-base gap-2">
@@ -59,12 +59,12 @@ function ViewProjectCard({ project, index, onClick }) {
               alt="calendar"
               className="w-4 h-4"
             />
-            <span>{dateRange}</span>
+            <span className="lg:text-md text-sm">{dateRange}</span>
           </div>
         </div>
 
         <div className="mt-4">
-          <span className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(project.status)}`}>
+          <span className={`inline-block px-6 py-2 rounded-xl md:text-sm text-xs font-semibold ${statusStyle(project.status)}`}>
             {project.status}
           </span>
         </div>
@@ -304,6 +304,11 @@ function Projects() {
 
   //REACT-PAGINATE
   const [itemOffset, setItemOffset] = useState(0);
+
+  // PAGE TITLE
+    useEffect(() => {
+      document.title = 'ARISE | PROJECTS'; 
+    }, []);
 
 
   let cardDescriptors;
