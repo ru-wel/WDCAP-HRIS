@@ -27,6 +27,7 @@ const getRecentAuditLogs = async (limit = 5) => {
         action_type,
         table_name,
         record_id,
+        old_values,
         new_values,
         timestamp,
         users ( email, role )
@@ -42,6 +43,7 @@ const getRecentAuditLogs = async (limit = 5) => {
     action_type: r.action_type,
     table_name: r.table_name,
     record_id: r.record_id,
+    old_values: r.old_values,
     new_values: r.new_values,
     timestamp: r.timestamp,
     user: {

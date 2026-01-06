@@ -102,6 +102,7 @@ const normalizeSummary = (payload) => {
         action_type: typeof r.action_type === 'string' ? r.action_type : '',
         table_name: typeof r.table_name === 'string' ? r.table_name : '',
         record_id: typeof r.record_id === 'string' ? r.record_id : '',
+        old_values: r.old_values && typeof r.old_values === 'object' ? r.old_values : null,
         new_values: r.new_values && typeof r.new_values === 'object' ? r.new_values : null,
         timestamp: r.timestamp,
         user: {
@@ -147,7 +148,9 @@ const humanizeAuditEntity = (tableName) => {
 
 const pickAuditTarget = (row) => {
   const table = String(row?.table_name || '').trim().toLowerCase();
-  const v = row?.new_values && typeof row.new_values === 'object' ? row.new_values : {};
+  const preferred = row?.new_values && typeof row.new_values === 'object' ? row.new_values : null;
+  const fallback = row?.old_values && typeof row.old_values === 'object' ? row.old_values : null;
+  const v = preferred || fallback || {};
 
   if (table === 'employees') {
     const empId = String(v.employee_id || v.employee_code || '').trim();
@@ -196,7 +199,8 @@ const pickAuditTarget = (row) => {
     const empName = String(v.employee_name || `${v.employees?.first_name || ''} ${v.employees?.last_name || ''}`.trim()).trim();
     const type = String(v.evaluation_type || '').trim();
 
-    const who = empCode || empName;
+    const looksLikeUuid = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || '').trim());
+    const who = (empCode && !looksLikeUuid(empCode)) ? empCode : (empName || '');
     const label = [who, type].filter(Boolean).join(' - ');
     if (label) return label;
   }

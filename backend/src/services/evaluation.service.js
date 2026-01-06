@@ -311,14 +311,18 @@ export const updateSchedule = async (evaluationId, payload, user) => {
 
   if (error) throw new InternalServerError(error.message);
 
+  // NOTE: PostgREST may not always return nested relations on UPDATE.
+  // Re-fetch to ensure employees relation + derived fields exist for audit logs/UI.
+  const hydrated = await getEvaluationById(updated.evaluation_id);
+
   try {
     await supabase.from('audit_logs').insert({
       user_id: user.id,
       action_type: AUDIT_ACTIONS.UPDATE,
       table_name: 'performance_evaluations',
-      record_id: String(updated.evaluation_id),
+      record_id: String(hydrated.evaluation_id),
       old_values: existing,
-      new_values: updated,
+      new_values: hydrated,
       timestamp: now
     });
   } catch (e) {
@@ -358,11 +362,11 @@ export const updateSchedule = async (evaluationId, payload, user) => {
   }
 
   return {
-    ...updated,
-    employee_name: formatEmployeeName(updated.employees),
-    employee_code: updated.employees?.employee_id || null,
-    position_title: updated.employees?.positions?.position_title || null,
-    personnel_type: updated.employees?.personnel_type || null
+    ...hydrated,
+    employee_name: hydrated.employee_name || formatEmployeeName(hydrated.employees),
+    employee_code: hydrated.employee_code || hydrated.employees?.employee_id || null,
+    position_title: hydrated.position_title || hydrated.employees?.positions?.position_title || null,
+    personnel_type: hydrated.personnel_type || hydrated.employees?.personnel_type || null
   };
 };
 
@@ -542,14 +546,17 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     throw new InternalServerError(error.message);
   }
 
+  // Same issue as updateSchedule: ensure relations/derived fields are present.
+  const hydrated = await getEvaluationById(updated.evaluation_id);
+
   try {
     await supabase.from('audit_logs').insert({
       user_id: user.id,
       action_type: AUDIT_ACTIONS.UPDATE,
       table_name: 'performance_evaluations',
-      record_id: String(updated.evaluation_id),
+      record_id: String(hydrated.evaluation_id),
       old_values: existing,
-      new_values: updated,
+      new_values: hydrated,
       timestamp: now
     });
   } catch (e) {
@@ -583,11 +590,11 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
   }
 
   return {
-    ...updated,
-    employee_name: formatEmployeeName(updated.employees),
-    employee_code: updated.employees?.employee_id || null,
-    position_title: updated.employees?.positions?.position_title || null,
-    personnel_type: updated.employees?.personnel_type || null
+    ...hydrated,
+    employee_name: hydrated.employee_name || formatEmployeeName(hydrated.employees),
+    employee_code: hydrated.employee_code || hydrated.employees?.employee_id || null,
+    position_title: hydrated.position_title || hydrated.employees?.positions?.position_title || null,
+    personnel_type: hydrated.personnel_type || hydrated.employees?.personnel_type || null
   };
 };
 

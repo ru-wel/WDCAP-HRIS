@@ -72,7 +72,13 @@ function EvaluationLogs() {
       v?.employee_name ||
       (v?.employees ? `${v?.employees?.first_name || ''} ${v?.employees?.last_name || ''}`.trim() : '') ||
       '';
-    return `${empCode || ''}${empCode && name ? ' - ' : ''}${name}`.trim();
+
+    const label = `${empCode || ''}${empCode && name ? ' - ' : ''}${name}`.trim();
+    // If the only thing we have is a raw UUID (common in older audit logs), hide it to keep the dashboard readable.
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(label)) {
+      return '';
+    }
+    return label;
   };
 
   const formatEvalAction = (log) => {
