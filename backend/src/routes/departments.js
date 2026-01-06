@@ -19,6 +19,9 @@ router.get('/', departmentController.getAllDepartments);
 // get department by id
 router.get('/:id', validate(departmentValidation.departmentIdSchema), departmentController.getDepartmentById);
 
+// get department members
+router.get('/:id/members', validate(departmentValidation.departmentIdSchema), departmentController.getDepartmentMembers);
+
 // update department
 router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(departmentValidation.updateDepartmentSchema), departmentController.updateDepartment);
 

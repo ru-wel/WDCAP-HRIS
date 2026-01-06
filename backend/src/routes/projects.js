@@ -19,6 +19,9 @@ router.get('/', projectController.getAllProjects);
 // get project by id
 router.get('/:id', validate(projectValidation.projectIdSchema), projectController.getProjectById);
 
+// get project members
+router.get('/:id/members', validate(projectValidation.projectIdSchema), projectController.getProjectMembers);
+
 // update project
 router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(projectValidation.updateProjectSchema), projectController.updateProject);
 

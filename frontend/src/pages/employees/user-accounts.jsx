@@ -1,0 +1,925 @@
+import React, { useEffect, useMemo, useState } from 'react'
+import DropDownFilter from "../../components/dropdownfilter";
+import { del, get, put, post } from "../../services/api.js";
+import ReactPaginate from 'react-paginate';
+import ConfirmModal from "../../components/confirm-modal.jsx";
+import { compareDate, compareText } from '../../utils/sort.js';
+import { exportRowsToCsv } from '../../utils/csv.js';
+import { exportRowsToXlsx } from '../../utils/excel.js';
+import ReportModal from '../../components/report-modal.jsx';
+import { filterRowsByDateRange } from '../../utils/reporting.js';
+
+const RESET_REQUESTS_LAST_SEEN_KEY = 'resetRequestsLastSeenAt';
+
+function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
+
+    const [data, setData] = useState(employeeAcc);
+    const [editData, setEditData] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [resetMode, setResetMode] = useState(false);
+    const [resetPassword, setResetPassword] = useState('');
+    const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        title: 'Confirmation',
+        message: '',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: null,
+    });
+
+    const [confirmBusy, setConfirmBusy] = useState(false);
+
+    const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+        setConfirmState({
+            open: true,
+            title: title || 'Confirmation',
+            message: message || '',
+            confirmText: confirmText || 'OK',
+            cancelText: cancelText ?? 'Cancel',
+            onConfirm: onConfirm || null,
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null }));
+    };
+
+    const handleConfirm = async () => {
+        const fn = confirmState.onConfirm;
+        if (!fn) {
+            closeConfirm();
+            return;
+        }
+
+        const snapshot = {
+            title: confirmState.title,
+            message: confirmState.message,
+            confirmText: confirmState.confirmText,
+            cancelText: confirmState.cancelText,
+            onConfirm: confirmState.onConfirm,
+        };
+
+        try {
+            setConfirmBusy(true);
+            await fn?.();
+
+            setConfirmState((prev) => {
+                const isSameDialog =
+                    prev.open &&
+                    prev.onConfirm === snapshot.onConfirm &&
+                    prev.title === snapshot.title &&
+                    prev.message === snapshot.message &&
+                    prev.confirmText === snapshot.confirmText &&
+                    prev.cancelText === snapshot.cancelText;
+
+                if (!isSameDialog) return prev;
+
+                const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+                if (!wasConfirmation) {
+                    return { ...prev, open: false, onConfirm: null };
+                }
+
+                return {
+                    open: true,
+                    title: 'Success',
+                    message: 'Action completed successfully.',
+                    confirmText: 'OK',
+                    cancelText: null,
+                    onConfirm: null,
+                };
+            });
+        } catch (e) {
+            setConfirmState({
+                open: true,
+                title: 'Error',
+                message: e?.message || 'Action failed.',
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+        } finally {
+            setConfirmBusy(false);
+        }
+    };
+
+    // WHEN EDITING THE VALUE
+    const handleChange = (a) => {
+        const { name, value } = a.target;
+        setData(prev => ({...(prev ?? employeeAcc ?? {}), [name]:value}));
+    };
+
+    const [initialData, setInitialData] = useState(employeeAcc);
+
+    useEffect(() => {
+        setData(employeeAcc);
+        setInitialData(employeeAcc);
+        setEditData(false);
+        setResetMode(false);
+        setResetPassword('');
+        setResetConfirmPassword('');
+    }, [employeeAcc]);
+
+    if (!isOpen || !employeeAcc) return null;
+
+    const currentData = data ?? employeeAcc;
+    const originalData = initialData ?? employeeAcc;
+    const unsavedChanges = JSON.stringify(currentData) !== JSON.stringify(originalData);
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-[1000] bg-[#EDEDED]/50">
+             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto border border-gray-300">
+                <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
+                    <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition" 
+                    onClick={() => {
+                        if (unsavedChanges){
+                            openConfirm({
+                                message: 'You have unsaved changes. Do you want to close it without saving?',
+                                confirmText: 'OK',
+                                cancelText: 'Cancel',
+                                onConfirm: () => onClose()
+                            });
+                            return;
+                        }
+                        onClose();
+                    }}> ✕ </button>
+                </div>
+
+                <div className="pt-5 md:px-35 px-10">
+
+                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {currentData.id}</p>
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Role</p>
+                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.role || ""} disabled = {!editData || loading} onChange={handleChange} required>
+                            <option value="">Select Role</option>
+                            <option value="Admin">Admin</option>
+                            <option value="HR">HR</option>
+                            <option value="Employee">Employee</option>
+                        </select>
+                    </div>
+
+                    {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Email</p>
+                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={currentData.email || ""} disabled />
+                    </div>
+
+                    <div className="lg:pt-3 pt-2">
+                        <p className='lg:text-sm text-xs pb-2 font-medium'>Status</p>
+                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.status || ""} disabled = {!editData || loading} onChange={handleChange} required>
+                            <option value="">Select Status</option>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+
+
+                </div>
+
+                 <div className="pt-7">
+                    {!editData ? (
+                        <div className="flex justify-center gap-4">
+                            <button
+                                onClick={() => setEditData(true)}
+                                disabled={loading}
+                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                Update Record
+                            </button>
+
+                            <button
+                                onClick={() => setResetMode((p) => !p)}
+                                disabled={loading}
+                                className='bg-[#FFA500] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                {resetMode ? 'Cancel Reset' : 'Reset Password'}
+                            </button>
+
+                            <button
+                                onClick={async () => {
+                                    openConfirm({
+                                        title: 'Delete account',
+                                        message: 'Delete this account?\n\n• This permanently removes the user login and cannot be undone.\n• If this user is linked to an employee profile, deletion will be blocked to protect records and uploaded files. Archive the employee instead.',
+                                        confirmText: 'OK',
+                                        cancelText: 'Cancel',
+                                        onConfirm: async () => {
+                                            setLoading(true);
+                                            try {
+                                                await onDelete(currentData.id);
+                                                onClose();
+                                            } catch (e) {
+                                                openConfirm({
+                                                    title: 'Delete failed',
+                                                    message: e?.message || 'Failed to delete user',
+                                                    confirmText: 'OK',
+                                                    cancelText: null,
+                                                    onConfirm: null,
+                                                });
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }
+                                    });
+                                }}
+                                disabled={loading}
+                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                {loading ? "Deleting..." : "Delete Record"}
+                            </button>
+                        </div>
+                    ):(
+                        <div className="flex justify-center gap-4">
+                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                                    onClick = {() => {
+                                        if (unsavedChanges){
+                                            openConfirm({
+                                                message: 'You have unsaved changes. Do you want to close it without saving?',
+                                                confirmText: 'OK',
+                                                cancelText: 'Cancel',
+                                                onConfirm: () => {
+                                                    setData(initialData);
+                                                    setEditData(false);
+                                                }
+                                            });
+                                            return;
+                                        }
+                                        setData(initialData);
+                                        setEditData(false);
+                                    }}
+                                >Cancel Changes</button>
+                            <button
+                                onClick={async () => {
+                                    if (!currentData.role || !currentData.status) {
+                                        openConfirm({
+                                            title: 'Missing fields',
+                                            message: 'Please fill out all fields and do not leave any of them blank.',
+                                            confirmText: 'OK',
+                                            cancelText: null,
+                                            onConfirm: null,
+                                        });
+                                        return;
+                                    }
+
+                                    openConfirm({
+                                        message: 'Are you sure you want to save these changes?',
+                                        confirmText: 'OK',
+                                        cancelText: 'Cancel',
+                                        onConfirm: async () => {
+                                            setLoading(true);
+                                            try {
+                                                await onSave(currentData);
+                                                setEditData(false);
+                                                openConfirm({
+                                                    title: 'Success',
+                                                    message: `Successfully updated the record of ${currentData.id}!`,
+                                                    confirmText: 'OK',
+                                                    cancelText: null,
+                                                    onConfirm: () => onClose(),
+                                                });
+                                            } catch (e) {
+                                                openConfirm({
+                                                    title: 'Update failed',
+                                                    message: e?.message || 'Failed to update user',
+                                                    confirmText: 'OK',
+                                                    cancelText: null,
+                                                    onConfirm: null,
+                                                });
+                                            } finally {
+                                                setLoading(false);
+                                            }
+                                        }
+                                    });
+                                }}
+                                disabled={loading}
+                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                            >
+                                {loading ? "Saving..." : "Save Changes"}
+                            </button>
+                        </div>
+                    )}
+
+                    {resetMode && !editData ? (
+                        <div className="pt-5 md:px-35 px-10">
+                            <p className='lg:text-sm text-xs pb-2 font-medium'>New Password</p>
+                            <input
+                                type="password"
+                                className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs"
+                                value={resetPassword}
+                                onChange={(e) => setResetPassword(e.target.value)}
+                                disabled={loading}
+                                placeholder="Enter new password"
+                            />
+
+                            <div className="pt-3">
+                                <p className='lg:text-sm text-xs pb-2 font-medium'>Confirm Password</p>
+                                <input
+                                    type="password"
+                                    className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs"
+                                    value={resetConfirmPassword}
+                                    onChange={(e) => setResetConfirmPassword(e.target.value)}
+                                    disabled={loading}
+                                    placeholder="Confirm new password"
+                                />
+                            </div>
+
+                            <div className="pt-5 flex justify-center">
+                                <button
+                                    type="button"
+                                    disabled={loading}
+                                    className='bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                    onClick={() => {
+                                        if (!resetPassword || !resetConfirmPassword) {
+                                            openConfirm({
+                                                title: 'Missing fields',
+                                                message: 'Please enter and confirm the new password.',
+                                                confirmText: 'OK',
+                                                cancelText: null,
+                                                onConfirm: null,
+                                            });
+                                            return;
+                                        }
+
+                                        openConfirm({
+                                            title: 'Reset password',
+                                            message: 'Reset this user\'s password now?',
+                                            confirmText: 'OK',
+                                            cancelText: 'Cancel',
+                                            onConfirm: async () => {
+                                                setLoading(true);
+                                                try {
+                                                    const res = await post('/auth/admin-reset-password', {
+                                                        employeeId: currentData.id,
+                                                        new_password: resetPassword,
+                                                        confirm_password: resetConfirmPassword,
+                                                    });
+
+                                                    if (res?.success) {
+                                                        openConfirm({
+                                                            title: 'Success',
+                                                            message: 'Password reset successfully.',
+                                                            confirmText: 'OK',
+                                                            cancelText: null,
+                                                            onConfirm: () => {
+                                                                setResetMode(false);
+                                                                setResetPassword('');
+                                                                setResetConfirmPassword('');
+                                                            },
+                                                        });
+                                                    }
+                                                } catch (e) {
+                                                    openConfirm({
+                                                        title: 'Reset failed',
+                                                        message: e?.message || 'Failed to reset password',
+                                                        confirmText: 'OK',
+                                                        cancelText: null,
+                                                        onConfirm: null,
+                                                    });
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }
+                                        });
+                                    }}
+                                >
+                                    {loading ? 'Resetting…' : 'Confirm Reset'}
+                                </button>
+                            </div>
+                        </div>
+                    ) : null}
+                 </div>
+             </div>
+
+             <ConfirmModal
+                 open={confirmState.open}
+                 title={confirmState.title}
+                 message={confirmState.message}
+                 confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+                 cancelText={confirmState.cancelText}
+                 onConfirm={handleConfirm}
+                 onCancel={confirmBusy ? undefined : closeConfirm}
+                 confirmDisabled={loading || confirmBusy}
+             />
+        </div>
+    )
+
+}
+
+function UserAccounts (){
+
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [viewEmployeeAcc, setViewEmployeeAcc] = useState(null);
+    const [employeesAcc, setEmployeesAcc] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [sortOrder, setSortOrder] = useState('email_az');
+    const [reportOpen, setReportOpen] = useState(false);
+
+    const [resetRequests, setResetRequests] = useState([]);
+    const [resetRequestsLoading, setResetRequestsLoading] = useState(false);
+    const [resetRequestsError, setResetRequestsError] = useState('');
+    const [resetRequestsLastSeenAt, setResetRequestsLastSeenAt] = useState(() => {
+        try {
+            return window.localStorage.getItem(RESET_REQUESTS_LAST_SEEN_KEY) || '';
+        } catch {
+            return '';
+        }
+    });
+
+    const fetchResetRequests = async () => {
+        setResetRequestsLoading(true);
+        setResetRequestsError('');
+        try {
+            const res = await get('/audit-logs/table/users');
+            if (!res?.success) throw new Error(res?.message || 'Failed to fetch reset requests');
+
+            const rows = Array.isArray(res?.data) ? res.data : [];
+            const requests = rows
+                .filter((r) => String(r?.action_type || '').toUpperCase() === 'PASSWORD_RESET_REQUEST')
+                .map((r) => {
+                    const rawTs = r?.timestamp || '';
+                    const email = r?.new_values?.email || r?.record_id || '';
+                    return {
+                        id: r?.id || `${email}-${rawTs}`,
+                        email,
+                        timestampRaw: rawTs,
+                        timestamp: rawTs
+                            ? new Date(rawTs).toLocaleString('en-US', {
+                                  month: '2-digit',
+                                  day: '2-digit',
+                                  year: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                              })
+                            : ''
+                    };
+                });
+
+            setResetRequests(requests);
+        } catch (e) {
+            console.error(e);
+            setResetRequests([]);
+            setResetRequestsError(e?.message || 'Failed to load reset requests');
+        } finally {
+            setResetRequestsLoading(false);
+        }
+    };
+
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await get("/users");
+            if (!res?.success) {
+                throw new Error(res?.message || "Failed to fetch user accounts");
+            }
+
+            const rows = (res.data || []).map((u) => ({
+                id: u.employee_id || u.id,
+                email: u.email,
+                role: u.role,
+                createdAtRaw: u.created_at || "",
+                createdAt: u.created_at
+                    ? new Date(u.created_at).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                    })
+                    : "",
+                status: u.status || "ACTIVE",
+            }));
+            setEmployeesAcc(rows);
+            setError("");
+        } catch (e) {
+            console.error(e);
+            setEmployeesAcc([]);
+            setError(e?.message || "Failed to load user accounts");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        fetchUsers();
+        fetchResetRequests();
+    }, []);
+
+    const newResetRequestsCount = useMemo(() => {
+        const lastSeen = resetRequestsLastSeenAt ? Date.parse(resetRequestsLastSeenAt) : null;
+        if (!lastSeen || Number.isNaN(lastSeen)) return resetRequests.length;
+        return resetRequests.filter((r) => {
+            const ts = r?.timestampRaw ? Date.parse(r.timestampRaw) : null;
+            if (!ts || Number.isNaN(ts)) return false;
+            return ts > lastSeen;
+        }).length;
+    }, [resetRequests, resetRequestsLastSeenAt]);
+
+    const visibleResetRequests = useMemo(() => {
+        const lastSeen = resetRequestsLastSeenAt ? Date.parse(resetRequestsLastSeenAt) : null;
+        if (!lastSeen || Number.isNaN(lastSeen)) return resetRequests;
+        return resetRequests.filter((r) => {
+            const ts = r?.timestampRaw ? Date.parse(r.timestampRaw) : null;
+            if (!ts || Number.isNaN(ts)) return false;
+            return ts > lastSeen;
+        });
+    }, [resetRequests, resetRequestsLastSeenAt]);
+
+    const markResetRequestsAsSeen = () => {
+        const now = new Date().toISOString();
+        setResetRequestsLastSeenAt(now);
+        try {
+            window.localStorage.setItem(RESET_REQUESTS_LAST_SEEN_KEY, now);
+        } catch {
+            // ignore storage errors
+        }
+    };
+
+    const handleOpen = (employeeAcc) => {
+        setViewEmployeeAcc(employeeAcc);
+        setModalOpen(true)
+    };
+
+    const handleClose = () => setModalOpen(false);
+
+    const updateEmployeeAcc = async (updated) => {
+        // optimistic UI
+        setEmployeesAcc(prev => prev.map(emp => emp.id === updated.id ? updated : emp));
+        try {
+            const res = await put(`/users/${updated.id}`, {
+                role: updated.role,
+                status: updated.status,
+            });
+
+            const u = res.data;
+            const normalized = {
+                id: u.employee_id || u.id,
+                email: u.email,
+                role: u.role,
+                createdAtRaw: u.created_at || "",
+                createdAt: u.created_at
+                    ? new Date(u.created_at).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                    })
+                    : "",
+                status: u.status || "ACTIVE",
+            };
+
+            setEmployeesAcc(prev => prev.map(emp => emp.id === normalized.id ? normalized : emp));
+        } catch (e) {
+            await fetchUsers();
+            throw e;
+        }
+    };
+
+    const deleteEmployeeAcc = async (employeeId) => {
+        // optimistic UI
+        setEmployeesAcc(prev => prev.filter(emp => emp.id !== employeeId));
+        try {
+            await del(`/users/${employeeId}`);
+        } catch (e) {
+            await fetchUsers();
+            throw e;
+        }
+    }
+
+    const filteredEmployeesAcc = useMemo(() => {
+        const q = searchTerm.trim().toLowerCase();
+        const filtered = !q
+            ? employeesAcc
+            : employeesAcc.filter((row) => {
+                const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
+                return haystack.includes(q);
+            });
+
+        const sorted = [...filtered].sort((a, b) => {
+            switch (sortOrder) {
+                case 'employee_id_asc':
+                    return compareText(a?.id, b?.id);
+                case 'employee_id_desc':
+                    return compareText(b?.id, a?.id);
+                case 'email_az':
+                    return compareText(a?.email, b?.email);
+                case 'email_za':
+                    return compareText(b?.email, a?.email);
+                case 'role_az':
+                    return compareText(a?.role, b?.role);
+                case 'role_za':
+                    return compareText(b?.role, a?.role);
+                case 'created_at_newest':
+                    return compareDate(b?.createdAtRaw, a?.createdAtRaw);
+                case 'created_at_oldest':
+                    return compareDate(a?.createdAtRaw, b?.createdAtRaw);
+                case 'status_az':
+                    return compareText(a?.status, b?.status);
+                case 'status_za':
+                    return compareText(b?.status, a?.status);
+                default:
+                    return compareText(a?.email, b?.email);
+            }
+        });
+
+        return sorted;
+    }, [employeesAcc, searchTerm, sortOrder]);
+
+    //REACT-PAGINATE
+    
+        const [itemOffset, setItemOffset] = useState(0);
+        const itemsPerPage = 15;
+        const endOffset = itemOffset + itemsPerPage;
+        const currentUserAcc = filteredEmployeesAcc.slice(itemOffset, endOffset);
+        const pageCount = Math.ceil(filteredEmployeesAcc.length / itemsPerPage);
+        const multiPages = pageCount > 1;
+        const currentPage = pageCount ? Math.floor(itemOffset / itemsPerPage) + 1 : 0;
+    
+        const handlePageClick = (event) => {
+            const newOffset = (event.selected * itemsPerPage);
+            setItemOffset(newOffset);
+        };
+
+        useEffect(() => {
+            setItemOffset(0);
+        }, [searchTerm, sortOrder, employeesAcc.length]);
+
+    const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
+        const rowsForExport = (startDate || endDate)
+            ? filterRowsByDateRange(filteredEmployeesAcc, (r) => r?.createdAtRaw || r?.createdAt, startDate, endDate)
+            : filteredEmployeesAcc;
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        const isCsv = fileType === 'CSV';
+        const filename = `user-accounts-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+
+        post('/audit-logs/reports', {
+            report_name: 'User Accounts Report',
+            filename,
+            start_date: startDate || null,
+            end_date: endDate || null,
+            row_count: rowsForExport.length,
+            source: 'user-accounts',
+        }).catch(() => {
+            // best-effort only
+        });
+
+        const columns = [
+            { header: 'Employee ID', value: (r) => r.id },
+            { header: 'Email', value: (r) => r.email },
+            { header: 'Role', value: (r) => r.role },
+            { header: 'Created At', value: (r) => r.createdAt },
+            { header: 'Status', value: (r) => r.status },
+        ];
+
+        if (isCsv) {
+            exportRowsToCsv({ filename, columns, rows: rowsForExport });
+        } else {
+            exportRowsToXlsx({ filename, sheetName: 'User Accounts', columns, rows: rowsForExport });
+        }
+
+        setReportOpen(false);
+    };
+
+    return(
+        <div className="">
+            <div className="p-7 lg:mx-18 md:mx-10">
+                {/* HEADER */}
+                <div className="md:flex justify-between items-center w-full">
+
+                    <div className="">
+                        <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5'>User Accounts</h1>
+                    </div>
+
+                    <div className="flex items-center justify-end md:gap-4 gap-3"> 
+                        <DropDownFilter
+                            value={sortOrder}
+                            onChange={setSortOrder}
+                            options={[
+                                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
+                                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
+                                { value: 'email_az', label: 'Email: A - Z' },
+                                { value: 'email_za', label: 'Email: Z - A' },
+                                { value: 'role_az', label: 'Role: A - Z' },
+                                { value: 'role_za', label: 'Role: Z - A' },
+                                { value: 'created_at_newest', label: 'Created At: Newest' },
+                                { value: 'created_at_oldest', label: 'Created At: Oldest' },
+                                { value: 'status_az', label: 'Status: A - Z' },
+                                { value: 'status_za', label: 'Status: Z - A' },
+                            ]}
+                        />
+
+                        <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
+                            <input
+                                type="search"
+                                name="search"
+                                placeholder="Search"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
+                            />
+                            <button
+                                type="submit"
+                                className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
+                            >
+                                <img
+                                src="/icons/red-search.png"
+                                className="lg:w-5 lg:h-5 w-4 h-4 items-center"
+                                alt="search"
+                                />
+                            </button>
+                        </div>
+                    </div> 
+                </div>
+
+                <hr className='text-[#990100] mt-6 '/>
+
+                <div className="mt-5 rounded-lg border border-gray-300 bg-white p-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-sm font-semibold text-[#483D3D]">Password Reset Requests</h2>
+                            <span className="inline-flex items-center rounded-full bg-[#990100]/15 px-3 py-1 text-xs font-semibold text-[#990100]">
+                                {newResetRequestsCount} New
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {newResetRequestsCount > 0 ? (
+                                <button
+                                    type="button"
+                                    className="text-xs font-semibold text-[#990100] hover:text-[#ad3332] underline"
+                                    onClick={markResetRequestsAsSeen}
+                                >
+                                    Mark as read
+                                </button>
+                            ) : null}
+                            <button
+                                type="button"
+                                className="text-xs font-semibold text-[#990100] hover:text-[#ad3332] underline"
+                                onClick={fetchResetRequests}
+                                disabled={resetRequestsLoading}
+                            >
+                                {resetRequestsLoading ? 'Refreshing…' : 'Refresh'}
+                            </button>
+                        </div>
+                    </div>
+
+                    {resetRequestsError ? (
+                        <p className="mt-2 text-xs text-gray-600">{resetRequestsError}</p>
+                    ) : resetRequestsLoading ? (
+                        <p className="mt-2 text-xs text-gray-600">Loading reset requests…</p>
+                    ) : visibleResetRequests.length === 0 ? (
+                        <p className="mt-2 text-xs text-gray-600">No new reset requests.</p>
+                    ) : (
+                        <div className="mt-3 grid gap-2">
+                            {visibleResetRequests.slice(0, 5).map((r) => (
+                                <div key={r.id} className="flex items-center justify-between rounded-md bg-[#EDEDED] px-3 py-2">
+                                    <div className="min-w-0">
+                                        <p className="text-xs font-semibold text-[#483D3D] truncate">{r.email || 'Unknown email'}</p>
+                                        <p className="text-[11px] text-gray-600">{r.timestamp || ''}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex justify-end mt-5">
+                    <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>
+                </div>
+
+                <ReportModal
+                    open={reportOpen}
+                    title="Generate Report - User Accounts"
+                    onClose={() => setReportOpen(false)}
+                    onGenerate={handleGenerateReport}
+                    enableDateRange={true}
+                />
+
+                <div className="div-table">
+                    <table className="table-style">
+                        <thead className="thead-style">
+                            <tr>
+                                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                                <th className="th-style">Email</th>
+                                <th className="th-style">Role</th>
+                                <th className="th-style">Created At</th>
+                                <th className="th-style">Status</th>
+                                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className='tbody-style'>
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        Loading...
+                                    </td>
+                                </tr>
+                            ) : error ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        <p className="mb-3">{error}</p>
+                                        <button
+                                            onClick={fetchUsers}
+                                            className="bg-[#990100] text-white px-4 py-2 rounded hover:bg-[#ad3332]"
+                                        >
+                                            Retry
+                                        </button>
+                                    </td>
+                                </tr>
+                            ) : filteredEmployeesAcc.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                        No employees found
+                                    </td>
+                                </tr>
+                            ) : (
+                               currentUserAcc.map((row) => (
+                                    <tr key={row.id} className="tr-style">
+                                        <td className="td-style-nobtn font-medium">
+                                            {row.id}
+                                        </td>
+                                        <td className="td-style">
+                                            {row.email}
+                                        </td>
+                                        <td className="td-style">
+                                            {row.role}
+                                        </td>
+                                        <td className="td-style">
+                                            {row.createdAt}
+                                        </td>
+                                        <td className="td-style">
+                                            {(() => {
+                                                const normalized = String(row.status || '').toUpperCase();
+                                                const label = normalized || '—';
+                                                const isActive = normalized === 'ACTIVE';
+                                                return (
+                                                    <span
+                                                        className={`inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                                                            isActive
+                                                                ? 'text-[#198C19] bg-[#198C19]/25'
+                                                                : 'text-[#C60000] bg-[#C60000]/25'
+                                                        }`}
+                                                    >
+                                                        <span className="truncate">{label}</span>
+                                                    </span>
+                                                );
+                                            })()}
+                                        </td>
+                                        <td className="td-style">
+                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
+                                                View Details
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                    {/* CONNECT WITH THE FUNCTION */}
+                    <ModalAccounts
+                        isOpen={isModalOpen}
+                        onClose={handleClose}
+                        employeeAcc = {viewEmployeeAcc}
+                        onSave={updateEmployeeAcc}
+                        onDelete={deleteEmployeeAcc}
+                    />
+                    <br />
+
+                    <div className="lg:flex items-center lg:justify-between">
+                        <p className="lg:text-md text-sm">
+                            Showing <b>{currentUserAcc.length}</b> of <b>{filteredEmployeesAcc.length}</b> employee{filteredEmployeesAcc.length !== 1 ? 's' : ''}
+                            {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
+                        </p>
+
+                        <div className=" ">
+                            {pageCount > 0 && (
+                                <ReactPaginate
+                                    breakLabel="..."
+                                    nextLabel=">"
+                                    onPageChange={handlePageClick}
+                                    pageRangeDisplayed={2}
+                                    pageCount={pageCount}
+                                    forcePage={Math.floor(itemOffset / itemsPerPage)}
+                                    previousLabel="<"
+                                    renderOnZeroPageCount={null}
+                                    marginPagesDisplayed={2}
+                                    pageClassName=""
+                                    pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                                    previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                                    previousLinkClassName="page-link"
+                                    nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                                    nextLinkClassName="page-link"
+                                    breakClassName="page-item"
+                                    breakLinkClassName="page-link"
+                                    containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                                    activeClassName="underline font-medium"
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+export default UserAccounts;

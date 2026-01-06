@@ -90,3 +90,19 @@ export const deleteProject = async (req, res, next) => {
     next(error);
   }
 };
+
+// get project members controller
+export const getProjectMembers = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const members = await projectService.getProjectMembers(id);
+    res.status(200).json({
+      success: true,
+      message: 'Project members retrieved successfully',
+      data: members
+    });
+  } catch (error) {
+    next(error);
+  }
+};

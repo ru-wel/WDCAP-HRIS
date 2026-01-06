@@ -1,4 +1,6 @@
 import * as onboardingService from '../services/onboarding.service.js';
+import { ensureDriveUserAccess, getOrCreateEmployeeFolder, isDriveEnabled } from '../services/googleDrive.service.js';
+import { supabase } from '../config/supabase.js';
 
 export const createEmployeeWithAccount = async (req, res, next) => {
   try {
@@ -16,10 +18,66 @@ export const createEmployeeWithAccount = async (req, res, next) => {
 export const getEmployeeChecklist = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
-    const checklist = await onboardingService.getEmployeeChecklist(employeeId);
+    let checklist = await onboardingService.getEmployeeChecklist(employeeId);
+
+    // If checklist was never created (e.g., older employees), create it on-demand.
+    if (!checklist || checklist.length === 0) {
+      await onboardingService.createChecklistForEmployee(employeeId, req.user.id);
+      checklist = await onboardingService.getEmployeeChecklist(employeeId);
+    }
     res.status(200).json({
       success: true,
       message: 'Employee checklist retrieved successfully',
+      data: checklist
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMyChecklist = async (req, res, next) => {
+  try {
+    const employeeDbId = req.user.employee_db_id;
+    if (!employeeDbId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No employee profile linked to this account',
+        data: []
+      });
+    }
+
+    // Best-effort: ensure the employee can see their Drive folder in Google Drive.
+    // This is especially important when a new employee login account is created after 201 files were uploaded.
+    try {
+      if (isDriveEnabled() && req.user?.email) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('employee_id, first_name, last_name')
+          .eq('id', employeeDbId)
+          .maybeSingle();
+
+        if (emp?.employee_id) {
+          const folder = await getOrCreateEmployeeFolder({
+            employeeCode: emp.employee_id,
+            firstName: emp.first_name,
+            lastName: emp.last_name
+          });
+          await ensureDriveUserAccess({ fileId: folder.folderId, email: req.user.email, role: 'reader' });
+        }
+      }
+    } catch {
+      // Do not block checklist load if Drive sharing fails.
+    }
+
+    let checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
+    if (!checklist || checklist.length === 0) {
+      await onboardingService.createChecklistForEmployee(employeeDbId, req.user.id);
+      checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'My checklist retrieved successfully',
       data: checklist
     });
   } catch (error) {

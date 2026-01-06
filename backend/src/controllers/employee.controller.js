@@ -20,7 +20,8 @@ export const createEmployee = async (req, res, next) => {
 // get all employees controller
 export const getAllEmployees = async (req, res, next) => {
   try {
-    const employees = await employeeService.getAllEmployees();
+    const includeInactive = String(req.query?.include_inactive || '').toLowerCase() === 'true';
+    const employees = await employeeService.getAllEmployeesWithOptions({ includeInactive });
     res.status(200).json({
       success: true,
       message: 'Employees retrieved successfully',
@@ -61,6 +62,25 @@ export const getEmployeeByUserId = async (req, res, next) => {
   }
 };
 
+// get my employee profile controller
+export const getMyEmployeeProfile = async (req, res, next) => {
+  try {
+    const employee = await employeeService.getMyEmployeeProfile({
+      employee_db_id: req.user?.employee_db_id,
+      employee_id: req.user?.employee_id,
+      user_id: req.user?.id
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'My employee profile retrieved successfully',
+      data: employee
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // update employee controller
 export const updateEmployee = async (req, res, next) => {
   try {
@@ -90,7 +110,7 @@ export const deleteEmployee = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'Employee deleted successfully',
+      message: 'Employee archived successfully',
       data: deletedEmployee
     });
   } catch (error) {

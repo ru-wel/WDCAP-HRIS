@@ -1,0 +1,320 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import DropDownFilter from "../../components/dropdownfilter";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import "./leave.css";
+import { get } from "../../services/api.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { ROLES } from "../../constants/config.js";
+
+function formatPrettyDate(iso) {
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function addDaysIso(iso, days) {
+  if (!iso) return "";
+  const parts = String(iso).split("-");
+  const year = Number(parts[0]);
+  const monthIndex = Number(parts[1]) - 1;
+  const day = Number(parts[2]);
+  const d = new Date(Date.UTC(year, monthIndex, day));
+  d.setUTCDate(d.getUTCDate() + Number(days || 0));
+  return d.toISOString().slice(0, 10);
+}
+
+function formatPrettyDateRange(startIso, endIso) {
+  if (!startIso) return "";
+  if (!endIso || endIso === startIso) return formatPrettyDate(startIso);
+  return `${formatPrettyDate(startIso)} to ${formatPrettyDate(endIso)}`;
+}
+
+function EventPopover({ open, anchor, data, onClose }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocMouseDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
+  if (!open || !data) return null;
+  const CARD_W = 430;
+  const CARD_H = 260;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const left = Math.max(16, Math.min(anchor.x - 60, vw - CARD_W - 16));
+  const top = Math.max(16, Math.min(anchor.y - 80, vh - CARD_H - 16));
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/10" />
+
+      <div ref={ref} className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style={{ width: CARD_W, height: CARD_H, left, top }}>
+          <div className="relative p-3 flex justify-end gap-2 border-b">
+            <button className="gc-icon-btn" title="Close" onClick={onClose}>✕</button>
+          </div>
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <span
+                className="gc-dot"
+                style={{ background: data.dotColor || "#F59E0B" }}
+              />
+              <div>
+                <h3 className="text-2xl font-medium text-gray-900 leading-tight">
+                  {data.title}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {data.dateLabel || formatPrettyDate(data.date)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 space-y-4 text-sm text-gray-800">
+              <div className="gc-row">
+                <span className="gc-row-icon">≡</span>
+                <span>{data.category || "Leave"}</span>
+              </div>
+              <div className="gc-row">
+              <span className="gc-row-icon">📅</span>
+              <span>{data.calendarName || "SIL"}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Leave() {
+  const { user } = useAuth();
+  const isEmployee = user?.role === ROLES.EMPLOYEE;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
+  const [_loading, setLoading] = useState(false);
+  const [rawEvents, setRawEvents] = useState([]);
+
+  const fetchCalendar = async () => {
+    try {
+      setLoading(true);
+      const endpoint = isEmployee ? "/leave/history/me" : "/leave/history";
+      const res = await get(endpoint);
+      const rows = Array.isArray(res?.data) ? res.data : [];
+
+      const approved = rows.filter(
+        (r) => String(r.status || "").toUpperCase() === "APPROVED"
+      );
+
+      const mapped = approved
+        .filter((r) => r.start_date)
+        .map((r) => {
+          const employeeName = r.employee_name || r.name || "";
+          const leaveType = r.leave_type_name || r.type || "Leave";
+          const title = `${employeeName} - ${leaveType}`.trim();
+
+          const start = r.start_date;
+          const endInclusive = r.end_date || r.start_date;
+
+          return {
+            id: String(r.leave_request_id || r.id || `${title}-${start}`),
+            title,
+            start,
+            end: endInclusive ? addDaysIso(endInclusive, 1) : undefined,
+            dotColor: "#F59E0B",
+            pillBg: "#FFE1A3",
+            pillText: "#FF8A00",
+            category: "Leave",
+            calendarName: leaveType,
+            start_date: start,
+            end_date: endInclusive,
+          };
+        });
+
+      setRawEvents(mapped);
+    } catch (e) {
+      console.error("Failed to load leave calendar:", e);
+      setRawEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCalendar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEmployee]);
+
+  const leaveTypeOptions = useMemo(() => {
+    const types = Array.from(
+      new Set(
+        rawEvents
+          .map((e) => e.calendarName)
+          .filter((v) => typeof v === 'string' && v.trim().length)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return [
+      { value: 'all', label: 'All' },
+      ...types.map((t) => ({ value: t, label: t })),
+    ];
+  }, [rawEvents]);
+
+  const filteredEvents = useMemo(() => {
+    let list = rawEvents;
+
+    if (leaveTypeFilter !== 'all') {
+      list = list.filter((e) => String(e.calendarName || '') === leaveTypeFilter);
+    }
+
+    if (!searchTerm) return list;
+    const q = searchTerm.toLowerCase();
+    return list.filter((e) => String(e.title || "").toLowerCase().includes(q));
+  }, [rawEvents, searchTerm, leaveTypeFilter]);
+
+  const calendarEvents = useMemo(
+    () =>
+      [...filteredEvents]
+        .sort((a, b) => {
+          const aTime = a?.start ? new Date(String(a.start) + 'T00:00:00').getTime() : 0;
+          const bTime = b?.start ? new Date(String(b.start) + 'T00:00:00').getTime() : 0;
+          if (aTime !== bTime) return aTime - bTime;
+          return String(a?.title || '').localeCompare(String(b?.title || ''), undefined, {
+            numeric: true,
+            sensitivity: 'base',
+          });
+        })
+        .map((e) => ({
+          id: e.id,
+          title: e.title,
+          start: e.start,
+          end: e.end,
+          backgroundColor: "transparent",
+          borderColor: "transparent",
+          textColor: "inherit",
+          extendedProps: {
+            title: e.title,
+            date: e.start,
+            dateLabel: formatPrettyDateRange(e.start_date || e.start, e.end_date || e.start),
+            dotColor: e.dotColor,
+            category: e.category,
+            calendarName: e.calendarName,
+            visibility: e.visibility,
+            pillBg: e.pillBg,
+            pillText: e.pillText,
+          },
+        })),
+    [filteredEvents]
+  );
+
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [anchor, setAnchor] = useState({ x: 200, y: 200 });
+
+  return (
+    <div>
+      <div className="p-7 lg:mx-18 md:mx-10">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold text-[#990100]">Leave</h1>
+          <div className="flex gap-3">
+            <DropDownFilter
+              label="Leave Type"
+              value={leaveTypeFilter}
+              onChange={setLeaveTypeFilter}
+              options={leaveTypeOptions}
+            />
+            <input
+              type="search"
+              placeholder="Search"
+              className="border border-[#990100] rounded-lg px-3 h-9 text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <hr className="border-[#990100] mb-6" />
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-3 bg-white rounded-xl border border-gray-300 shadow-sm px-6 py-5">
+            <FullCalendar
+              plugins={[dayGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              height="auto"
+              fixedWeekCount={false}
+              expandRows={true}
+              showNonCurrentDates={true}
+              dayMaxEvents={true}
+              eventOrder="title"
+              eventOrderStrict={true}
+              eventDisplay="block"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "",
+              }}
+
+              events={calendarEvents}
+              eventContent={(arg) => {
+                const bg = arg.event.extendedProps?.pillBg || "#FFE1A3";
+                const color = arg.event.extendedProps?.pillText || "#FF8A00";
+
+                return (
+                  <div
+                    className="gc-event-pill"
+                    style={{ background: bg, color }}
+                    title={arg.event.title}
+                  >
+                    {arg.event.title}
+                  </div>
+                );
+              }}
+
+              eventClick={(info) => {
+                const x = info.jsEvent?.clientX ?? 200;
+                const y = info.jsEvent?.clientY ?? 200;
+                setAnchor({ x, y });
+                setSelected(info.event.extendedProps);
+                setPopoverOpen(true);
+              }}
+            />
+          </div>
+
+          <div className="gc-legend">
+            <div className="gc-legend-title">Calendars</div>
+            <div className="gc-legend-line" />
+            <div className="gc-legend-item">
+              <span
+                className="gc-legend-color"
+                style={{ background: "#F59E0B" }}
+              />
+              <span>SIL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <EventPopover
+        open={popoverOpen}
+        anchor={anchor}
+        data={selected}
+        onClose={() => setPopoverOpen(false)}
+      />
+    </div>
+  );
+}

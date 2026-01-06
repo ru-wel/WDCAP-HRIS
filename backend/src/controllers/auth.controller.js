@@ -64,15 +64,39 @@ export const logout = async (req, res, next) => {
 // get current user controller
 export const getCurrentUser = async (req, res, next) => {
   try {
+    const user = await authService.getCurrentUser({
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role,
+      employee_id: req.user.employee_id,
+      employee_db_id: req.user.employee_db_id
+    });
+
     res.status(200).json({
       success: true,
       message: 'User retrieved successfully',
-      data: {
-        id: req.user.id,
-        email: req.user.email,
-        role: req.user.role,
-        employee_id: req.user.employee_id
-      }
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { current_password, new_password } = req.body;
+
+    const result = await authService.changePassword({
+      userId: req.user.id,
+      email: req.user.email,
+      current_password,
+      new_password
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password updated successfully',
+      data: result
     });
   } catch (error) {
     next(error);
@@ -92,4 +116,41 @@ export const refreshToken = async (req, res, next) => {
     next(error);
   }
 }
+
+export const adminResetPassword = async (req, res, next) => {
+  try {
+    const actorId = req.user?.id;
+    const { employeeId, new_password } = req.body;
+
+    const result = await authService.adminResetPassword({ employeeId, new_password, actorId });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const requestPasswordReset = async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+
+    await authService.requestPasswordReset({
+      email,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    // Always return a generic success response.
+    res.status(200).json({
+      success: true,
+      message: 'If the account exists, your request has been sent to Admin/HR.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 

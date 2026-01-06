@@ -9,11 +9,11 @@ export const uploadDocument = async (req, res, next) => {
     const file = req.file;
     const userId = req.user.id;
     const userRole = req.user.role;
-    const userEmployeeId = req.user.employee_id;
+    const userEmployeeDbId = req.user.employee_db_id;
     const checklistItemId = req.body.checklist_item_id;
 
     // employee can only upload their own documents
-    if (userRole == ROLES.EMPLOYEE && userEmployeeId !== employee_id) {
+    if (userRole == ROLES.EMPLOYEE && String(userEmployeeDbId ?? '') !== String(employee_id ?? '')) {
       throw new ForbiddenError('You can only upload documents for yourself');
     }
 
@@ -46,10 +46,10 @@ export const getDocumentsByEmployee = async (req, res, next) => {
   try {
     const { employee_id } = req.params;
     const userRole = req.user.role;
-    const userEmployeeId = req.user.employee_id;
+    const userEmployeeDbId = req.user.employee_db_id;
 
     // employee can only view their own documents
-    if (userRole === ROLES.EMPLOYEE && userEmployeeId !== employee_id) {
+    if (userRole === ROLES.EMPLOYEE && String(userEmployeeDbId ?? '') !== String(employee_id ?? '')) {
       throw new ForbiddenError('You can only view your own documents');
     }
 
@@ -69,14 +69,28 @@ export const getDocumentsByEmployee = async (req, res, next) => {
 export const downloadDocument = async (req, res, next) => {
   try {
     const { document_id } = req.params;
+    const dispositionRaw = String(req.query?.disposition || '').trim().toLowerCase();
+    const disposition = dispositionRaw === 'inline' ? 'inline' : 'attachment';
     const userRole = req.user.role;
+    const userEmployeeDbId = req.user.employee_db_id;
 
-    // only HR/Admin can download documents
+    // employees can only download their own documents
     if (userRole === ROLES.EMPLOYEE) {
-      throw new ForbiddenError('You do not have permission to download downloads');
+      const meta = await documentsService.getDocumentById(document_id);
+      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
+        throw new ForbiddenError('You can only download your own documents');
+      }
     }
 
     const result = await documentsService.downloadDocument(document_id);
+
+    if (result?.provider === 'google_drive') {
+      const streamed = await documentsService.streamDriveDocument(document_id);
+
+      res.setHeader('Content-Type', streamed.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `${disposition}; filename="${streamed.fileName || 'document'}"`);
+      return streamed.stream.pipe(res);
+    }
 
     res.status(200).json({
       success: true,
@@ -88,16 +102,54 @@ export const downloadDocument = async (req, res, next) => {
   }
 };
 
+// preview document controller (returns a preview URL)
+export const previewDocument = async (req, res, next) => {
+  try {
+    const { document_id } = req.params;
+    const userRole = req.user.role;
+    const userEmployeeDbId = req.user.employee_db_id;
+
+    // employees can only preview their own documents
+    if (userRole === ROLES.EMPLOYEE) {
+      const meta = await documentsService.getDocumentById(document_id);
+      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
+        throw new ForbiddenError('You can only preview your own documents');
+      }
+    }
+
+    const result = await documentsService.previewDocument(document_id);
+
+    // For Drive-backed docs, Drive webViewLink requires the viewer to have Drive permissions.
+    // Instead, point the UI to our authenticated inline stream endpoint.
+    if (result?.provider === 'google_drive') {
+      const origin = `${req.protocol}://${req.get('host')}`;
+      result.url = `${origin}${req.baseUrl}/${document_id}/download?disposition=inline`;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Preview URL generated successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // delete document
 export const deleteDocument = async (req, res, next) => {
   try {
     const { document_id } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
+    const userEmployeeDbId = req.user.employee_db_id;
 
-    // only HR/Admin can delete documents
+    // employees can only delete their own documents
     if (userRole === ROLES.EMPLOYEE) {
-      throw new ForbiddenError('You do not have permission to delete downloads');
+      const meta = await documentsService.getDocumentById(document_id);
+      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
+        throw new ForbiddenError('You can only delete your own documents');
+      }
     }
 
     const deletedDocument = await documentsService.deleteDocument(document_id, userId);

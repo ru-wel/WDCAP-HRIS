@@ -3,16 +3,29 @@ import { DOCUMENT_TYPES } from '../config/constants.js';
 
 const validDocumentTypes = Object.values(DOCUMENT_TYPES);
 
+// Allow evaluation uploads to use a descriptive name while keeping onboarding types strict.
+// Examples used by the frontend:
+// - "Evaluation Breakdown - ANNUAL (2026)"
+// - "Evaluation Final - Probationary"
+const evaluationDocumentNamePattern = /^Evaluation\s+(Breakdown|Final)\s+-\s+.+$/i;
+
 // UPLOAD DOCUMENT VALIDATION
 export const uploadDocumentSchema = Joi.object({
   employee_id: Joi.string().uuid().required().messages({
     'string.guid': 'Employee ID must be a valid UUID',
     'any.required': 'Employee ID is required'
   }),
-  document_name: Joi.string().valid(...validDocumentTypes).required().messages({
-    'any.only': `Document name must be one of: ${validDocumentTypes.join(', ')}`,
-    'any.required': 'Document name is required'
-  }),
+  document_name: Joi.alternatives()
+    .try(
+      Joi.string().valid(...validDocumentTypes),
+      Joi.string().pattern(evaluationDocumentNamePattern).max(150)
+    )
+    .required()
+    .messages({
+      'any.only': `Document name must be one of: ${validDocumentTypes.join(', ')}`,
+      'string.pattern.base': 'Document name must be a valid evaluation document name',
+      'any.required': 'Document name is required'
+    }),
   checklist_item_id: Joi.string().uuid().optional().messages({
     'string.guid': 'Checklist item ID must be a valid UUID'
   })

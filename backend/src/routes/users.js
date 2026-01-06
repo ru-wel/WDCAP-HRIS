@@ -9,10 +9,10 @@ const router = express.Router();
 router.use(authenticate);
 
 // list users
-router.get("/", authorizeRoles(ROLES.ADMIN, ROLES.HR), usersController.getAllUsers);
+router.get("/", authorizeRoles(ROLES.ADMIN), usersController.getAllUsers);
 
 // update role and/or status (status maps to employees.employment_status)
-router.put("/:employeeId", authorizeRoles(ROLES.ADMIN, ROLES.HR), usersController.updateUser);
+router.put("/:employeeId", authorizeRoles(ROLES.ADMIN), usersController.updateUser);
 
 // delete user (Admin only)
 router.delete("/:employeeId", authorizeRoles(ROLES.ADMIN), usersController.deleteUser);

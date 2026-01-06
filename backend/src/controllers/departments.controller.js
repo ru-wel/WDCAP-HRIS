@@ -83,3 +83,19 @@ export const deleteDepartment = async (req, res, next) => {
     next(error);
   }
 }
+
+// get department members controller
+export const getDepartmentMembers = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const members = await departmentService.getDepartmentMembers(id);
+    res.status(200).json({
+      success: true,
+      message: 'Department members retrieved successfully',
+      data: members
+    });
+  } catch (error) {
+    next(error);
+  }
+};

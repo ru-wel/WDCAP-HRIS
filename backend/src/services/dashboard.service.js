@@ -1,0 +1,179 @@
+import { supabase } from '../config/supabase.js';
+import { InternalServerError } from '../utils/errors.js';
+import { ROLES, PROJECT_STATUSES, EMPLOYMENT_STATUSES } from '../config/constants.js';
+import logger from '../utils/logger.js';
+
+const toCount = (count) => (Number.isFinite(Number(count)) ? Number(count) : 0);
+
+const countRows = async (tableName, { column = '*', filters = [] } = {}) => {
+  let query = supabase.from(tableName).select(column, { count: 'exact', head: true });
+  for (const f of filters) {
+    if (!f) continue;
+    if (f.op === 'eq') query = query.eq(f.col, f.val);
+    if (f.op === 'in') query = query.in(f.col, f.val);
+  }
+
+  const { count, error } = await query;
+  if (error) throw new InternalServerError(error.message);
+  return toCount(count);
+};
+
+const getRecentAuditLogs = async (limit = 5) => {
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select(
+      `
+        id,
+        action_type,
+        table_name,
+        record_id,
+        new_values,
+        timestamp,
+        users ( email, role )
+      `
+    )
+    .order('timestamp', { ascending: false })
+    .limit(limit);
+
+  if (error) throw new InternalServerError(error.message);
+
+  return (data || []).map((r) => ({
+    id: r.id,
+    action_type: r.action_type,
+    table_name: r.table_name,
+    record_id: r.record_id,
+    new_values: r.new_values,
+    timestamp: r.timestamp,
+    user: {
+      email: r.users?.email || '',
+      role: r.users?.role || ''
+    }
+  }));
+};
+
+const getPendingEvaluations = async ({ limit = 5 } = {}) => {
+  // "Pending" = scheduled evaluation with no submitted result yet.
+  // A result can be either uploaded docs OR score/remarks saved into notes.
+
+  const { data, error } = await supabase
+    .from('performance_evaluations')
+    .select(
+      `
+        evaluation_id,
+        employee_id,
+        evaluation_date,
+        evaluation_type,
+        evaluation_notes,
+        evaluation_document_path,
+        employees (
+          id,
+          employee_id,
+          first_name,
+          last_name,
+          positions ( position_title )
+        )
+      `
+    )
+    .order('evaluation_date', { ascending: true })
+    .limit(200);
+
+  if (error) throw new InternalServerError(error.message);
+
+  const rows = Array.isArray(data) ? data : [];
+
+  const hasScoreOrRemarks = (notes) => {
+    const s = String(notes || '').trim();
+    if (!s) return false;
+    // submitEvaluation writes "Score:" / "Remarks:" lines
+    return /^\s*(score|remarks)\s*:/im.test(s);
+  };
+
+  const isEmptyDoc = (docPath) => {
+    if (docPath === null || typeof docPath === 'undefined') return true;
+    if (typeof docPath === 'object') return Object.keys(docPath || {}).length === 0;
+    return String(docPath).trim().length === 0;
+  };
+
+  const pending = rows.filter((r) => {
+    const docEmpty = isEmptyDoc(r?.evaluation_document_path);
+    const textHasResult = hasScoreOrRemarks(r?.evaluation_notes);
+    // pending only when no docs AND no score/remarks
+    return docEmpty && !textHasResult;
+  });
+
+  // Deduplicate by employee to match "employees who are due" language.
+  const seen = new Set();
+  const unique = [];
+  for (const r of pending) {
+    const key = String(r?.employee_id || '');
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(r);
+    if (unique.length >= limit) break;
+  }
+
+  return {
+    count: seen.size,
+    items: unique.map((r) => {
+      const emp = r.employees || {};
+      const name = `${emp.first_name || ''} ${emp.last_name || ''}`.trim();
+      return {
+        evaluation_id: r.evaluation_id,
+        employee_id: r.employee_id,
+        employee_code: emp.employee_id || '',
+        employee_name: name,
+        position_title: emp.positions?.position_title || '',
+        evaluation_date: r.evaluation_date,
+        evaluation_type: r.evaluation_type || ''
+      };
+    })
+  };
+};
+
+export const getDashboardSummary = async (user) => {
+  try {
+    const role = user?.role || '';
+    const employeeId = user?.employee_id || null;
+
+    const pendingLeaveRequestsCount = await countRows('leave_requests', {
+      column: 'leave_request_id',
+      filters: [
+        { op: 'eq', col: 'status', val: 'PENDING' },
+        ...(role === ROLES.EMPLOYEE && employeeId ? [{ op: 'eq', col: 'employee_id', val: employeeId }] : [])
+      ]
+    });
+
+    const summary = {
+      role,
+      pendingLeaveRequestsCount
+    };
+
+    // Admin/HR-only dashboard blocks.
+    if (role === ROLES.ADMIN || role === ROLES.HR) {
+      const [employeesCount, departmentsCount, activeProjectsCount, recentAuditLogs, pendingEvaluations] = await Promise.all([
+        countRows('employees', { column: 'id', filters: [{ op: 'eq', col: 'employment_status', val: EMPLOYMENT_STATUSES.ACTIVE }] }),
+        countRows('departments', { column: 'id' }),
+        countRows('projects', {
+          column: 'id',
+          filters: [{ op: 'eq', col: 'status', val: PROJECT_STATUSES.ACTIVE }]
+        }),
+        getRecentAuditLogs(5),
+        getPendingEvaluations({ limit: 5 })
+      ]);
+
+      Object.assign(summary, {
+        employeesCount,
+        departmentsCount,
+        activeProjectsCount,
+        recentAuditLogs,
+        pendingEvaluationsCount: pendingEvaluations?.count ?? 0,
+        pendingEvaluations: pendingEvaluations?.items ?? []
+      });
+    }
+
+    return summary;
+  } catch (error) {
+    logger.error('Error building dashboard summary:', error);
+    throw error;
+  }
+};

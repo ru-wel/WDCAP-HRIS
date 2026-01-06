@@ -13,14 +13,17 @@ router.use(authenticate);
 // create employee
 router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.createEmployeeSchema), employeeController.createEmployee);
 
-// get all employees
-router.get('/', employeeController.getAllEmployees);
+// get my employee profile (self)
+router.get('/me', employeeController.getMyEmployeeProfile);
 
-// get employee by id
-router.get('/:id', validate(employeeValidation.employeeIdSchema), employeeController.getEmployeeById);
+// get all employees
+router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), employeeController.getAllEmployees);
 
 // get employee by user_id
-router.get('/user/:userId', employeeController.getEmployeeByUserId);
+router.get('/user/:userId', authorizeRoles(ROLES.ADMIN, ROLES.HR), employeeController.getEmployeeByUserId);
+
+// get employee by id
+router.get('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.employeeIdSchema), employeeController.getEmployeeById);
 
 // update employee
 router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.updateEmployeeSchema), employeeController.updateEmployee);

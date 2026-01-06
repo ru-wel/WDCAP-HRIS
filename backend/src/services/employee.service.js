@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { NotFoundError, InternalServerError, ConflictError } from "../utils/errors.js";
-import { AUDIT_ACTIONS } from "../config/constants.js";
+import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 import { createChecklistForEmployee } from "./onboarding.service.js";
 
@@ -148,18 +148,23 @@ export const createNewEmployee = async (employeeData, userId) => {
 
 // get all employees with department and position info
 export const getAllEmployees = async () => {
+  return getAllEmployeesWithOptions({ includeInactive: false });
+};
+
+export const getAllEmployeesWithOptions = async ({ includeInactive = false } = {}) => {
   try {
-    const { data: employees, error } = await supabase
+    let query = supabase
       .from('employees')
       .select(employeeFields)
       .order('employee_id', { ascending: true });
 
-      if (error) {
-        throw new InternalServerError(error.message);
-      }
+    if (!includeInactive) {
+      query = query.eq('employment_status', EMPLOYMENT_STATUSES.ACTIVE);
+    }
 
-      return employees || [];
-
+    const { data: employees, error } = await query;
+    if (error) throw new InternalServerError(error.message);
+    return employees || [];
   } catch (error) {
     logger.error('Error fetching employees:', error);
     throw error;
@@ -205,6 +210,34 @@ export const getEmployeeByUserId = async (userId) => {
   } catch (error) {
     logger.error(`Error fetching employee details for user ${userId}`, error);
     throw error; 
+  }
+};
+
+// get employee profile for the currently-authenticated user (self)
+export const getMyEmployeeProfile = async ({ employee_db_id, employee_id, user_id }) => {
+  try {
+    let query = supabase.from('employees').select(employeeFields);
+
+    if (employee_db_id) {
+      query = query.eq('id', employee_db_id);
+    } else if (user_id) {
+      query = query.eq('user_id', user_id);
+    } else if (employee_id) {
+      query = query.eq('employee_id', employee_id);
+    } else {
+      throw new NotFoundError('Employee profile not found');
+    }
+
+    const { data: employee, error } = await query.maybeSingle();
+
+    if (error || !employee) {
+      throw new NotFoundError('Employee profile not found');
+    }
+
+    return employee;
+  } catch (error) {
+    logger.error('Error fetching my employee profile:', error);
+    throw error;
   }
 };
 
@@ -298,33 +331,40 @@ export const deleteEmployee = async (employeeId, userId) => {
       throw new NotFoundError('Employee not found');
     }
 
-    // IN THE FUTURE: check for related records that might prevent deletion (e.g. project assignments etc.)
+    // Best-practice: archive (soft-delete) instead of hard delete to preserve
+    // employee-linked records like documents and onboarding checklists.
+    if (existingEmployee.employment_status === EMPLOYMENT_STATUSES.INACTIVE) {
+      throw new ConflictError('Employee is already inactive');
+    }
 
-    // delete employee
-    const { data: deletedEmployee, error: deleteError } = await supabase
+    const { data: archivedEmployee, error: archiveError } = await supabase
       .from('employees')
-      .delete()
+      .update({
+        employment_status: EMPLOYMENT_STATUSES.INACTIVE,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', employeeId)
-      .select()
+      .select(employeeFields)
       .single();
 
-    if (deleteError) {
-      throw new InternalServerError(deleteError.message);
+    if (archiveError) {
+      throw new InternalServerError(archiveError.message);
     }
 
     // log to audit
     await supabase.from('audit_logs').insert({
       user_id: userId,
-      action_type: AUDIT_ACTIONS.DELETE,
+      action_type: AUDIT_ACTIONS.UPDATE,
       table_name: 'employees',
-      record_id: deletedEmployee.id,
+      record_id: archivedEmployee.id,
       old_values: existingEmployee,
+      new_values: archivedEmployee,
       timestamp: new Date().toISOString()
     });
 
-    logger.info(`Employee deleted: ${deletedEmployee.employee_id} - ${deletedEmployee.first_name} ${deletedEmployee.last_name}`);
+    logger.info(`Employee archived (set inactive): ${archivedEmployee.employee_id} - ${archivedEmployee.first_name} ${archivedEmployee.last_name}`);
 
-    return deletedEmployee;
+    return archivedEmployee;
   } catch (error) {
     logger.error(`Error deleting employee ${employeeId}:`, error);
     throw error;

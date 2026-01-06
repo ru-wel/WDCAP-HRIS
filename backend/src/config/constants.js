@@ -8,8 +8,10 @@ export const AUDIT_ACTIONS = {
   CREATE: 'CREATE',
   UPDATE: 'UPDATE',
   DELETE: 'DELETE',
+  GENERATE_REPORT: 'GENERATE_REPORT',
   LOGIN: 'LOGIN',
-  LOGOUT: 'LOGOUT'
+  LOGOUT: 'LOGOUT',
+  PASSWORD_RESET_REQUEST: 'PASSWORD_RESET_REQUEST'
 };
 
 export const EMPLOYMENT_STATUSES = {
@@ -55,13 +57,13 @@ export const DOCUMENT_TYPES = {
 
 export const ALLOWED_FILE_TYPES = {
   'application/pdf': '.pdf',
-  'application/vnd.openxmlformats-officedocument.wordpressingml.document': '.docx',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
   'image/jpeg': '.jpg',
   'image/png': '.png'
 };
 
 export const FILE_VALIDATION = {
-  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10 MB
+  MAX_FILE_SIZE: 5 * 1024 * 1024, // 5 MB
   ALLOWED_MIME_TYPES: Object.keys(ALLOWED_FILE_TYPES),
   ALLOWED_EXTENSIONS: Object.values(ALLOWED_FILE_TYPES)
 };

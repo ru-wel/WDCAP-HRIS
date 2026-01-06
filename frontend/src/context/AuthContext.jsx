@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { STORAGE_KEYS } from "../constants/config.js";
 import { post } from "../services/api.js";
@@ -102,11 +103,7 @@ export const AuthProvider = ({ children }) => {
   const value = { user, login, logout, isAuthenticated, hasRole, loading };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">Loading...</div>
-      </div>
-    );
+    return null;
   }
 
   return (

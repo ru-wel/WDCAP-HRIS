@@ -36,11 +36,53 @@ export const authenticate = async (req, res, next) => {
       throw new UnauthorizedError('User not found');
     }
 
+    // users.employee_id is treated as the employee code (e.g., AC-00001)
+    // Some tables (documents/onboarding_checklists) use employees.id (DB PK). We resolve that as employee_db_id.
+    let employeeCode = userData.employee_id;
+    let employeeDbId = null;
+
+    // Best-effort: if employee code is missing, try to resolve it from employees.user_id
+    if (!employeeCode) {
+      try {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('id, employee_id')
+          .eq('user_id', userData.id)
+          .maybeSingle();
+
+        if (emp?.employee_id) {
+          employeeCode = emp.employee_id;
+          employeeDbId = emp.id ?? null;
+          await supabase
+            .from('users')
+            .update({ employee_id: employeeCode, updated_at: new Date().toISOString() })
+            .eq('id', userData.id);
+        }
+      } catch {
+        // ignore; user may not have employee profile
+      }
+    }
+
+    // Best-effort: resolve employees.id from employee code
+    if (!employeeDbId && employeeCode) {
+      try {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('employee_id', employeeCode)
+          .maybeSingle();
+        employeeDbId = emp?.id ?? null;
+      } catch {
+        // ignore
+      }
+    }
+
     req.user = {
       id: userData.id,
       email: userData.email,
       role: userData.role,
-      employee_id: userData.employee_id
+      employee_id: employeeCode,
+      employee_db_id: employeeDbId
     };
 
     next();

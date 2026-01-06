@@ -1,0 +1,12 @@
+{
+  "name": "wdcap-hris",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix frontend run dev -- --port 5173",
+    "build": "npm --prefix frontend run build",
+    "frontend:dev": "npm --prefix frontend run dev -- --port 5173",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:start": "npm --prefix backend run start"
+  }
+}

@@ -2,7 +2,7 @@ import * as usersService from "../services/users.service.js";
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await usersService.getAllUsers();
+    const users = await usersService.getAllUsers(req.user);
     res.status(200).json({
       success: true,
       message: "Users retrieved successfully",

@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
-import { InternalServerError, NotFoundError } from "../utils/errors.js";
-import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES } from "../config/constants.js";
+import { InternalServerError, NotFoundError, ConflictError } from "../utils/errors.js";
+import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES, ROLES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
 const userFields = "id, employee_id, email, role, created_at";
@@ -28,12 +28,23 @@ const toEmploymentStatus = (uiStatus) => {
     : EMPLOYMENT_STATUSES.ACTIVE;
 };
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (requester) => {
   try {
-    const { data: users, error } = await supabase
-      .from("users")
-      .select(userFields)
-      .order("employee_id", { ascending: true });
+    const requesterRole = requester?.role;
+    const requesterId = requester?.id;
+
+    let query = supabase.from("users").select(userFields);
+
+    if (requesterRole === ROLES.ADMIN) {
+      // no additional filtering
+    } else if (requesterRole === ROLES.HR) {
+      query = query.in("role", [ROLES.HR, ROLES.EMPLOYEE]);
+    } else {
+      // Employee (or any unexpected role): self-only
+      query = query.eq("id", requesterId || "__no_user__");
+    }
+
+    const { data: users, error } = await query.order("employee_id", { ascending: true });
 
     if (error) throw new InternalServerError(error.message);
 
@@ -125,8 +136,14 @@ export const updateUserByEmployeeId = async (employeeId, { role, status }, actor
           action_type: AUDIT_ACTIONS.UPDATE,
           table_name: "employees",
           record_id: employee.id,
-          old_values: { employment_status: employee.employment_status },
-          new_values: { employment_status: nextEmploymentStatus },
+          old_values: {
+            employee_id: employee.employee_id,
+            employment_status: employee.employment_status,
+          },
+          new_values: {
+            employee_id: employee.employee_id,
+            employment_status: nextEmploymentStatus,
+          },
           timestamp: new Date().toISOString(),
         });
       }
@@ -152,6 +169,30 @@ export const updateUserByEmployeeId = async (employeeId, { role, status }, actor
 export const deleteUserByEmployeeId = async (employeeId, actorId) => {
   try {
     const { key, value } = resolveUserLookup(employeeId);
+
+    // Safety: never delete a user that still has an employee profile.
+    // Deleting users can cascade into employees (and any employee-linked history) depending on DB FK rules.
+    const { data: existingUser, error: fetchUserError } = await supabase
+      .from('users')
+      .select(userFields)
+      .eq(key, value)
+      .maybeSingle();
+
+    if (fetchUserError || !existingUser) throw new NotFoundError('User not found');
+
+    const { data: linkedEmployee, error: employeeLookupError } = await supabase
+      .from('employees')
+      .select('id, employee_id, employment_status')
+      .eq('user_id', existingUser.id)
+      .maybeSingle();
+
+    if (employeeLookupError) throw new InternalServerError(employeeLookupError.message);
+
+    if (linkedEmployee) {
+      throw new ConflictError(
+        'Cannot delete a user account that is linked to an employee profile. Archive the employee instead to preserve records and 201 files.'
+      );
+    }
 
     const { data: deleted, error } = await supabase
       .from("users")

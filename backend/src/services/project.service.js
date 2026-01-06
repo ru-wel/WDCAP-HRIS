@@ -3,6 +3,33 @@ import { NotFoundError, InternalServerError, ConflictError } from "../utils/erro
 import { AUDIT_ACTIONS } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
+const formatProjectCode = (n) => {
+  const num = Number(n);
+  const safe = Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
+  return `PRJ-${String(safe).padStart(5, '0')}`;
+};
+
+const attachProjectCodes = (projects) => {
+  const list = Array.isArray(projects) ? projects : [];
+  const byCreated = [...list]
+    .filter((p) => p && p.id)
+    .sort((a, b) => {
+      const da = new Date(a.created_at || 0);
+      const db = new Date(b.created_at || 0);
+      return da.getTime() - db.getTime();
+    });
+
+  const idToCode = new Map();
+  byCreated.forEach((p, idx) => {
+    idToCode.set(p.id, formatProjectCode(idx + 1));
+  });
+
+  return list.map((p) => ({
+    ...p,
+    project_code: idToCode.get(p?.id) || null,
+  }));
+};
+
 // create a new project
 export const createNewProject = async (projectName, siteLocation, startDate, endDate, status, userId) => {
   try {
@@ -50,7 +77,17 @@ export const createNewProject = async (projectName, siteLocation, startDate, end
 
     logger.info(`New project created: ${newProject.project_name}`);
 
-    return newProject;
+    // Add a stable display code based on created_at ordering (oldest = PRJ-00001).
+    // We keep the UUID id as the primary key for relations/routes.
+    const { data: allProjectsForCode } = await supabase
+      .from('projects')
+      .select('id, created_at')
+      .order('created_at', { ascending: true });
+
+    const withCodes = attachProjectCodes(allProjectsForCode || []);
+    const code = withCodes.find((p) => String(p.id) === String(newProject.id))?.project_code || null;
+
+    return { ...newProject, project_code: code };
   } catch (error) {
     logger.error('Error creating project', error);
     throw error;
@@ -68,7 +105,7 @@ export const getAllProjects = async () => {
       throw new InternalServerError(error.message);
     }
 
-    return projects || [];
+    return attachProjectCodes(projects || []);
   } catch (error) {
     logger.error('Error fetching projects:', error);
     throw error;
@@ -87,9 +124,42 @@ export const getProjectById = async (projectId) => {
       throw new NotFoundError('Project not found');
     }
 
-    return project;
+    // Compute project_code based on created_at ordering.
+    const { data: allProjectsForCode } = await supabase
+      .from('projects')
+      .select('id, created_at')
+      .order('created_at', { ascending: true });
+
+    const withCodes = attachProjectCodes(allProjectsForCode || []);
+    const code = withCodes.find((p) => String(p.id) === String(project.id))?.project_code || null;
+
+    return { ...project, project_code: code };
   } catch (error) {
     logger.error(`Error fetching project ${projectId}:`, error);
+    throw error;
+  }
+};
+
+export const getProjectMembers = async (projectId) => {
+  try {
+    // ensure project exists
+    await getProjectById(projectId);
+
+    const { data: assignments, error } = await supabase
+      .from('project_assignments')
+      .select(
+        'id, assignment_date, end_date, status, employees (employee_id, first_name, last_name, positions (position_title))'
+      )
+      .eq('project_id', projectId)
+      .order('assignment_date', { ascending: true });
+
+    if (error) {
+      throw new InternalServerError(error.message);
+    }
+
+    return assignments || [];
+  } catch (error) {
+    logger.error(`Error fetching project members ${projectId}:`, error);
     throw error;
   }
 };
@@ -163,6 +233,23 @@ export const deleteProject = async (projectId, userId) => {
 
     if (fetchError || !existingProject) {
       throw new NotFoundError('Project not found');
+    }
+
+    // Safety: prevent deleting projects that still have assignments.
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('project_assignments')
+      .select('id')
+      .eq('project_id', projectId)
+      .limit(1);
+
+    if (assignmentsError) {
+      throw new InternalServerError('Failed to check project assignments');
+    }
+
+    if (assignments && assignments.length > 0) {
+      throw new ConflictError(
+        'Cannot delete a project with existing assignments. Remove project assignments first or set the project status to Completed/Cancelled.'
+      );
     }
 
     const { data: deletedProject, error: deleteError } = await supabase

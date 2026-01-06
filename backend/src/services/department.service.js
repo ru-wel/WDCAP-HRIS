@@ -62,7 +62,34 @@ export const getAllDepartments = async () => {
       throw new InternalServerError(error.message);
     }
 
-    return departments || [];
+    const rows = departments || [];
+
+    // best-effort: attach employees_count for each department
+    if (rows.length) {
+      try {
+        const { data: employees, error: empErr } = await supabase
+          .from('employees')
+          .select('department_id');
+
+        if (!empErr && Array.isArray(employees)) {
+          const counts = new Map();
+          for (const e of employees) {
+            const deptId = e?.department_id;
+            if (!deptId) continue;
+            counts.set(deptId, (counts.get(deptId) || 0) + 1);
+          }
+
+          return rows.map((d) => ({
+            ...d,
+            employees_count: counts.get(d.id) || 0
+          }));
+        }
+      } catch (e) {
+        logger.warn('Departments employees_count compute failed (continuing):', e);
+      }
+    }
+
+    return rows;
 
   } catch (error) {
     logger.error('Error fetching departments:', error);
@@ -86,6 +113,28 @@ export const getDepartmentById = async (departmentId) => {
 
   } catch (error) {
     logger.error(`Error fetching department ${departmentId}:`, error);
+    throw error;
+  }
+};
+
+export const getDepartmentMembers = async (departmentId) => {
+  try {
+    // ensure department exists
+    await getDepartmentById(departmentId);
+
+    const { data: employees, error } = await supabase
+      .from('employees')
+      .select('id, employee_id, first_name, last_name, positions (position_title)')
+      .eq('department_id', departmentId)
+      .order('last_name', { ascending: true });
+
+    if (error) {
+      throw new InternalServerError(error.message);
+    }
+
+    return employees || [];
+  } catch (error) {
+    logger.error(`Error fetching department members ${departmentId}:`, error);
     throw error;
   }
 };

@@ -1,8 +1,13 @@
 .react-calendar{
+    font-family: var(--font-body) !important;
   border-radius: 10px;
   /*background-color: #EDEDED !important;*/
   border: none !important;
   height: 275px;
+}
+
+.react-calendar * {
+    font-family: inherit !important;
 }
 
 .react-calendar__tile--now {

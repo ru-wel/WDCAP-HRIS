@@ -14,13 +14,13 @@ router.use(authenticate);
 router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValidation.createAssignmentSchema), assignmentController.createAssignment);
 
 // GET ALL ASSIGNMENTS
-router.get('/', assignmentController.getAllAssignments);
+router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), assignmentController.getAllAssignments);
+
+// GET ASSIGNMENTS BY PROJECT
+router.get('/by-project/:projectId', authorizeRoles(ROLES.ADMIN, ROLES.HR), assignmentController.getAssignmentByProject);
 
 // GET ASSIGNMENT BY ID
-router.get('/by-project/:projectId', assignmentController.getAssignmentByProject);
-
-// GET ASSIGNMENT BY ID
-router.get('/:id', validate(assignmentValidation.assignmentIdSchema), assignmentController.getAssignmentById);
+router.get('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValidation.assignmentIdSchema), assignmentController.getAssignmentById);
 
 // UPDATE ASSIGNMENT - Admin & HR
 router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(assignmentValidation.updateAssignmentSchema), assignmentController.updateAssignment);

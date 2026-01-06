@@ -11,10 +11,18 @@ const router = express.Router();
 router.use(authenticate);
 
 // creation of new employee + user route
-router.post('/complete', authorizeRoles(ROLES.ADMIN, ROLES.HR), onboardingController.createEmployeeWithAccount);
+router.post(
+	'/complete',
+	authorizeRoles(ROLES.ADMIN, ROLES.HR),
+	validate(onboardingValidation.createEmployeeWithAccountSchema),
+	onboardingController.createEmployeeWithAccount
+);
 
 // get all checklists
 router.get('/checklists', authorizeRoles(ROLES.ADMIN, ROLES.HR), onboardingController.getAllChecklists);
+
+// get checklist for current employee
+router.get('/me/checklist', authorizeRoles(ROLES.EMPLOYEE), onboardingController.getMyChecklist);
 
 // get checklist for a specific employee
 router.get('/employee/:employeeId/checklist', verifyEmployeeOwnership, onboardingController.getEmployeeChecklist);
