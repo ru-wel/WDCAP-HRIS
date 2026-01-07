@@ -76,6 +76,20 @@ const guessMimeType = (fileNameOrUrl) => {
   return '';
 };
 
+const sanitizeForFileName = (value) =>
+  String(value || '')
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .trim();
+
+const withEmployeePrefix = (employeeCode, fileName) => {
+  const rawEmp = sanitizeForFileName(employeeCode);
+  const rawName = String(fileName || 'document').trim() || 'document';
+  if (!rawEmp) return rawName;
+  if (rawName.toLowerCase().startsWith(`${rawEmp.toLowerCase()}_`)) return rawName;
+  return `${rawEmp}_${rawName}`;
+};
+
 function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loading, onClose }) {
   useEffect(() => {
     if (!open) return;
@@ -584,15 +598,16 @@ export default function Evaluation() {
     });
   };
 
-  const openEvaluationDoc = async ({ evaluationId, doc, fileName }) => {
+  const openEvaluationDoc = async ({ evaluationId, doc, fileName, employeeCode }) => {
     try {
       const safeFileName = String(fileName || '').trim();
+      const effectiveFileName = withEmployeePrefix(employeeCode, safeFileName || 'document');
       const title = safeFileName ? `Preview: ${safeFileName}` : 'Preview';
 
       setPreviewState({
         open: true,
         title,
-        fileName: safeFileName,
+        fileName: effectiveFileName,
         url: '',
         mimeType: '',
         isObjectUrl: false,
@@ -644,9 +659,9 @@ export default function Evaluation() {
           setPreviewState({
             open: true,
             title,
-            fileName: safeFileName,
+            fileName: effectiveFileName,
             url: objectUrl,
-            mimeType: String(blob?.type || '') || guessMimeType(safeFileName),
+            mimeType: String(blob?.type || '') || guessMimeType(effectiveFileName),
             isObjectUrl: true,
             downloadUrl: objectUrl,
             loading: false,
@@ -657,9 +672,9 @@ export default function Evaluation() {
         setPreviewState({
           open: true,
           title,
-          fileName: safeFileName,
+          fileName: effectiveFileName,
           url: previewUrl,
-          mimeType: guessMimeType(safeFileName || previewUrl),
+          mimeType: guessMimeType(effectiveFileName || previewUrl),
           isObjectUrl: false,
           downloadUrl: previewUrl,
           loading: false,
@@ -677,9 +692,9 @@ export default function Evaluation() {
       setPreviewState({
         open: true,
         title,
-        fileName: safeFileName,
+        fileName: effectiveFileName,
         url: objectUrl,
-        mimeType: String(blob?.type || '') || guessMimeType(safeFileName),
+        mimeType: String(blob?.type || '') || guessMimeType(effectiveFileName),
         isObjectUrl: true,
         downloadUrl: objectUrl,
         loading: false,
@@ -738,6 +753,7 @@ export default function Evaluation() {
             pillText: '#FF8A00',
             employeeName: employeeName || null,
             employeeId: r?.employee_id,
+            employeeCode: r?.employee_code || null,
             evaluationType: type,
             date,
             evaluation_id: r?.evaluation_id,
@@ -937,7 +953,7 @@ export default function Evaluation() {
         onOpenDoc={(ev, doc, fileName) => {
           const evalId = ev?.evaluation_id;
           if (!evalId) return;
-          openEvaluationDoc({ evaluationId: evalId, doc, fileName });
+          openEvaluationDoc({ evaluationId: evalId, doc, fileName, employeeCode: ev?.employeeCode });
         }}
       />
 

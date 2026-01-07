@@ -2,6 +2,7 @@ import { supabase } from '../config/supabase.js';
 import { InternalServerError } from '../utils/errors.js';
 import { ROLES, PROJECT_STATUSES, EMPLOYMENT_STATUSES } from '../config/constants.js';
 import logger from '../utils/logger.js';
+import { enrichAuditLogs } from './auditLog.service.js';
 
 const toCount = (count) => (Number.isFinite(Number(count)) ? Number(count) : 0);
 
@@ -24,13 +25,14 @@ const getRecentAuditLogs = async (limit = 5) => {
     .select(
       `
         id,
+        user_id,
         action_type,
         table_name,
         record_id,
         old_values,
         new_values,
         timestamp,
-        users ( email, role )
+        users ( id, email, role, employee_id )
       `
     )
     .order('timestamp', { ascending: false })
@@ -38,7 +40,9 @@ const getRecentAuditLogs = async (limit = 5) => {
 
   if (error) throw new InternalServerError(error.message);
 
-  return (data || []).map((r) => ({
+  const enriched = await enrichAuditLogs(data || []);
+
+  return enriched.map((r) => ({
     id: r.id,
     action_type: r.action_type,
     table_name: r.table_name,
@@ -49,7 +53,9 @@ const getRecentAuditLogs = async (limit = 5) => {
     user: {
       email: r.users?.email || '',
       role: r.users?.role || ''
-    }
+    },
+    actor: r.actor || null,
+    target_employee: r.target_employee || null,
   }));
 };
 

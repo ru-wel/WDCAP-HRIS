@@ -32,6 +32,21 @@ const EMPLOYEE_VISIBLE_DOCS = new Set([
 
 const normalizeDocName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 
+const sanitizeForFileName = (value) =>
+    String(value || '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .trim();
+
+const withEmployeePrefix = (employeeCode, fileName) => {
+    const rawEmp = sanitizeForFileName(employeeCode);
+    const rawName = String(fileName || 'document').trim() || 'document';
+
+    if (!rawEmp) return rawName;
+    if (rawName.toLowerCase().startsWith(`${rawEmp.toLowerCase()}_`)) return rawName;
+    return `${rawEmp}_${rawName}`;
+};
+
 const allowedDocumentTypeByNormalized = new Map(
     Object.values(DOCUMENT_TYPES).map((value) => [normalizeDocName(value), value])
 );
@@ -53,9 +68,10 @@ const mapUiToApiStatus = (uiStatus) => {
     return v;
 };
 
-const downloadDocument = async (documentId, fileName = 'document', notify) => {
+const downloadDocument = async (documentId, fileName = 'document', notify, employeeCode) => {
     try {
         const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+        const effectiveFileName = withEmployeePrefix(employeeCode, fileName);
         const url = base.endsWith('/api')
             ? `${base}/documents/${documentId}/download`
             : `${base}/api/documents/${documentId}/download`;
@@ -71,8 +87,27 @@ const downloadDocument = async (documentId, fileName = 'document', notify) => {
             const json = await res.json();
             const signedUrl = json?.data?.signedUrl;
             if (signedUrl) {
-                window.open(signedUrl, '_blank', 'noreferrer');
-                return;
+                try {
+                    const dlRes = await fetch(signedUrl, { method: 'GET' });
+                    if (!dlRes.ok) {
+                        const msg = await dlRes.text();
+                        throw new Error(msg || 'Download failed');
+                    }
+
+                    const blob = await dlRes.blob();
+                    const objectUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = objectUrl;
+                    a.download = effectiveFileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(objectUrl);
+                    return;
+                } catch {
+                    window.open(signedUrl, '_blank', 'noreferrer');
+                    return;
+                }
             }
             throw new Error(json?.message || 'No download URL returned');
         }
@@ -86,7 +121,7 @@ const downloadDocument = async (documentId, fileName = 'document', notify) => {
         const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objectUrl;
-        a.download = fileName;
+        a.download = effectiveFileName;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -204,7 +239,7 @@ const LocalFilePreview = ({ file }) => {
     );
 };
 
-const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose }) => {
+const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose, employeeCode }) => {
     useEffect(() => {
         if (!open) return;
         const onKeyDown = (e) => {
@@ -220,7 +255,7 @@ const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose }
     const isPdf = type.includes('pdf') || String(url || '').toLowerCase().split('?')[0].endsWith('.pdf');
     const isImg = type.startsWith('image/');
     const effectiveDownloadUrl = url;
-    const effectiveFileName = String(fileName || title || 'document');
+    const effectiveFileName = withEmployeePrefix(employeeCode, String(fileName || title || 'document'));
 
     return (
         <div
@@ -565,7 +600,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                             setPreviewState({
                                                                 open: true,
                                                                 title: it.file_name || 'document',
-                                                                fileName: it.file_name || 'document',
+                                                                fileName: withEmployeePrefix(employeeFiles?.id, it.file_name || 'document'),
                                                                 url: '',
                                                                 downloadUrl: '',
                                                                 mimeType: '',
@@ -578,7 +613,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                     ...prev,
                                                                     open: true,
                                                                     title: fileName || it.file_name || 'document',
-                                                                    fileName: fileName || it.file_name || 'document',
+                                                                    fileName: withEmployeePrefix(employeeFiles?.id, fileName || it.file_name || 'document'),
                                                                     url: url || '',
                                                                     downloadUrl: url || '',
                                                                     mimeType: mimeType || '',
@@ -594,7 +629,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => downloadDocument(it.document_id, it.file_name || 'document', notify)}
+                                                        onClick={() => downloadDocument(it.document_id, it.file_name || 'document', notify, employeeFiles?.id)}
                                                     >
                                                         {it.file_name || 'Download'}
                                                     </button>
@@ -942,6 +977,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         url={previewState.url}
                         mimeType={previewState.mimeType}
                         loading={previewState.loading}
+                        employeeCode={employeeFiles?.id}
                         onClose={closePreview}
                     />
                 </div>

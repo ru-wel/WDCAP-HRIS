@@ -33,6 +33,7 @@ export default function EvaluationUpload() {
 
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(preselectedEmployeeId || '');
+  const [selectedEmployeeCode, setSelectedEmployeeCode] = useState('');
 
   const [evaluationId, setEvaluationId] = useState(preselectedEvaluationId || '');
   const [availableEvaluations, setAvailableEvaluations] = useState([]);
@@ -178,8 +179,10 @@ export default function EvaluationUpload() {
         const ev = evalRes?.data;
         const empId = ev?.employee_id ? String(ev.employee_id) : '';
         const empName = String(ev?.employee_name || '').trim();
+        const empCode = String(ev?.employee_code || '').trim();
         setEvaluationId(String(preselectedEvaluationId));
         setSelectedEmployeeId(empId);
+        setSelectedEmployeeCode(empCode);
         setEvaluationType(String(ev?.evaluation_type || `ANNUAL (${new Date().getFullYear()})`));
         setExistingDocs(ev?.evaluation_document_path || null);
         // Score/remarks are stored in notes; leave blank for edits.
@@ -192,6 +195,7 @@ export default function EvaluationUpload() {
                 {
                   id: empId,
                   name: empName || empId,
+                  employeeCode: empCode,
                 },
               ]
             : []
@@ -203,13 +207,16 @@ export default function EvaluationUpload() {
         const meRes = await get('/employees/me');
         const me = meRes?.data;
         const meId = me?.id ? String(me.id) : '';
+        const meCode = String(me?.employee_id || '').trim();
         setSelectedEmployeeId(meId);
+        setSelectedEmployeeCode(meCode);
         setEmployees(
           meId
             ? [
                 {
                   id: meId,
                   name: `${me?.first_name || ''} ${me?.last_name || ''}`.trim() || meId,
+                  employeeCode: meCode,
                 },
               ]
             : []
@@ -222,13 +229,17 @@ export default function EvaluationUpload() {
       const normalized = list.map((e) => ({
         id: String(e?.id || ''),
         name: `${e?.employee_id || ''} - ${(e?.first_name || '') + ' ' + (e?.last_name || '')}`.trim(),
+        employeeCode: String(e?.employee_id || '').trim(),
       }));
       setEmployees(normalized);
 
       if (preselectedEmployeeId) {
         setSelectedEmployeeId(String(preselectedEmployeeId));
+        const match = normalized.find((x) => String(x?.id) === String(preselectedEmployeeId));
+        setSelectedEmployeeCode(String(match?.employeeCode || '').trim());
       } else if (normalized.length > 0) {
         setSelectedEmployeeId(String(normalized[0].id));
+        setSelectedEmployeeCode(String(normalized[0]?.employeeCode || '').trim());
       }
     } catch (e) {
       console.error('Failed to init evaluation upload:', e);
@@ -329,7 +340,21 @@ export default function EvaluationUpload() {
     return '';
   };
 
-  const PreviewModal = ({ open, title, fileName, url, mimeType, downloadUrl, onClose }) => {
+  const sanitizeForFileName = (value) =>
+    String(value || '')
+      .replace(/[^a-zA-Z0-9_-]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .trim();
+
+  const withEmployeePrefix = (employeeCode, fileName) => {
+    const rawEmp = sanitizeForFileName(employeeCode);
+    const rawName = String(fileName || 'document').trim() || 'document';
+    if (!rawEmp) return rawName;
+    if (rawName.toLowerCase().startsWith(`${rawEmp.toLowerCase()}_`)) return rawName;
+    return `${rawEmp}_${rawName}`;
+  };
+
+  const PreviewModal = ({ open, title, fileName, url, mimeType, downloadUrl, onClose, employeeCode }) => {
     useEffect(() => {
       if (!open) return;
       const onKeyDown = (e) => {
@@ -345,7 +370,7 @@ export default function EvaluationUpload() {
     const isPdf = mt.includes('pdf') || String(url || '').toLowerCase().split('?')[0].endsWith('.pdf');
     const isImg = mt.startsWith('image/');
     const effectiveDownloadUrl = downloadUrl || url;
-    const effectiveFileName = String(fileName || 'document');
+    const effectiveFileName = withEmployeePrefix(employeeCode, String(fileName || 'document'));
 
     return (
       <div
@@ -742,7 +767,10 @@ export default function EvaluationUpload() {
                   className="input-select"
                   value={selectedEmployeeId}
                   onChange={(e) => {
-                    setSelectedEmployeeId(e.target.value);
+                    const nextId = e.target.value;
+                    setSelectedEmployeeId(nextId);
+                    const match = employees.find((x) => String(x?.id) === String(nextId));
+                    setSelectedEmployeeCode(String(match?.employeeCode || '').trim());
                     if (!preselectedEvaluationId) setEvaluationId('');
                   }}
                   disabled={isEmployee}
@@ -947,6 +975,7 @@ export default function EvaluationUpload() {
         url={previewState.url}
         mimeType={previewState.mimeType}
         downloadUrl={previewState.downloadUrl}
+        employeeCode={selectedEmployeeCode}
         onClose={closePreview}
       />
     </div>

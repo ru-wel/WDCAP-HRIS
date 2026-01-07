@@ -12,6 +12,7 @@ import { filterRowsByDateRange } from '../../utils/reporting.js';
 
 function LeaveLogs() {
   const [logs, setLogs] = useState([]);
+  const [leaveTypesById, setLeaveTypesById] = useState(() => ({}));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,17 +20,49 @@ function LeaveLogs() {
   const [reportOpen, setReportOpen] = useState(false);
 
   const formatEmployeeName = (employee) => {
-    if (!employee) return 'N/A';
+    if (!employee) return '';
     const first = employee.first_name || '';
     const last = employee.last_name || '';
     const name = `${first} ${last}`.trim();
-    return name || 'N/A';
+    return name || '';
+  };
+
+  const formatTargetEmployeeLabel = (log, values) => {
+    const targetName = String(log?.target_employee?.name || '').trim();
+    const targetCode = String(log?.target_employee?.employee_code || '').trim();
+    if (targetName && targetCode) return `${targetName} (${targetCode})`;
+    if (targetName) return targetName;
+    if (targetCode) return targetCode;
+
+    const nestedEmployeeName = formatEmployeeName(values?.employees);
+    const nestedEmployeeCode = String(values?.employees?.employee_id || '').trim();
+    if (nestedEmployeeName && nestedEmployeeCode) return `${nestedEmployeeName} (${nestedEmployeeCode})`;
+    if (nestedEmployeeName) return nestedEmployeeName;
+    if (nestedEmployeeCode) return nestedEmployeeCode;
+
+    const direct = String(values?.employee_id || '').trim();
+    return direct;
+  };
+
+  const formatActorLabel = (log) => {
+    const actorName = String(log?.actor?.name || '').trim();
+    if (actorName) return actorName;
+    const email = String(log?.users?.email || '').trim();
+    return email || 'N/A';
   };
 
   const getLeaveTypeName = (values) => {
     const nested = values?.leave_types;
     if (nested?.leave_type_name) return nested.leave_type_name;
-    return values?.leave_type_name || values?.leave_type || 'N/A';
+
+    const direct = String(values?.leave_type_name || values?.leave_type || '').trim();
+    if (direct) return direct;
+
+    const id = values?.leave_type_id;
+    const fromMap = id ? leaveTypesById[String(id)] : null;
+    if (fromMap) return fromMap;
+
+    return '';
   };
 
   const getActionLabel = (log) => {
@@ -82,18 +115,22 @@ function LeaveLogs() {
       const leaveType = getLeaveTypeName(values);
       const start = values?.start_date ? String(values.start_date).slice(0, 10) : 'N/A';
 
+      const employeeLabel = formatTargetEmployeeLabel(log, values) || 'N/A';
+
       if (action === 'CREATE') {
-        return `${leaveType} - ${start}`;
+        const label = [employeeLabel, leaveType].filter(Boolean).join(' - ');
+        return `${label || 'Leave'} - ${start}`;
       }
 
       if (action === 'UPDATE') {
-        const employeeName = formatEmployeeName(values?.employees);
         const oldStatus = oldV?.status ? String(oldV.status) : null;
         const newStatus = newV?.status ? String(newV.status) : null;
         if (oldStatus && newStatus && oldStatus !== newStatus) {
-          return `${employeeName} - ${start} - ${oldStatus} to ${newStatus}`;
+          const label = [employeeLabel, leaveType].filter(Boolean).join(' - ');
+          return `${label || employeeLabel} - ${start} - ${oldStatus} to ${newStatus}`;
         }
-        return `${employeeName} - ${start}`;
+        const label = [employeeLabel, leaveType].filter(Boolean).join(' - ');
+        return `${label || employeeLabel} - ${start}`;
       }
 
       return leaveType;
@@ -112,14 +149,15 @@ function LeaveLogs() {
 
     if (table === 'employee_leave_balances') {
       const values = newV || oldV;
-      const employeeName = formatEmployeeName(values?.employees);
+      const employeeLabel = formatTargetEmployeeLabel(log, values) || 'N/A';
       const leaveType = getLeaveTypeName(values);
       const oldBal = oldV?.current_balance;
       const newBal = newV?.current_balance;
       if (oldBal !== undefined && newBal !== undefined && oldBal !== newBal) {
-        return `${employeeName} - ${leaveType}: ${oldBal} → ${newBal}`;
+        const label = [employeeLabel, leaveType].filter(Boolean).join(' - ');
+        return `${label || employeeLabel}: ${oldBal} → ${newBal}`;
       }
-      return `${employeeName} - ${leaveType}`;
+      return [employeeLabel, leaveType].filter(Boolean).join(' - ') || employeeLabel;
     }
 
     return '—';
@@ -129,10 +167,25 @@ function LeaveLogs() {
   const fetchLeaveLogs = async () => {
     try {
       setLoading(true);
-      const response = await get("/audit-logs/table/leave");
 
-      if (response.success) {
-        setLogs(response.data);
+      const [logsResponse, typesResponse] = await Promise.all([
+        get("/audit-logs/table/leave"),
+        get("/leave/types")
+      ]);
+
+      if (typesResponse?.success) {
+        const list = Array.isArray(typesResponse?.data) ? typesResponse.data : [];
+        const map = list.reduce((acc, t) => {
+          const id = t?.leave_type_id;
+          const name = String(t?.leave_type_name || '').trim();
+          if (id && name) acc[String(id)] = name;
+          return acc;
+        }, {});
+        setLeaveTypesById(map);
+      }
+
+      if (logsResponse?.success) {
+        setLogs(logsResponse.data);
       } else {
         setError("Failed to load leave audit logs");
       }
@@ -154,9 +207,10 @@ function LeaveLogs() {
       ? logs
       : logs.filter((log) => {
           const email = String(log.users?.email || '').toLowerCase();
+          const actor = String(log.actor?.name || '').toLowerCase();
           const action = String(getActionLabel(log) || '').toLowerCase();
           const changes = String(formatLeaveChanges(log) || '').toLowerCase();
-          return email.includes(q) || action.includes(q) || changes.includes(q);
+          return email.includes(q) || actor.includes(q) || action.includes(q) || changes.includes(q);
         });
 
     return [...filtered].sort((a, b) => {
@@ -211,7 +265,7 @@ function LeaveLogs() {
 
     const columns = [
       { header: 'Date | Time', value: (log) => (log?.timestamp ? new Date(log.timestamp).toLocaleString() : '') },
-      { header: 'Email', value: (log) => log?.users?.email || 'N/A' },
+      { header: 'User', value: (log) => formatActorLabel(log) },
       { header: 'Action', value: (log) => getActionLabel(log) },
       { header: 'Changes', value: (log) => formatLeaveChanges(log) },
     ];
@@ -300,7 +354,7 @@ function LeaveLogs() {
               <thead className="thead-style">
                 <tr>
                   <th className="th-style rounded-tl-lg rounded-bl-lg">Date | Time</th>
-                  <th className="th-style">Email</th>
+                  <th className="th-style">User</th>
                   <th className="th-style">Action</th>
                   <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">Changes</th>
                 </tr>
@@ -324,7 +378,7 @@ function LeaveLogs() {
                         </td>
 
                         <td className="td-style-nobtn font-medium">
-                          {log.users?.email || "N/A"}
+                          {formatActorLabel(log)}
                         </td>
 
                         <td className="td-style-nobtn">{getActionLabel(log)}</td>

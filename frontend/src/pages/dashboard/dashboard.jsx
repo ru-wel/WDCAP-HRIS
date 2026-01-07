@@ -105,6 +105,21 @@ const normalizeSummary = (payload) => {
         old_values: r.old_values && typeof r.old_values === 'object' ? r.old_values : null,
         new_values: r.new_values && typeof r.new_values === 'object' ? r.new_values : null,
         timestamp: r.timestamp,
+        actor: r.actor && typeof r.actor === 'object'
+          ? {
+            name: typeof r.actor.name === 'string' ? r.actor.name : '',
+            email: typeof r.actor.email === 'string' ? r.actor.email : '',
+            role: typeof r.actor.role === 'string' ? r.actor.role : '',
+            employeeCode: typeof r.actor.employee_code === 'string' ? r.actor.employee_code : null,
+          }
+          : null,
+        targetEmployee: r.target_employee && typeof r.target_employee === 'object'
+          ? {
+            id: typeof r.target_employee.id === 'string' ? r.target_employee.id : null,
+            employeeCode: typeof r.target_employee.employee_code === 'string' ? r.target_employee.employee_code : null,
+            name: typeof r.target_employee.name === 'string' ? r.target_employee.name : null,
+          }
+          : null,
         user: {
           email: typeof r.user?.email === 'string' ? r.user.email : '',
           role: typeof r.user?.role === 'string' ? r.user.role : ''
@@ -152,6 +167,15 @@ const pickAuditTarget = (row) => {
   const fallback = row?.old_values && typeof row.old_values === 'object' ? row.old_values : null;
   const v = preferred || fallback || {};
 
+  const targetEmployeeLabel = (() => {
+    const name = String(row?.targetEmployee?.name || '').trim();
+    const code = String(row?.targetEmployee?.employeeCode || '').trim();
+    if (name && code) return `${name} (${code})`;
+    if (name) return name;
+    if (code) return code;
+    return '';
+  })();
+
   if (table === 'employees') {
     const empId = String(v.employee_id || v.employee_code || '').trim();
     if (empId) return empId;
@@ -174,11 +198,38 @@ const pickAuditTarget = (row) => {
   }
   if (table === 'leave_requests') {
     const id = String(v.leave_request_id || v.id || '').trim();
-    if (id) return `#${id}`;
-    const who = String(v.employee_name || v.name || v.employee_id || '').trim();
+    const shortId = id && /^[0-9a-f-]{20,}$/i.test(id) ? id.slice(0, 8) : id;
+    const who = String(
+      targetEmployeeLabel ||
+        v.employee_name ||
+        v.name ||
+        (v.employees
+          ? `${String(v.employees?.first_name || '').trim()} ${String(v.employees?.last_name || '').trim()}`.trim()
+          : '') ||
+        v.employee_id ||
+        ''
+    ).trim();
     const type = String(v.leave_type_name || v.type || '').trim();
     const label = [who, type].filter(Boolean).join(' - ');
+    if (label && shortId) return `${label} (#${shortId})`;
     if (label) return label;
+    if (shortId) return `#${shortId}`;
+  }
+
+  if (table === 'employee_leave_balances') {
+    const who = String(
+      targetEmployeeLabel ||
+        (v.employees
+          ? `${String(v.employees?.first_name || '').trim()} ${String(v.employees?.last_name || '').trim()}`.trim()
+          : '') ||
+        v.employee_name ||
+        v.employee_id ||
+        ''
+    ).trim();
+    const type = String(v.leave_types?.leave_type_name || v.leave_type_name || '').trim();
+    const label = [who, type].filter(Boolean).join(' - ');
+    if (label) return label;
+    return '';
   }
   if (table === 'leave_types') {
     const type = String(v.leave_type_name || v.name || '').trim();
@@ -186,7 +237,8 @@ const pickAuditTarget = (row) => {
   }
   if (table === 'documents' || table === 'onboarding_checklists') {
     const file = String(v.file_name || v.filename || v.file_path || '').trim();
-    if (file) return file;
+    if (file) return targetEmployeeLabel ? `${file} (${targetEmployeeLabel})` : file;
+    if (targetEmployeeLabel) return targetEmployeeLabel;
   }
   if (table === 'project_assignments') {
     const emp = String(v.employee_id || v.employee_name || '').trim();
@@ -200,7 +252,7 @@ const pickAuditTarget = (row) => {
     const type = String(v.evaluation_type || '').trim();
 
     const looksLikeUuid = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || '').trim());
-    const who = (empCode && !looksLikeUuid(empCode)) ? empCode : (empName || '');
+    const who = targetEmployeeLabel || ((empCode && !looksLikeUuid(empCode)) ? empCode : (empName || ''));
     const label = [who, type].filter(Boolean).join(' - ');
     if (label) return label;
   }
@@ -293,7 +345,15 @@ function Dashboard() {
   const isEmployee = user?.role === ROLES.EMPLOYEE;
   const canSeeAuditDashboard = user?.role === ROLES.ADMIN;
 
-  const displayName = user?.name || user?.first_name || user?.email || '';
+  const rawName = String(user?.name || '').trim();
+  const safeName = rawName && !rawName.includes('@') ? rawName : '';
+
+  const displayName =
+    safeName ||
+    [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() ||
+    (user?.role === ROLES.ADMIN ? 'Admin' : user?.role === ROLES.HR ? 'HR' : '') ||
+    user?.email ||
+    '';
 
   useEffect(() => {
     let cancelled = false;
@@ -576,13 +636,13 @@ function Dashboard() {
                         <div>
                           <p className="text-sm text-gray-900">
                             <span className="font-semibold">
-                              {row.user.email || 'Unknown user'}
+                              {row.actor?.name || row.user.email || 'Unknown user'}
                             </span>
                           </p>
                           <p className="text-xs text-gray-600 mt-1">{formatAuditAction(row)}</p>
                         </div>
                         <span className="text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
-                          {row.user.role || 'User'}
+                          {row.actor?.role || row.user.role || 'User'}
                         </span>
                       </div>
                     ))
