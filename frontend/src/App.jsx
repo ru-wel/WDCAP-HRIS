@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route, Navigate, Outlet, BrowserRouter } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Routes, Route, Navigate, Outlet, BrowserRouter, useLocation } from 'react-router-dom';
 import { NavSide } from "./components/sidenav";
 import { useAuth } from './context/AuthContext.jsx';
 import Login from "./pages/login/login.jsx";
@@ -35,6 +35,63 @@ import Evaluation from './pages/evaluation/evaluation.jsx';
 import EmployeeProjects from './pages/employees/self/employee-projects.jsx';
 import EmployeeProjectMembers from './pages/employees/self/employee-project-members.jsx';
 
+function TitleManager() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname || '';
+
+    const titleForPath = (pathname) => {
+      // Exact routes
+      const exact = {
+        '/login': 'ARISE | LOGIN',
+        '/dashboard': 'ARISE | DASHBOARD',
+        '/profile': 'ARISE | PROFILE',
+
+        '/departments': 'ARISE | DEPARTMENTS',
+        '/employees': 'ARISE | EMPLOYEES',
+        '/employees/onboarding': 'ARISE | ONBOARDING',
+        '/employees/user-accounts': 'ARISE | USER ACCOUNTS',
+        '/employees/201-files': 'ARISE | 201 FILES',
+        '/employees/departments': 'ARISE | DEPARTMENTS',
+
+        '/projects': 'ARISE | PROJECTS',
+
+        '/leave': 'ARISE | LEAVE',
+        '/leave/request': 'ARISE | LEAVE REQUEST',
+        '/leave/credits': 'ARISE | LEAVE CREDITS',
+        '/leave/history': 'ARISE | LEAVE HISTORY',
+
+        '/evaluation': 'ARISE | EVALUATION',
+        '/evaluation/history': 'ARISE | EVALUATION HISTORY',
+        '/evaluation/upload': 'ARISE | EVALUATION UPLOAD',
+
+        '/analytics': 'ARISE | ANALYTICS',
+
+        '/audit/user-accounts': 'ARISE | AUDIT | USER ACCOUNTS',
+        '/audit/employees': 'ARISE | AUDIT | EMPLOYEES',
+        '/audit/departments': 'ARISE | AUDIT | DEPARTMENTS',
+        '/audit/projects': 'ARISE | AUDIT | PROJECTS',
+        '/audit/leave': 'ARISE | AUDIT | LEAVE',
+        '/audit/evaluation': 'ARISE | AUDIT | EVALUATION',
+        '/audit/reports': 'ARISE | AUDIT | REPORTS',
+      };
+
+      if (exact[pathname]) return exact[pathname];
+
+      // Dynamic routes
+      if (pathname.startsWith('/employees/departments/')) return 'ARISE | DEPARTMENT DETAILS';
+      if (pathname.startsWith('/projects/') && pathname !== '/projects') return 'ARISE | PROJECT DETAILS';
+
+      return 'ARISE';
+    };
+
+    document.title = titleForPath(path);
+  }, [location.pathname]);
+
+  return null;
+}
+
 function DepartmentsRoute() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
@@ -62,6 +119,7 @@ function ProjectDetailsRoute() {
 function App() {
   return (
     <BrowserRouter>
+      <TitleManager />
       <Routes>
         {/* public route (no auth needeed) */}
         <Route path="/login" element={<Login />} />
