@@ -506,7 +506,23 @@ function Dashboard() {
                   <tbody>
                     {!loading && summary.pendingEvaluations.length ? (
                       summary.pendingEvaluations.slice(0, 5).map((row) => (
-                        <tr key={String(row.evaluation_id || row.employee_id)} className="bg-white">
+                        <tr
+                          key={String(row.evaluation_id || row.employee_id)}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => {
+                            const id = row?.employee_id;
+                            if (!id) return;
+                            navigate(`/evaluation/history?employeeId=${encodeURIComponent(String(id))}`);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                            const id = row?.employee_id;
+                            if (!id) return;
+                            navigate(`/evaluation/history?employeeId=${encodeURIComponent(String(id))}`);
+                          }}
+                          className="bg-white cursor-pointer hover:bg-gray-50"
+                        >
                           <td className="px-4 py-2 text-gray-900">
                             {(row.employee_code || row.employee_name)
                               ? `${row.employee_code || ''}${row.employee_code && row.employee_name ? ' - ' : ''}${row.employee_name || ''}`.trim()
