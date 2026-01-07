@@ -491,7 +491,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
     useEffect(() => {
         setChecklistOffset(0);
-    }, [employeeFiles?.id, isOpen]);
+    }, [employeeFiles?.id || employeeFiles?.employee_id, isOpen]);
 
     const currentChecklist = checklist.slice(checklistOffset, checklistEndOffset);
 
