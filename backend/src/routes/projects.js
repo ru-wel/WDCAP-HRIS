@@ -16,6 +16,9 @@ router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(projectValidati
 // get all projects
 router.get('/', projectController.getAllProjects);
 
+// get my projects (current employee)
+router.get('/my', projectController.getMyProjects);
+
 // get project by id
 router.get('/:id', validate(projectValidation.projectIdSchema), projectController.getProjectById);
 

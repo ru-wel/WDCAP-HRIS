@@ -66,3 +66,25 @@ export const passwordResetRequestSchema = Joi.object({
     'any.required': 'Email is required'
   })
 });
+
+export const resetPasswordSchema = Joi.object({
+  access_token: Joi.string().trim().required().messages({
+    'any.required': 'Reset token is required'
+  }),
+  new_password: Joi.string()
+    .min(8)
+    .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)'))
+    .required()
+    .messages({
+      'string.min': 'New password must be at least 8 characters long',
+      'string.pattern.base': 'New password must contain at least one uppercase letter, one lowercase letter, and one number',
+      'any.required': 'New password is required'
+    }),
+  confirm_password: Joi.string()
+    .valid(Joi.ref('new_password'))
+    .required()
+    .messages({
+      'any.only': 'Confirm password must match the new password',
+      'any.required': 'Confirm password is required'
+    })
+});

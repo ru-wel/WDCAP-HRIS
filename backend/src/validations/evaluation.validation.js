@@ -39,11 +39,27 @@ export const submitEvaluationSchema = Joi.object({
   evaluation_id: uuid().required(),
   score: Joi.alternatives().try(Joi.number().min(0).max(100), Joi.string().trim().allow('', null)).optional(),
   remarks: Joi.string().allow('', null).max(2000).optional(),
-  evaluation_type: Joi.string().trim().max(80).optional()
+  evaluation_type: Joi.string().trim().max(80).optional(),
+  // Posted as a JSON string from multipart/form-data; controller parses it.
+  evaluation_form: Joi.alternatives().try(
+    Joi.string().allow('', null),
+    Joi.object().unknown(true)
+  ).optional()
 });
 
 export const downloadSchema = Joi.object({
   evaluation_id: uuid().required(),
-  doc: Joi.string().valid('file', 'breakdown', 'final').optional(),
+  doc: Joi.string().valid('file', 'breakdown', 'final', 'form').optional(),
   disposition: Joi.string().valid('inline', 'attachment').optional()
+});
+
+export const pendingDueSchema = Joi.object({
+  year: Joi.number().integer().min(2000).max(2100).required(),
+  quarter: Joi.number().integer().min(1).max(4).required()
+});
+
+export const ensureScheduleSchema = Joi.object({
+  employee_id: uuid().required(),
+  evaluation_type: Joi.string().trim().max(80).required(),
+  evaluation_date: Joi.string().isoDate().required(),
 });

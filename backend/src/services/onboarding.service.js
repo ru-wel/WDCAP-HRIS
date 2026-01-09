@@ -1,9 +1,14 @@
+import crypto from 'node:crypto';
 import { supabase } from '../config/supabase.js';
 import { NotFoundError, InternalServerError, ConflictError } from '../utils/errors.js';
 import { AUDIT_ACTIONS, ONBOARDING_STATUSES } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { ROLES } from '../config/constants.js';
 import { driveFileExists, isDriveEnabled } from './googleDrive.service.js';
+import { sendEmail } from './mail.service.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Fields to select for checklist items with relations
 const checklistFields = `
@@ -24,16 +29,189 @@ const checklistFields = `
   reviewed_by_user:users!onboarding_checklists_reviewed_by_fkey (id, email)
 `;
 
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
+
+const WEBSITE_COLORS = {
+  red: '#990100',
+  mustard: '#F59E0B',
+  green: '#22C55E',
+  gray: '#6B7280'
+};
+
+const LOGO_CID = 'arise-logo-login';
+
+let cachedLogoAttachment = undefined;
+
+const getEmailLogoAttachment = async () => {
+  if (cachedLogoAttachment !== undefined) return cachedLogoAttachment;
+
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const logoPath = path.resolve(__dirname, '../../../frontend/public/arise-logo-login.png');
+    const content = await fs.readFile(logoPath);
+
+    cachedLogoAttachment = {
+      filename: 'arise-logo-login.png',
+      content,
+      cid: LOGO_CID,
+      contentType: 'image/png'
+    };
+
+    return cachedLogoAttachment;
+  } catch {
+    cachedLogoAttachment = null;
+    return null;
+  }
+};
+
+const formatLetterDate = (value) => {
+  const d = value ? new Date(value) : new Date();
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
+    timeZone: 'Asia/Manila',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
+const getFrontendBaseUrl = () => {
+  const raw = String(process.env.FRONTEND_URL || process.env.CLIENT_URL || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\/$/, '');
+};
+
+const buildAccountCreatedEmailHtml = ({ recipientName, email, initialPassword, loginUrl, date, logoSrc }) => {
+  const safeRecipient = String(recipientName || 'Sir/Ma\u2019am');
+  const safeEmail = String(email || '');
+  const safePassword = String(initialPassword || '');
+  const safeLoginUrl = String(loginUrl || '');
+  const dateLine = formatLetterDate(date);
+
+  const frontendBase = getFrontendBaseUrl();
+  const logoUrl = frontendBase ? `${frontendBase}/arise-logo-login.png` : '';
+  const effectiveLogoSrc = logoSrc || logoUrl;
+
+  const confidentiality =
+    'Confidentiality Notice: This e-mail communication and any attachments may contain confidential and privileged information for the use of the designated recipient(s). If you are not the intended recipient, any review, disclosure, dissemination, distribution, or copying of this message is prohibited. If you have received this communication in error, please notify the sender immediately by replying to this message and delete it from your computer.';
+
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${WEBSITE_COLORS.red};padding:24px 0;margin:0;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+      <tr>
+        <td align="center" style="padding:0 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;background:#ffffff;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:20px 22px 12px;">
+                <div style="text-align:center;margin:2px 0 12px;">
+                  ${effectiveLogoSrc ? `<img src="${escapeHtml(effectiveLogoSrc)}" alt="ARISE" style="max-width:170px;height:auto;display:inline-block;" />` : ''}
+                </div>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td align="left" style="padding:0;">
+                      <div style="font-family:'Bebas Neue','Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;letter-spacing:0.04em;font-size:24px;color:${WEBSITE_COLORS.red};margin:0;">
+                        ACCOUNT CREATED
+                      </div>
+                    </td>
+                    <td align="right" style="padding:0;">
+                      <div style="display:inline-block;background:${WEBSITE_COLORS.mustard};color:#ffffff;font-weight:700;font-size:12px;letter-spacing:0.06em;border-radius:999px;padding:6px 10px;">
+                        ACTION REQUIRED
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                ${dateLine ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">${escapeHtml(dateLine)}</div>` : ''}
+
+                <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
+
+                <p style="margin:0 0 10px;font-size:14px;color:#111827;">Dear <b>${escapeHtml(safeRecipient)}</b>,</p>
+
+                <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#111827;">
+                  Your WDCAP HRIS account has been created. Please use the details below to log in.
+                </p>
+
+                <div style="font-size:14px;line-height:1.7;color:#111827;margin:0 0 10px;">
+                  <div style="margin:0 0 8px;"><span style="color:#374151;font-weight:700;">Email:</span> ${escapeHtml(safeEmail) || '—'}</div>
+                  <div style="margin:0 0 8px;"><span style="color:#374151;font-weight:700;">Initial Password:</span> ${escapeHtml(safePassword) || '—'}</div>
+                </div>
+
+                <p style="margin:0 0 10px;font-size:13px;line-height:1.6;color:#374151;">
+                  Please log in and change your password immediately.
+                </p>
+
+                ${safeLoginUrl ? `
+                  <div style="text-align:center;margin:18px 0 18px;">
+                    <a href="${escapeHtml(safeLoginUrl)}" style="display:inline-block;background:${WEBSITE_COLORS.red};color:#ffffff;text-decoration:none;font-weight:700;border-radius:10px;padding:12px 16px;font-size:14px;">
+                      Log in to HRIS
+                    </a>
+                  </div>
+                ` : ''}
+
+                <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
+
+                <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">WDCAP HR Department</p>
+                <p style="margin:2px 0 0;font-size:12px;color:#374151;">WDCAP HRIS</p>
+
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;margin-top:14px;">
+            <tr>
+              <td style="padding:0 6px;font-size:11px;line-height:1.5;color:#fef2f2;opacity:0.9;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+                <i>${escapeHtml(confidentiality)}</i>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `.trim();
+};
+
+const findAuthUserIdByEmail = async (email) => {
+  const target = String(email || '').trim().toLowerCase();
+  if (!target) return null;
+
+  // Supabase Auth Admin API does not provide a direct get-by-email helper.
+  // For onboarding (admin-only), paginating listUsers is acceptable.
+  const perPage = 200;
+  const maxPages = 20;
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      throw new InternalServerError(`Failed to list Auth users: ${error.message}`);
+    }
+
+    const users = data?.users || [];
+    const match = users.find(u => String(u?.email || '').trim().toLowerCase() === target);
+    if (match?.id) return match.id;
+
+    if (users.length < perPage) break;
+  }
+
+  return null;
+};
+
 // create user account and employee record together, so if employee creation fails, fail user creation
 export const createEmployeeWithAccount = async (onboardingData) => {
   let authUserId = null;
   let createdUserId = null;
+  let emailSend = { skipped: true };
 
   try {
     const {
       // account info
       email,
-      password,
       role = ROLES.EMPLOYEE,
       // employee info
       first_name,
@@ -51,6 +229,11 @@ export const createEmployeeWithAccount = async (onboardingData) => {
       personnel_type
     } = onboardingData;
 
+    // The initial password is automatically set to the generated employee_id.
+    // We sign up with a temporary strong password first (employee_id isn't known until the employee record is created),
+    // then update it via Supabase admin.
+    const temporaryPassword = crypto.randomBytes(18).toString('base64url');
+
     // check if user already exists
     const { data: existingUser } = await supabase
       .from('users')
@@ -62,38 +245,104 @@ export const createEmployeeWithAccount = async (onboardingData) => {
       throw new ConflictError('Email already registered');
     }
 
-    // create user in Supabase Auth
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password
-    });
+    // Create user in Supabase Auth using Admin API (best for Admin/HR-created accounts).
+    // If the Auth user already exists (e.g., created manually in Supabase dashboard), reuse it.
+    {
+      const { data: authData, error: createAuthError } = await supabase.auth.admin.createUser({
+        email,
+        password: temporaryPassword,
+        email_confirm: true
+      });
 
-    if (signUpError || !authData.user) {
-      throw new InternalServerError('Failed to create user account in Auth');
+      if (createAuthError || !authData?.user) {
+        const msg = String(createAuthError?.message || '').toLowerCase();
+        const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
+        if (!alreadyExists) {
+          throw new InternalServerError(`Failed to create user account in Auth: ${createAuthError?.message || 'Unknown error'}`);
+        }
+
+        const existingAuthId = await findAuthUserIdByEmail(email);
+        if (!existingAuthId) {
+          throw new InternalServerError('Auth user already exists, but could not resolve its ID by email');
+        }
+
+        authUserId = existingAuthId;
+      } else {
+        authUserId = authData.user.id;
+      }
     }
 
-    authUserId = authData.user.id;
+    // Create/ensure the app user remember row exists
+    let newUser = null;
+    {
+      const { data: userById, error: userByIdError } = await supabase
+        .from('users')
+        .select('id, email, role, employee_id')
+        .eq('id', authUserId)
+        .maybeSingle();
 
-    // insert user into users table
-    const { data: newUser, error: insertError } = await supabase
-      .from('users')
-      .insert([{
-        id: authUserId,
-        email,
-        role,
-        employee_id: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        last_login: null
-      }])
-      .select()
-      .single();
+      if (userByIdError) {
+        throw new InternalServerError(`Failed to check user record: ${userByIdError.message}`);
+      }
 
-    if (insertError) {
-      throw new InternalServerError(`Failed to create user record: ${insertError.message}`);
+      if (userById) {
+        // If it exists already, keep it but ensure role/email are aligned.
+        if (String(userById.email || '').toLowerCase() !== String(email).toLowerCase()) {
+          throw new ConflictError('Auth user id is already linked to a different email in app users table');
+        }
+
+        const { data: updated, error: updateErr } = await supabase
+          .from('users')
+          .update({ email, role, updated_at: new Date().toISOString() })
+          .eq('id', authUserId)
+          .select()
+          .single();
+
+        if (updateErr) {
+          throw new InternalServerError(`Failed to update existing user record: ${updateErr.message}`);
+        }
+
+        newUser = updated;
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('users')
+          .insert([{
+            id: authUserId,
+            email,
+            role,
+            employee_id: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_login: null
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          throw new InternalServerError(`Failed to create user record: ${insertError.message}`);
+        }
+
+        newUser = inserted;
+      }
     }
 
     createdUserId = newUser.id;
+
+    // Prevent duplicate employee records for the same user.
+    {
+      const { data: existingEmployee, error: existingEmployeeError } = await supabase
+        .from('employees')
+        .select('id, employee_id, user_id')
+        .eq('user_id', createdUserId)
+        .maybeSingle();
+
+      if (existingEmployeeError) {
+        throw new InternalServerError(`Failed to check existing employee record: ${existingEmployeeError.message}`);
+      }
+      if (existingEmployee) {
+        throw new ConflictError(`Employee already exists for this account (${existingEmployee.employee_id})`);
+      }
+    }
 
     // verify department and position exist
     const [deptResult, posResult] = await Promise.all([
@@ -156,6 +405,66 @@ export const createEmployeeWithAccount = async (onboardingData) => {
       .update({ employee_id: completeEmployee.employee_id })
       .eq('id', createdUserId);
 
+    // Set the initial password to the generated employee_id.
+    // If this fails, treat onboarding as failed so we don't create an unusable account.
+    {
+      const initialPassword = String(completeEmployee.employee_id || '').trim();
+      if (!initialPassword) {
+        throw new InternalServerError('Failed to set initial password (missing employee_id)');
+      }
+      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(authUserId, {
+        password: initialPassword
+      });
+      if (updateAuthError) {
+        throw new InternalServerError(`Failed to set initial password: ${updateAuthError.message}`);
+      }
+
+      // Best-effort: email the user their initial credentials.
+      const frontendBase = getFrontendBaseUrl();
+      const loginUrl = frontendBase ? `${frontendBase}/login` : '';
+      const recipientName = `${String(completeEmployee.first_name || '').trim()} ${String(completeEmployee.last_name || '').trim()}`.trim();
+
+      const logoAttachment = await getEmailLogoAttachment();
+      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+      const effectiveDate = new Date().toISOString();
+
+      const subject = 'WDCAP HRIS — Account Created';
+      const text = [
+        `Dear ${recipientName || 'Sir/Ma\u2019am'},`,
+        '',
+        'Your WDCAP HRIS account has been created.',
+        '',
+        `Email: ${email}`,
+        `Initial Password: ${initialPassword}`,
+        '',
+        'Please log in and change your password immediately.',
+        loginUrl ? `Login: ${loginUrl}` : null,
+      ].filter(Boolean).join('\n');
+
+      const html = buildAccountCreatedEmailHtml({
+        recipientName,
+        email,
+        initialPassword,
+        loginUrl,
+        date: effectiveDate,
+        logoSrc
+      });
+
+      emailSend = await sendEmail({
+        to: email,
+        subject,
+        text,
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined
+      });
+
+      if (emailSend?.skipped) {
+        logger.warn('Onboarding email skipped (SMTP not configured or no recipient).');
+      } else if (emailSend?.error) {
+        logger.warn(`Onboarding email returned error: ${emailSend.error}`);
+      }
+    }
+
     // log to audit_logs
     await supabase.from('audit_logs').insert([
       {
@@ -191,7 +500,8 @@ export const createEmployeeWithAccount = async (onboardingData) => {
         email: newUser.email,
         role: newUser.role
       },
-      employee: completeEmployee
+      employee: completeEmployee,
+      email: emailSend
     };
 
   } catch (error) {

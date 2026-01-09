@@ -5,6 +5,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { useNavigate } from 'react-router-dom';
 import DropDownFilter from '../../components/dropdownfilter.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
+import Preloader from '../../components/preloader.jsx';
 import { ROLES } from '../../constants/config.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { get, post, put } from '../../services/api.js';
@@ -34,7 +35,7 @@ const docHasFiles = (value) => {
   try {
     const obj = typeof value === 'object' && value ? value : JSON.parse(trimmed);
     if (!obj || typeof obj !== 'object') return false;
-    const candidates = [obj.file, obj.breakdown, obj.final].filter(Boolean);
+    const candidates = [obj.file, obj.breakdown, obj.final, obj.form].filter(Boolean);
     return candidates.some((c) => (c?.fileId || c?.path));
   } catch {
     // If it's not JSON but a non-empty string, treat as present.
@@ -226,6 +227,28 @@ function formatPrettyDate(iso) {
   });
 }
 
+const getQuarterRange = (date) => {
+  const d = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+  const toLocalIso = (dt) => {
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const quarter = Math.floor(month / 3) + 1;
+  const startMonth = (quarter - 1) * 3;
+  const start = new Date(year, startMonth, 1);
+  const end = new Date(year, startMonth + 3, 0);
+  return {
+    year,
+    quarter,
+    startIso: toLocalIso(start),
+    endIso: toLocalIso(end),
+  };
+};
+
 function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResult, onOpenDoc, canManage }) {
   const ref = useRef(null);
 
@@ -258,8 +281,10 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
   const breakdown = docs?.breakdown || null;
   const finalDoc = docs?.final || null;
   const legacyFile = docs?.file || null;
+  const formDoc = docs?.form || null;
   const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
   const finalLabel = finalDoc?.fileName || 'Final';
+  const formLabel = formDoc?.fileName || 'Evaluation Form';
 
   return (
     <div className="fixed inset-0 z-50">
@@ -320,6 +345,15 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
             </div>
           ) : (
             <div className="mt-6 flex items-center justify-end gap-3">
+              {formDoc ? (
+                <button
+                  type="button"
+                  className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+                  onClick={() => onOpenDoc?.(data, 'form', formLabel)}
+                >
+                  Form
+                </button>
+              ) : null}
               {breakdown || legacyFile ? (
                 <button
                   type="button"
@@ -532,6 +566,11 @@ export default function Evaluation() {
   const [employees, setEmployees] = useState([]);
   const [rawEvents, setRawEvents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [calendarCursor, setCalendarCursor] = useState(() => new Date());
+
+  const [duePending, setDuePending] = useState([]);
+  const [duePendingLoading, setDuePendingLoading] = useState(false);
+  const [duePendingError, setDuePendingError] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -781,20 +820,50 @@ export default function Evaluation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee, canManage]);
 
+  const autoDueEvents = useMemo(() => {
+    if (!canManage) return [];
+    const rows = Array.isArray(duePending) ? duePending : [];
+    return rows
+      .filter((r) => r?.due_date)
+      .map((r) => {
+        const date = String(r.due_date).slice(0, 10);
+        const employeeName = String(r.employee_name || '').trim();
+        const type = String(r.evaluation_type || 'Evaluation').trim();
+        const title = isEmployee ? type : `${employeeName} - ${type}`.trim();
+        return {
+          id: `auto-due-${String(r.employee_db_id || '')}-${date}-${type}`,
+          title,
+          start: date,
+          dotColor: '#F59E0B',
+          pillBg: '#FFE1A3',
+          pillText: '#FF8A00',
+          employeeName: employeeName || null,
+          employeeId: r.employee_db_id,
+          employeeCode: r.employee_code || null,
+          evaluationType: type,
+          date,
+          hasResult: false,
+          isAutoDue: true,
+        };
+      });
+  }, [canManage, duePending, isEmployee]);
+
+  const effectiveEvents = useMemo(() => [...rawEvents, ...autoDueEvents], [rawEvents, autoDueEvents]);
+
   const typeOptions = useMemo(() => {
     const types = Array.from(
       new Set(
-        rawEvents
+        effectiveEvents
           .map((e) => String(e.evaluationType || '').trim())
           .filter((v) => v.length)
       )
     ).sort((a, b) => a.localeCompare(b));
 
     return [{ value: 'all', label: 'All' }, ...types.map((t) => ({ value: t, label: t }))];
-  }, [rawEvents]);
+  }, [effectiveEvents]);
 
   const filteredEvents = useMemo(() => {
-    let list = rawEvents;
+    let list = effectiveEvents;
 
     if (typeFilter !== 'all') {
       list = list.filter((e) => String(e.evaluationType || '') === typeFilter);
@@ -803,7 +872,37 @@ export default function Evaluation() {
     const q = String(searchTerm || '').trim().toLowerCase();
     if (!q) return list;
     return list.filter((e) => String(e.title || '').toLowerCase().includes(q));
-  }, [rawEvents, typeFilter, searchTerm]);
+  }, [effectiveEvents, typeFilter, searchTerm]);
+
+  const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
+
+  useEffect(() => {
+    if (!canManage) {
+      setDuePending([]);
+      setDuePendingLoading(false);
+      setDuePendingError('');
+      return;
+    }
+
+    const fetchDue = async () => {
+      try {
+        setDuePendingLoading(true);
+        setDuePendingError('');
+        const res = await get(`/evaluations/pending?year=${encodeURIComponent(String(quarterInfo.year))}&quarter=${encodeURIComponent(String(quarterInfo.quarter))}`);
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        setDuePending(rows);
+      } catch (e) {
+        console.error('Failed to load pending due evaluations:', e);
+        setDuePending([]);
+        setDuePendingError(e?.message || 'Failed to load pending evaluations');
+      } finally {
+        setDuePendingLoading(false);
+      }
+    };
+
+    fetchDue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManage, quarterInfo.year, quarterInfo.quarter]);
 
   const calendarEvents = useMemo(
     () =>
@@ -852,7 +951,7 @@ export default function Evaluation() {
 
   return (
     <div>
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-[#990100]">Evaluation</h1>
 
@@ -893,6 +992,10 @@ export default function Evaluation() {
                   center: 'title',
                   right: '',
                 }}
+                datesSet={(arg) => {
+                  const cur = arg?.view?.currentStart;
+                  if (cur instanceof Date && !Number.isNaN(cur.getTime())) setCalendarCursor(cur);
+                }}
                 events={calendarEvents}
                 eventContent={(arg) => {
                   const bg = arg.event.extendedProps?.pillBg || '#FFE1A3';
@@ -908,6 +1011,33 @@ export default function Evaluation() {
                   handleOpenCreate(info?.dateStr);
                 }}
                 eventClick={(info) => {
+                  if (info.event.extendedProps?.isAutoDue) {
+                    const ev = info.event.extendedProps;
+                    openConfirm({
+                      title: 'Pending evaluation',
+                      message: 'This evaluation is auto-generated from hire date. Do you want to upload the result now?',
+                      confirmText: 'Upload Result',
+                      cancelText: 'Cancel',
+                      onConfirm: async () => {
+                        try {
+                          const ensured = await post('/evaluations/ensure-schedule', {
+                            employee_id: ev?.employeeId,
+                            evaluation_type: ev?.evaluationType,
+                            evaluation_date: ev?.date,
+                          });
+
+                          const evalId = ensured?.data?.evaluation_id;
+                          if (!evalId) throw new Error('Evaluation ID is missing');
+
+                          navigate(`/evaluation/upload?evaluationId=${encodeURIComponent(String(evalId))}`);
+                        } catch (e) {
+                          console.error('Failed to ensure schedule for upload:', e);
+                          notify({ type: 'error', title: 'Error', message: e?.message || 'Failed to prepare evaluation upload.' });
+                        }
+                      },
+                    });
+                    return;
+                  }
                   const x = info.jsEvent?.clientX ?? 200;
                   const y = info.jsEvent?.clientY ?? 200;
                   setAnchor({ x, y });
@@ -924,6 +1054,41 @@ export default function Evaluation() {
                 <span className="gc-legend-color" style={{ background: '#F59E0B' }} />
                 <span>Evaluation</span>
               </div>
+
+              <div className="mt-5">
+                <div className="text-sm font-semibold text-[#990100]">
+                  Pending evaluations (Q{quarterInfo.quarter} {quarterInfo.year})
+                </div>
+                <div className="mt-2 max-h-[360px] overflow-auto rounded-lg border border-gray-200 bg-white">
+                  {duePendingLoading ? (
+                    <Preloader fullScreen={false} text="LOADING…" />
+                  ) : duePendingError ? (
+                    <div className="px-3 py-3 text-xs text-red-700">{duePendingError}</div>
+                  ) : duePending.length ? (
+                    <ul className="divide-y divide-gray-100">
+                      {duePending.map((p) => {
+                        const key = `due-${String(p?.employee_db_id || '')}-${String(p?.due_date || '').slice(0, 10)}-${String(p?.evaluation_type || '')}`;
+                        const name = String(p?.employee_name || '').trim();
+                        const type = String(p?.evaluation_type || '').trim();
+                        const date = String(p?.due_date || '').slice(0, 10);
+                        return (
+                          <li key={key} className="px-3 py-2 text-xs text-gray-700">
+                            <div className="font-medium text-gray-900 truncate" title={name}>
+                              {name || 'Employee'}
+                            </div>
+                            <div className="mt-0.5 text-gray-600">
+                              {date ? formatPrettyDate(date) : ''}{type ? ` • ${type}` : ''}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="px-3 py-3 text-xs text-gray-600">No pending evaluations for this quarter.</div>
+                  )}
+                </div>
+              </div>
+
               {canManage ? (
                 <div className="mt-4 text-xs text-gray-600">
                   Tip: Click a date to schedule.

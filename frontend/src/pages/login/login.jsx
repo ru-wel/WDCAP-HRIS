@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Preloader from '../../components/preloader.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
@@ -15,6 +16,7 @@ function Login(){
   const [showPassword, setShowPassword] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotStatus, setForgotStatus] = useState('idle');
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
 
   useEffect(() => {
     try {
@@ -30,12 +32,28 @@ function Login(){
 
   const passwordInputType = useMemo(() => (showPassword ? 'text' : 'password'), [showPassword]);
 
+  useEffect(() => {
+    const compute = () => {
+      try {
+        const viewport = window.innerWidth || 320;
+        const w = Math.min(384, Math.max(240, viewport - 48));
+        setGoogleButtonWidth(w);
+      } catch {
+        setGoogleButtonWidth(320);
+      }
+    };
+
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+
     // state for loading and errors
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
     // get login function from AuthContext
-    const { login } = useAuth();
+    const { login, googleLogin } = useAuth();
 
     const navigate = useNavigate();
 
@@ -51,6 +69,17 @@ function Login(){
 
         setForgotStatus('sending');
         await post('/auth/password-reset-request', { email: normalizedEmail }, false);
+
+        try {
+          if (rememberAccount) {
+            window.localStorage.setItem(REMEMBERED_EMAIL_KEY, normalizedEmail);
+          } else {
+            window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+          }
+        } catch {
+          // ignore storage errors
+        }
+
         setForgotStatus('sent');
       } catch (err) {
         console.error(err);
@@ -93,32 +122,51 @@ function Login(){
       }
     };
 
-    const startRevealPassword = (e) => {
-        e.preventDefault();
-        if (loading) return;
-        setShowPassword(true);
+    const toggleShowPassword = (e) => {
+      e.preventDefault();
+      if (loading) return;
+      setShowPassword((prev) => !prev);
     };
 
-    const endRevealPassword = () => {
-        setShowPassword(false);
+    const handleGoogleSuccess = async (credentialResponse) => {
+      try {
+        setLoading(true);
+        setError('');
+        const { credential } = credentialResponse || {};
+        if (!credential) {
+          throw new Error('Google login failed. Missing credential.');
+        }
+        await googleLogin(credential);
+        navigate('/dashboard');
+      } catch (err) {
+        setError(err?.message || 'Google login failed. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
+
+    const handleGoogleError = () => {
+      setError('Google login failed. Please try again.');
+    };
+
+    
     
     return(
       <div>
         {loading ? <Preloader fullScreen text="LOGGING IN…" /> : null}
-            <div className="md:flex md:flex-row h-screen">
+            <div className="md:flex md:flex-row min-h-screen">
 
                 {/* RIGHT SIDE */}
 
-                <div className="lg:basis-8/15 md:bg-[#EDEDED] flex items-center justify-center md:h-screen md:basis-3/7 lg:order-2 md:order-2 order-1 w-full ">
+                <div className="lg:basis-8/15 md:bg-[#EDEDED] flex items-center justify-center md:min-h-screen md:basis-3/7 lg:order-2 md:order-2 order-1 w-full px-6 py-10">
 
                     <img className = "lg:w-[400px] lg:h-[300px] md:w-[300px] md:h-[200px] w-[150px] h-[100px] md:mt-0 md:mb-0 mt-20 mb-15" src="arise-logo-login-clear-bg.png" alt="Arise Logo" />
                 </div>
 
                 {/* LEFT SIDE */}
 
-                <div className="lg:basis-7/15 flex items-center justify-center md:basis-4/7 lg:order-1 md:order-1 order-2">
-                    <div>
+                <div className="lg:basis-7/15 flex items-center justify-center md:basis-4/7 lg:order-1 md:order-1 order-2 px-6 py-10">
+                  <div className="w-full max-w-md">
 
                         <h1 className="lg:text-4xl md:text-3xl text-2xl font-bold text-[#483D3D] pb-[10px]">SIGN IN</h1>
                         <p className="lg:text-lg md:text-md text-sm pb-[30px]">LOGIN TO YOUR ACCOUNT</p>
@@ -133,7 +181,7 @@ function Login(){
 												{/* Login Form */}
 												<form onSubmit={handleSubmit}>
 													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">EMAIL</p>
-                        	<input type="email" name="email" placeholder='Enter Email' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required />
+                                  <input type="email" name="email" placeholder='Enter Email' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required />
 
 													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pt-5 pb-2">PASSWORD</p>
                           <div className="relative">
@@ -141,7 +189,7 @@ function Login(){
                               type={passwordInputType}
                               name="password"
                               placeholder='Enter Password'
-                              className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 lg:w-95 md:w-75 w-70 text-base outline-none text-gray-900 py-1 px-3 pr-11 resize-none leading-6 shadow-lg"
+                              className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 pr-12 resize-none leading-6 shadow-lg"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               disabled={loading}
@@ -149,19 +197,10 @@ function Login(){
                             />
                             <button
                               type="button"
-                              aria-label="Hold to show password"
-                              onPointerDown={startRevealPassword}
-                              onPointerUp={endRevealPassword}
-                              onPointerLeave={endRevealPassword}
-                              onPointerCancel={endRevealPassword}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') startRevealPassword(e);
-                              }}
-                              onKeyUp={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') endRevealPassword();
-                              }}
+                              aria-label={showPassword ? 'Hide password' : 'Show password'}
+                              onClick={toggleShowPassword}
                               disabled={loading}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#990100] hover:text-[#ad3332] disabled:opacity-60"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-[#990100] hover:text-[#ad3332] disabled:opacity-60"
                             >
                               <svg
                                 width="20"
@@ -211,13 +250,33 @@ function Login(){
 
 													<br />
 
-													<div className="pt-8 flex gap-6 pb-3">
+    											<div className="pt-8 flex gap-6 pb-3">
                             <button type="submit" 
-                                className="text-white lg:text-lg md:text-md text-sm bg-[#990100] border-0 py-[6px] px-6 lg:w-95 md:w-75 w-70 focus:outline-none hover:bg-[#ad3332] rounded text-lg contact-btn transform hover:scale-105 transition duration-300 ease-in-out hover:shadow-lg text-center rounded-3xl font-bold cursor-pointer">
+                    className="text-white lg:text-lg md:text-md text-sm bg-[#990100] border-0 py-[6px] px-6 w-full focus:outline-none hover:bg-[#ad3332] rounded text-lg contact-btn transform hover:scale-105 transition duration-300 ease-in-out hover:shadow-lg text-center rounded-3xl font-bold cursor-pointer">
                                 {loading ? 'LOGGING IN ...' : 'LOGIN'}
                             </button>
                        	 	</div>
 												</form>
+
+                        <div className="pt-6 pb-3">
+                          <div className="flex items-center gap-3 pb-4">
+                            <div className="flex-1 border-t border-gray-300"></div>
+                            <span className="text-gray-500 text-sm">OR</span>
+                            <div className="flex-1 border-t border-gray-300"></div>
+                          </div>
+
+                          <div className="flex justify-center w-full">
+                            <GoogleLogin
+                              onSuccess={handleGoogleSuccess}
+                              onError={handleGoogleError}
+                              useOneTap={false}
+                              theme="outline"
+                              size="large"
+                              width={String(googleButtonWidth)}
+                              text="signin_with"
+                            />
+                          </div>
+                        </div>
 
                         <button
                           type="button"
@@ -231,8 +290,8 @@ function Login(){
                               title="Forgot Password"
                               message={
                                 forgotStatus === 'sent'
-                                  ? 'Request sent. Admin/HR will contact you to reset your password.'
-                                  : 'For security, password resets are handled by Admin/HR. You can send a request to notify Admin/HR now.'
+                                  ? 'If the account exists, password reset instructions have been sent. Please check your email inbox (and spam).'
+                                  : 'We will send password reset instructions to your email (works even if you use Google sign-in). Continue?'
                               }
                               confirmText={forgotStatus === 'sent' ? 'OK' : 'Send Request'}
                               cancelText={forgotStatus === 'sent' ? null : 'Cancel'}

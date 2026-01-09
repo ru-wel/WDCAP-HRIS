@@ -27,22 +27,22 @@ export default function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={title || "Confirmation"}
     >
       <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-3 bg-[#990100]">
+        <div className="px-4 sm:px-5 py-3 bg-[#990100]">
           <h2 className="text-white text-sm font-semibold tracking-wide">
             {title || "Confirmation"}
           </h2>
         </div>
 
-        <div className="px-5 py-4">
+        <div className="px-4 sm:px-5 py-4">
           <p className="text-sm text-gray-800 whitespace-pre-line">{message}</p>
 
-          <div className="mt-5 flex items-center justify-end gap-3">
+          <div className="mt-5 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
             {showCancel && (
               <button
                 type="button"

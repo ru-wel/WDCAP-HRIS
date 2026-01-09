@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
+import ARISEEvaluationForm from '../../components/ARISEEvaluationForm.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ROLES } from '../../constants/config.js';
+import { useARISEForm } from '../../hooks/useARISEForm.js';
 import { get, postFormWithProgress } from '../../services/api.js';
 
 const useQuery = () => {
@@ -51,6 +53,25 @@ export default function EvaluationUpload() {
 
   const [breakdownProgress, setBreakdownProgress] = useState(null);
   const [finalProgress, setFinalProgress] = useState(null);
+
+  const [submissionMode, setSubmissionMode] = useState('files');
+
+  const {
+    formScores,
+    setItemScore,
+    isReliable,
+    setIsReliable,
+    memo,
+    setMemo,
+    showFormSection,
+    setShowFormSection,
+    totalScore,
+    totalPossible,
+    percentage,
+    rating,
+    resetForm: resetARISEForm,
+    serializeFormData,
+  } = useARISEForm();
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -309,6 +330,8 @@ export default function EvaluationUpload() {
     setFinalPickerKey((k) => k + 1);
     setBreakdownProgress(null);
     setFinalProgress(null);
+    resetARISEForm();
+    setShowFormSection(false);
   };
 
   const safeJsonParse = (value) => {
@@ -649,16 +672,17 @@ export default function EvaluationUpload() {
       return;
     }
 
-    // Files are required (either already uploaded or newly selected)
     const hasExistingBreakdown = Boolean(currentDocs?.breakdown?.fileName);
     const hasExistingFinal = Boolean(currentDocs?.final?.fileName);
-    if (!breakdownFile && !hasExistingBreakdown) {
-      openInfo({ title: 'Error', message: 'Please upload the Breakdown of Evaluation file.' });
-      return;
-    }
-    if (!finalFile && !hasExistingFinal) {
-      openInfo({ title: 'Error', message: 'Please upload the Last Page of Evaluation file.' });
-      return;
+
+    if (submissionMode === 'files') {
+      const hasAnyFile = Boolean(breakdownFile || finalFile || hasExistingBreakdown || hasExistingFinal);
+      if (!hasAnyFile) {
+        openInfo({ title: 'Error', message: 'Please upload at least one document (Breakdown or Last Page).' });
+        return;
+      }
+    } else if (submissionMode === 'form') {
+      // ARISE form computes score automatically; score/remarks are optional.
     }
 
     try {
@@ -673,20 +697,38 @@ export default function EvaluationUpload() {
       if (scoreValue) form.append('score', scoreValue);
       if (remarksValue) form.append('remarks', remarksValue);
 
-      if (breakdownFile) form.append('breakdown_file', breakdownFile);
-      if (finalFile) form.append('final_file', finalFile);
+      if (submissionMode === 'form') {
+        const formData = serializeFormData();
+        form.append('evaluation_form', JSON.stringify(formData));
+
+        // If user didn't manually input a score, use computed total.
+        if (!scoreValue) {
+          form.append('score', String(totalScore));
+        }
+      }
+
+      if (submissionMode === 'files') {
+        if (breakdownFile) form.append('breakdown_file', breakdownFile);
+        if (finalFile) form.append('final_file', finalFile);
+      }
 
       // One progress bar callback; we mirror it to both when present.
-      if (breakdownFile) setBreakdownProgress(0);
-      if (finalFile) setFinalProgress(0);
+      if (submissionMode === 'files') {
+        if (breakdownFile) setBreakdownProgress(0);
+        if (finalFile) setFinalProgress(0);
+      }
 
       await postFormWithProgress(`/evaluations/${encodeURIComponent(String(evaluationId))}/submit`, form, (pct) => {
-        if (breakdownFile) setBreakdownProgress(pct);
-        if (finalFile) setFinalProgress(pct);
+        if (submissionMode === 'files') {
+          if (breakdownFile) setBreakdownProgress(pct);
+          if (finalFile) setFinalProgress(pct);
+        }
       });
 
-      if (breakdownFile) setBreakdownProgress(100);
-      if (finalFile) setFinalProgress(100);
+      if (submissionMode === 'files') {
+        if (breakdownFile) setBreakdownProgress(100);
+        if (finalFile) setFinalProgress(100);
+      }
 
       setConfirmState({
         open: true,
@@ -734,7 +776,7 @@ export default function EvaluationUpload() {
   const finalFilled = Boolean(finalFile || currentDocs?.final?.fileName);
 
   return (
-    <div className="p-7 lg:mx-18 md:mx-10">
+    <div className="p-7 lg:mx-[4.5rem] md:mx-10">
       <div className="flex items-center justify-between">
         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">Evaluation - Upload Result</h1>
 
@@ -830,6 +872,44 @@ export default function EvaluationUpload() {
               </div>
             </div>
 
+            <div className="mt-6">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">Submission Method</label>
+              <div className="flex flex-wrap gap-4">
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="submission-mode"
+                    value="form"
+                    checked={submissionMode === 'form'}
+                    onChange={() => {
+                      setSubmissionMode('form');
+                      // Clear files to avoid confusion when switching to form mode
+                      setBreakdownFile(null);
+                      setFinalFile(null);
+                      setBreakdownPickerKey((k) => k + 1);
+                      setFinalPickerKey((k) => k + 1);
+                      setBreakdownProgress(null);
+                      setFinalProgress(null);
+                    }}
+                  />
+                  <span className="text-sm text-gray-800">Fill ARISE form</span>
+                </label>
+                <label className="inline-flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="submission-mode"
+                    value="files"
+                    checked={submissionMode === 'files'}
+                    onChange={() => setSubmissionMode('files')}
+                  />
+                  <span className="text-sm text-gray-800">Upload document(s)</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                ARISE form mode computes the score automatically. Upload mode requires at least one document.
+              </p>
+            </div>
+
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">Score (optional)</label>
@@ -853,6 +933,24 @@ export default function EvaluationUpload() {
               </div>
             </div>
 
+            {submissionMode === 'form' ? (
+              <ARISEEvaluationForm
+                formScores={formScores}
+                setItemScore={setItemScore}
+                totalScore={totalScore}
+                totalPossible={totalPossible}
+                percentage={percentage}
+                rating={rating}
+                isReliable={isReliable}
+                setIsReliable={setIsReliable}
+                memo={memo}
+                setMemo={setMemo}
+                showFormSection={showFormSection}
+                setShowFormSection={setShowFormSection}
+              />
+            ) : null}
+
+            {submissionMode === 'files' ? (
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">Breakdown of Evaluation</label>
@@ -934,6 +1032,7 @@ export default function EvaluationUpload() {
                 </div>
               </div>
             </div>
+            ) : null}
 
             <div className="mt-8 flex items-center justify-end gap-4">
               <button

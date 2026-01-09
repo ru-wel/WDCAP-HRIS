@@ -68,73 +68,6 @@ const mapUiToApiStatus = (uiStatus) => {
     return v;
 };
 
-const downloadDocument = async (documentId, fileName = 'document', notify, employeeCode) => {
-    try {
-        const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
-        const effectiveFileName = withEmployeePrefix(employeeCode, fileName);
-        const url = base.endsWith('/api')
-            ? `${base}/documents/${documentId}/download`
-            : `${base}/api/documents/${documentId}/download`;
-
-        const token = localStorage.getItem('access_token');
-        const res = await fetch(url, {
-            method: 'GET',
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
-
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-            const json = await res.json();
-            const signedUrl = json?.data?.signedUrl;
-            if (signedUrl) {
-                try {
-                    const dlRes = await fetch(signedUrl, { method: 'GET' });
-                    if (!dlRes.ok) {
-                        const msg = await dlRes.text();
-                        throw new Error(msg || 'Download failed');
-                    }
-
-                    const blob = await dlRes.blob();
-                    const objectUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = objectUrl;
-                    a.download = effectiveFileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(objectUrl);
-                    return;
-                } catch {
-                    window.open(signedUrl, '_blank', 'noreferrer');
-                    return;
-                }
-            }
-            throw new Error(json?.message || 'No download URL returned');
-        }
-
-        if (!res.ok) {
-            const msg = await res.text();
-            throw new Error(msg || 'Download failed');
-        }
-
-        const blob = await res.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = objectUrl;
-        a.download = effectiveFileName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(objectUrl);
-    } catch (err) {
-        console.error('Download failed:', err);
-        notify?.({
-            title: 'Download failed',
-            message: err?.message || 'Download failed',
-        });
-    }
-};
-
 const previewDocument = async (documentId, fallbackName = 'document', notify, onPreview) => {
     try {
         const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
@@ -239,7 +172,7 @@ const LocalFilePreview = ({ file }) => {
     );
 };
 
-const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose, employeeCode }) => {
+const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImageActions, onReplaceImage, onDeleteFile }) => {
     useEffect(() => {
         if (!open) return;
         const onKeyDown = (e) => {
@@ -255,7 +188,7 @@ const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose, 
     const isPdf = type.includes('pdf') || String(url || '').toLowerCase().split('?')[0].endsWith('.pdf');
     const isImg = type.startsWith('image/');
     const effectiveDownloadUrl = url;
-    const effectiveFileName = withEmployeePrefix(employeeCode, String(fileName || title || 'document'));
+    const canShowImageActions = !!allowImageActions && !loading && isImg;
 
     return (
         <div
@@ -296,24 +229,34 @@ const PreviewModal = ({ open, title, fileName, url, mimeType, loading, onClose, 
                     )}
 
                     <div className="mt-5 flex items-center justify-end gap-3">
-                        {!loading && effectiveDownloadUrl ? (
+                        {canShowImageActions ? (
                             <>
-                                <a
-                                    href={effectiveDownloadUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    type="button"
                                     className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                                    onClick={() => onReplaceImage?.()}
                                 >
-                                    Open
-                                </a>
-                                <a
-                                    href={effectiveDownloadUrl}
-                                    download={effectiveFileName}
+                                    Change Image
+                                </button>
+                                <button
+                                    type="button"
                                     className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                                    onClick={() => onDeleteFile?.()}
                                 >
-                                    Download
-                                </a>
+                                    Delete
+                                </button>
                             </>
+                        ) : null}
+
+                        {!loading && effectiveDownloadUrl ? (
+                            <a
+                                href={effectiveDownloadUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                            >
+                                Open
+                            </a>
                         ) : null}
                         <button
                             type="button"
@@ -357,7 +300,28 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         mimeType: '',
         revokeOnClose: false,
         loading: false,
+        documentId: null,
+        checklistItemId: null,
+        employeeDbId: null,
+        documentName: null,
     });
+
+    const [replacePickerKey, setReplacePickerKey] = useState(0);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        // Always start in view mode when the modal opens.
+        setEditData(false);
+        setConfirmBusy(false);
+        setConfirmState({
+            open: false,
+            title: 'Confirmation',
+            message: '',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            onConfirm: null,
+        });
+    }, [isOpen]);
 
     const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
         setConfirmState({
@@ -381,43 +345,12 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
             return;
         }
 
-        const snapshot = {
-            title: confirmState.title,
-            message: confirmState.message,
-            confirmText: confirmState.confirmText,
-            cancelText: confirmState.cancelText,
-            onConfirm: confirmState.onConfirm,
-        };
-
         try {
+            // Close the current dialog first to prevent "sticky" modals and
+            // avoid racing state updates when the action opens its own dialog.
+            closeConfirm();
             setConfirmBusy(true);
             await fn?.();
-
-            setConfirmState((prev) => {
-                const isSameDialog =
-                    prev.open &&
-                    prev.onConfirm === snapshot.onConfirm &&
-                    prev.title === snapshot.title &&
-                    prev.message === snapshot.message &&
-                    prev.confirmText === snapshot.confirmText &&
-                    prev.cancelText === snapshot.cancelText;
-
-                if (!isSameDialog) return prev;
-
-                const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
-                if (!wasConfirmation) {
-                    return { ...prev, open: false, onConfirm: null };
-                }
-
-                return {
-                    open: true,
-                    title: 'Success',
-                    message: 'Action completed successfully.',
-                    confirmText: 'OK',
-                    cancelText: null,
-                    onConfirm: null,
-                };
-            });
         } catch (e) {
             setConfirmState({
                 open: true,
@@ -477,7 +410,78 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                     // ignore
                 }
             }
-            return { open: false, title: '', fileName: '', url: '', downloadUrl: '', mimeType: '', revokeOnClose: false, loading: false };
+            return {
+                open: false,
+                title: '',
+                fileName: '',
+                url: '',
+                downloadUrl: '',
+                mimeType: '',
+                revokeOnClose: false,
+                loading: false,
+                documentId: null,
+                checklistItemId: null,
+                employeeDbId: null,
+                documentName: null,
+            };
+        });
+    };
+
+    const triggerReplaceFromPreview = () => {
+        if (!previewState?.documentId || !previewState?.checklistItemId) return;
+        setReplacePickerKey((k) => k + 1);
+        const el = document.getElementById('preview-replace-file');
+        el?.click?.();
+    };
+
+    const handleReplaceFromPreview = async (file) => {
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
+            return;
+        }
+
+        openConfirm({
+            title: 'Replace file',
+            message: 'Replace the currently uploaded file with this one?',
+            confirmText: 'Replace',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                const empDbId = previewState.employeeDbId || employeeFiles?.employee_id;
+                const docName = previewState.documentName;
+                const checklistItemId = previewState.checklistItemId;
+
+                if (!empDbId || !docName || !checklistItemId) {
+                    throw new Error('Missing upload context for replace');
+                }
+
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('employee_id', empDbId);
+                fd.append('document_name', docName);
+                fd.append('checklist_item_id', checklistItemId);
+                await postFormWithProgress('/documents/upload', fd, () => {});
+                await refresh();
+                closePreview();
+            },
+        });
+    };
+
+    const handleDeleteFromPreview = () => {
+        const documentId = previewState?.documentId;
+        if (!documentId) return;
+
+        openConfirm({
+            title: 'Delete file',
+            message: 'Delete this uploaded file?',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                await del(`/documents/${documentId}`);
+                await refresh();
+                closePreview();
+            },
         });
     };
 
@@ -562,7 +566,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 className={
                     isInline
                         ? "bg-white rounded-lg shadow-lg w-full border border-gray-300 overflow-hidden flex flex-col"
-                        : "bg-white rounded-lg shadow-lg lg:w-190 md:w-140 w-75 border border-gray-300 overflow-hidden flex flex-col max-h-[90vh]"
+                        : "bg-white rounded-lg shadow-lg w-full max-w-6xl border border-gray-300 overflow-hidden flex flex-col max-h-[90vh]"
                 }
                 style={{ WebkitOverflowScrolling: 'touch' }}
             >
@@ -595,8 +599,21 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                 <div className="flex flex-col gap-2">
                                                     <button
                                                         type="button"
-                                                        className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
+                                                        disabled={!isEmployee && !editData}
+                                                        className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden ${
+                                                            !isEmployee && !editData
+                                                                ? 'opacity-60 cursor-not-allowed'
+                                                                : 'cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline'
+                                                        }`}
                                                         onClick={() => {
+                                                            if (!isEmployee && !editData) {
+                                                                notify({
+                                                                    title: 'Preview locked',
+                                                                    message: 'Click “Update Record” first before previewing 201 files.'
+                                                                });
+                                                                return;
+                                                            }
+
                                                             setPreviewState({
                                                                 open: true,
                                                                 title: it.file_name || 'document',
@@ -606,6 +623,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                 mimeType: '',
                                                                 revokeOnClose: false,
                                                                 loading: true,
+                                                                documentId: it.document_id,
+                                                                checklistItemId: it.id,
+                                                                employeeDbId: employeeFiles.employee_id,
+                                                                documentName: mapItemNameToDocumentName(it.item_name),
                                                             });
 
                                                             previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
@@ -619,6 +640,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                     mimeType: mimeType || '',
                                                                     revokeOnClose: !!revokeUrlOnClose,
                                                                     loading: false,
+                                                                    documentId: it.document_id,
+                                                                    checklistItemId: it.id,
+                                                                    employeeDbId: employeeFiles.employee_id,
+                                                                    documentName: mapItemNameToDocumentName(it.item_name),
                                                                 }));
                                                             }).catch(() => {
                                                                 setPreviewState((prev) => ({ ...prev, loading: false }));
@@ -626,38 +651,6 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                         }}
                                                     >
                                                         Preview
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => downloadDocument(it.document_id, it.file_name || 'document', notify, employeeFiles?.id)}
-                                                    >
-                                                        {it.file_name || 'Download'}
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
-                                                        onClick={() => {
-                                                            openConfirm({
-                                                                title: 'Delete file',
-                                                                message: 'Are you sure you want to delete this uploaded file?',
-                                                                confirmText: 'Delete',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        await del(`/documents/${it.document_id}`);
-                                                                        await refresh();
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                    } catch (err) {
-                                                                        console.error('Delete failed:', err);
-                                                                        notify({ title: 'Delete failed', message: err?.message || 'Delete failed' });
-                                                                    }
-                                                                },
-                                                            });
-                                                        }}
-                                                    >
-                                                        Delete
                                                     </button>
 
                                                     {isEmployee && mapStatusToUi(statusById[it.id] || it.status) === 'disapproved' ? (
@@ -674,8 +667,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                     setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
                                                                     setSelectedFileById((p) => ({ ...p, [it.id]: f }));
 
-                                                                    if (f.size > 5 * 1024 * 1024) {
-                                                                        notify({ title: 'File too large', message: 'File is too large. Maximum size is 5MB.' });
+                                                                    if (f.size > 10 * 1024 * 1024) {
+                                                                        notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
                                                                         setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
                                                                         setSelectedFileById((p) => ({ ...p, [it.id]: null }));
                                                                         e.target.value = '';
@@ -749,8 +742,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                             setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
                                                             setSelectedFileById((p) => ({ ...p, [it.id]: f }));
 
-                                                            if (f.size > 5 * 1024 * 1024) {
-                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 5MB.' });
+                                                            if (f.size > 10 * 1024 * 1024) {
+                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
                                                                 setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
                                                                 setSelectedFileById((p) => ({ ...p, [it.id]: null }));
                                                                 e.target.value = '';
@@ -813,18 +806,24 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                             )}
                                         </td>
                                         <td className="pb-5 px-3">
-                                            <select
-                                                className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs w-full max-w-36"
-                                                value={statusById[it.id] || 'pending'}
-                                                disabled={isEmployee || !editData}
-                                                onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: e.target.value }))}
-                                                required
-                                            >
-                                                <option value="pending">Pending</option>
-                                                <option value="submitted">Submitted</option>
-                                                <option value="approved">Approved</option>
-                                                <option value="disapproved">Disapproved</option>
-                                            </select>
+                                            {(!editData || isEmployee) ? (
+                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
+                                                    {(statusById[it.id] || 'pending').replace(/^./, (c) => c.toUpperCase())}
+                                                </span>
+                                            ) : (
+                                                <select
+                                                    className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs w-full max-w-36"
+                                                    value={statusById[it.id] || 'pending'}
+                                                    disabled={isEmployee || !editData}
+                                                    onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: e.target.value }))}
+                                                    required
+                                                >
+                                                    <option value="pending">Pending</option>
+                                                    <option value="submitted">Submitted</option>
+                                                    <option value="approved">Approved</option>
+                                                    <option value="disapproved">Disapproved</option>
+                                                </select>
+                                            )}
                                         </td>
                                         <td className="pb-5 px-3 whitespace-normal break-words">
                                             {mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
@@ -970,15 +969,29 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         confirmDisabled={confirmBusy}
                     />
 
-                    <PreviewModal
+                        <PreviewModal
                         open={previewState.open}
                         title={previewState.title}
-                        fileName={previewState.fileName}
                         url={previewState.url}
                         mimeType={previewState.mimeType}
                         loading={previewState.loading}
-                        employeeCode={employeeFiles?.id}
                         onClose={closePreview}
+                        allowImageActions
+                        onReplaceImage={triggerReplaceFromPreview}
+                        onDeleteFile={handleDeleteFromPreview}
+                    />
+
+                    <input
+                        key={replacePickerKey}
+                        id="preview-replace-file"
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            e.target.value = '';
+                            handleReplaceFromPreview(f);
+                        }}
                     />
                 </div>
             </div>
@@ -1198,7 +1211,7 @@ export default function OnboardingFiles() {
         <div>
             <Navbar />
 
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
                 <div className="md:flex justify-between items-center w-full">
                     <div>
                         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">201 Files</h1>

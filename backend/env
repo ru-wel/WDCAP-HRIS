@@ -1,0 +1,56 @@
+SUPABASE_URL=https://ndyojnptsvksutlexhof.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keW9qbnB0c3Zrc3V0bGV4aG9mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzNDY3NDEsImV4cCI6MjA3NzkyMjc0MX0.7e-oCQn2o8MT-QpySVUvea8WygyDcXKYyDIRYiwnNdQ
+SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5keW9qbnB0c3Zrc3V0bGV4aG9mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjM0Njc0MSwiZXhwIjoyMDc3OTIyNzQxfQ.29dPuzTidOES7wPOP-WD4VTURvnvPvNKV-0zQxRx4Tk
+PORT=3000
+NODE_ENV=development
+
+# Enable Google Drive:
+DOCUMENT_STORAGE_PROVIDER=drive
+
+# --- GOOGLE DRIVE OAUTH (Personal Gmail compatible) ---
+# If these are set, the backend will use OAuth instead of Service Account.
+# 1) Create OAuth Client in Google Cloud Console
+# 2) Set Redirect URI below (example: http://localhost:3000/oauth2callback)
+# 3) Run: npm run drive:oauth:url
+# 4) After granting access, copy the `code` from the redirected URL
+# 5) Run: npm run drive:oauth:token -- "<code>"  (then paste refresh token here)
+GOOGLE_OAUTH_CLIENT_ID=532599734670-8v4c440ujr4gkk70drkhcve4o4e6l8uq.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=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
+GOOGLE_OAUTH_REDIRECT_URI=https://developers.google.com/oauthplayground
+GOOGLE_OAUTH_REFRESH_TOKEN=1//04x5yO6mrBdRUCgYIARAAGAQSNwF-L9IrLkrZhqsJVjoqKGx6dipDYDutUnatNkGT7ajRO_7F-A3PZGrk8-6mdO20EzPE6quA0E4
+. . 
+# Yung ID galing sa URL ng Drive Folder mo:
+GOOGLE_DRIVE_PARENT_FOLDER_ID=1h1oLJq2hG8SPGUuNGvTXy7-612iwn1dL
+
+# Yung laman ng JSON file (Make sure naka-one line lang!):
+GOOGLE_SERVICE_ACCOUNT_JSON={
+  "type": "service_account",
+  "project_id": "ariseapi",
+  "private_key_id": "3491829321a9bb96ffeecc2a0586618f289fe0f2",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC53YxitbqoSZdq\n/PMny2ok8RoOTGJEvY5FkzF5jpo98HJ6Ut9cOxkoc4V+XzH1A0roICuXb/v9Dt3I\nCBAcHDwuQ6Hcqnk3qOEG3EUDq2LNjfL+3DY4IaOkelNXuqPmbAuGqgBK/MotgYFm\ndYWOu3g1Wx8Crn26GEZ1qlIEWF2WC7fiG5FnBnMFeedv4J7sJxljN1Fwdn4gXvrH\n+Yg3XROwR028c/TvShmrI1dAH2GRo96UUIApbO67sw9zi988SgFQOEc4wDRJkvTw\nGDpfYVXdEtYZFm+W067FqYsplp+1d3kM2Gnk6t8AnVDtg+WQ/yRpmyPElpBuRkOC\n3LwOmlLlAgMBAAECggEALMGX9MwQfMYtz05Gaip+LpOdQ9yqXCWuHPxfEUegxjIA\niwqqLP4xJm+88UuQjtCiaMeYX6DQc+UwzCJ+6Jn29ugD0cx+IIRK3ZlMiB/szJU2\nMp9J8hXNn0VyjMFNhua1FtIYfHYnZDJXe9noVZC4l1aQHtfwQA/o5ZwkIFY8AO16\npZq66kF17m6l2bZSGWIQeXWDh9ZMxMKcgT/4bX5DUFqmeCG6WJZVcFsr2zHs4T8l\nIjhIRJp+tKfNUhUwbQdGFuszSNorrzID8JLOpW0RjI4tvkIPEytg4yy628wWsCpJ\nKsjY9s6rCybOtvRjtcr/NJBETFWKxxIQiHVha6JRUQKBgQD+goM7NpO3sD7g0nZ+\nAjuxt2PYtp61HhqW+0HoMujyUpmLXYf7Wfvb2x01/CmE/FOHt3t4nbAuqKZWuhW3\nupbkAmh0ngV1pG33qr1z85RujVBMqoFQQWIWdGsdZhNUXY156rFs2ZsP3tSrH3QS\njmpw0Z0+xiPvaMrNP+2NC78I1QKBgQC69CTbiFPf+cI61L6JoVIDnF3sts/rgvkD\n3LyYGxaJr7JYQ3q8LsbpKxZR5HZWQpMAJ8QXD03JzQ11xmTqG5OFSE7T6+ydKl7p\nPE6TqMt9FdQG9hDkrA5/zzddF2Jnpn4nIps0k7LDr7Xn08+NBr8a9TshQqFpKfe2\nBVNMX1Ip0QKBgQDM3xxqRuWj4NDMwz408vFAfoJ2SZL58rCuxrToCEsx/UGySOkU\ncPvnn7sk4MY/Uaqfvhg7IJxZAtNbTtH6os2h3zpcXXPBnkoTKrL0qqfaUhDIlhwg\nEXG256Ht+WQn7mLbOAv4tjY3EUWaNmiGI3QVOvbcOD1nE7DkhchgWIs/vQKBgQC0\nEIaXc5zlcteidln2kYw+shK89e8Y9RMGp0p2blCs2K672HKUYbFvzvI2egeIWaLg\nWWzCkRjpLzixoR59ZYYWr2hNMUS6s56qok1EZyVnGukWs1XeCeIFM/4tCWLcVj3X\nT7uRTli1pb1cxmN3f3H9cwk6pcR1V9igVky+mGi4oQKBgFmac5S+mEuQq++hixsP\naN8xI/pikL4asSi+t5Tx4Hjld5R3m434WYBg/5Vrn8CuCUH8Q/y0uc2iaRKns8YP\nyz+kC5PfRiU+RshaUFU/y+IvqWycAuVykAyFEZ3wgPHoUC4HabaVsbaZtOUFQnSD\ns5lCTX0Ust5vVYw17vq8jEp4\n-----END PRIVATE KEY-----\n",
+  "client_email": "mainadmin@ariseapi.iam.gserviceaccount.com",
+  "client_id": "108504192109676210436",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mainadmin%40ariseapi.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+
+
+
+# --- EMAIL (SMTP) CONFIGURATION ---
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+
+# Your Gmail address:
+SMTP_USER=paldengcarl@gmail.com
+# HINDI ito yung login password mo. Ito yung 16-char App Password:
+SMTP_PASS=amrj nwrp ador elns
+
+# Kung ano gusto mo lumabas na pangalan sa email:
+SMTP_FROM="HR Admin <paldengcarl@gmail.com>"
+
+# Optional emails (pwedeng iwanang blank kung testing lang):
+LEAVE_NOTIFICATION_EMAILS=paldengcarl@gmail.com

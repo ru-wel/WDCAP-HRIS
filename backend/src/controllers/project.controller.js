@@ -106,3 +106,18 @@ export const getProjectMembers = async (req, res, next) => {
     next(error);
   }
 };
+
+// get current user's projects
+export const getMyProjects = async (req, res, next) => {
+  try {
+    const employeeDbId = req.user?.employee_db_id;
+    const rows = await projectService.getProjectsForEmployee(employeeDbId);
+    res.status(200).json({
+      success: true,
+      message: 'My projects retrieved successfully',
+      data: rows
+    });
+  } catch (error) {
+    next(error);
+  }
+};

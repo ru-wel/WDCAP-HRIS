@@ -8,6 +8,14 @@ import { get } from "../../services/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
 
+const getQuarterRange = (date) => {
+  const d = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
+  const year = d.getFullYear();
+  const month = d.getMonth();
+  const quarter = Math.floor(month / 3) + 1;
+  return { year, quarter };
+};
+
 function formatPrettyDate(iso) {
   const d = new Date(iso + "T00:00:00");
   return d.toLocaleDateString(undefined, {
@@ -105,11 +113,69 @@ function EventPopover({ open, anchor, data, onClose }) {
 export default function Leave() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const canManage = user?.role === ROLES.ADMIN || user?.role === ROLES.HR;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
   const [_loading, setLoading] = useState(false);
   const [rawEvents, setRawEvents] = useState([]);
+
+  const [calendarCursor, setCalendarCursor] = useState(() => new Date());
+  const [duePending, setDuePending] = useState([]);
+
+  const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
+
+  useEffect(() => {
+    if (!canManage) {
+      setDuePending([]);
+      return;
+    }
+
+    const fetchDue = async () => {
+      try {
+        const res = await get(
+          `/evaluations/pending?year=${encodeURIComponent(String(quarterInfo.year))}&quarter=${encodeURIComponent(String(quarterInfo.quarter))}`
+        );
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        setDuePending(rows);
+      } catch (e) {
+        console.error('Failed to load pending due evaluations (leave calendar):', e);
+        setDuePending([]);
+      }
+    };
+
+    fetchDue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canManage, quarterInfo.year, quarterInfo.quarter]);
+
+  const autoDueEvents = useMemo(() => {
+    if (!canManage) return [];
+    const rows = Array.isArray(duePending) ? duePending : [];
+    return rows
+      .filter((r) => r?.due_date)
+      .map((r) => {
+        const date = String(r.due_date).slice(0, 10);
+        const employeeName = String(r.employee_name || '').trim();
+        const type = String(r.evaluation_type || 'Evaluation').trim();
+        const title = `${employeeName} - ${type}`.trim();
+        return {
+          id: `eval-due-${String(r.employee_db_id || '')}-${date}-${type}`,
+          title,
+          start: date,
+          end: undefined,
+          dotColor: "#F59E0B",
+          pillBg: "#FFE1A3",
+          pillText: "#FF8A00",
+          category: "Evaluation",
+          calendarName: "Evaluation",
+          start_date: date,
+          end_date: date,
+          isAutoDue: true,
+        };
+      });
+  }, [canManage, duePending]);
+
+  const effectiveEvents = useMemo(() => [...rawEvents, ...autoDueEvents], [rawEvents, autoDueEvents]);
 
   const fetchCalendar = async () => {
     try {
@@ -164,7 +230,7 @@ export default function Leave() {
   const leaveTypeOptions = useMemo(() => {
     const types = Array.from(
       new Set(
-        rawEvents
+        effectiveEvents
           .map((e) => e.calendarName)
           .filter((v) => typeof v === 'string' && v.trim().length)
       )
@@ -174,10 +240,10 @@ export default function Leave() {
       { value: 'all', label: 'All' },
       ...types.map((t) => ({ value: t, label: t })),
     ];
-  }, [rawEvents]);
+  }, [effectiveEvents]);
 
   const filteredEvents = useMemo(() => {
-    let list = rawEvents;
+    let list = effectiveEvents;
 
     if (leaveTypeFilter !== 'all') {
       list = list.filter((e) => String(e.calendarName || '') === leaveTypeFilter);
@@ -186,7 +252,7 @@ export default function Leave() {
     if (!searchTerm) return list;
     const q = searchTerm.toLowerCase();
     return list.filter((e) => String(e.title || "").toLowerCase().includes(q));
-  }, [rawEvents, searchTerm, leaveTypeFilter]);
+  }, [effectiveEvents, searchTerm, leaveTypeFilter]);
 
   const calendarEvents = useMemo(
     () =>
@@ -229,10 +295,10 @@ export default function Leave() {
 
   return (
     <div>
-      <div className="p-7 lg:mx-18 md:mx-10">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-[#990100]">Leave</h1>
-          <div className="flex gap-3">
+      <div className="p-4 sm:p-6 lg:p-7 md:mx-10 lg:mx-[4.5rem]">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#990100]">Leave</h1>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <DropDownFilter
               label="Leave Type"
               value={leaveTypeFilter}
@@ -242,7 +308,7 @@ export default function Leave() {
             <input
               type="search"
               placeholder="Search"
-              className="border border-[#990100] rounded-lg px-3 h-9 text-sm"
+              className="border border-[#990100] rounded-lg px-3 h-9 text-sm w-full sm:w-auto"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -267,6 +333,11 @@ export default function Leave() {
                 left: "prev,next today",
                 center: "title",
                 right: "",
+              }}
+
+              datesSet={(arg) => {
+                const cur = arg?.view?.currentStart;
+                if (cur instanceof Date && !Number.isNaN(cur.getTime())) setCalendarCursor(cur);
               }}
 
               events={calendarEvents}
@@ -305,6 +376,12 @@ export default function Leave() {
               />
               <span>SIL</span>
             </div>
+            {canManage ? (
+              <div className="gc-legend-item">
+                <span className="gc-legend-color" style={{ background: "#F59E0B" }} />
+                <span>Evaluation</span>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

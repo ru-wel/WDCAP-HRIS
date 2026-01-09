@@ -29,6 +29,8 @@ router.get('/me', evaluationController.listMyEvaluations);
 
 // Admin/HR: list + schedule management
 router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.listEvaluationsSchema), evaluationController.listEvaluations);
+router.get('/pending', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.pendingDueSchema), evaluationController.listPendingDueEvaluations);
+router.post('/ensure-schedule', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.ensureScheduleSchema), evaluationController.ensureSchedule);
 router.post('/schedule', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.createScheduleSchema), evaluationController.createSchedule);
 
 // Shared (employee ownership enforced in controller)

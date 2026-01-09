@@ -1,9 +1,12 @@
 .react-calendar{
-    font-family: var(--font-body) !important;
-  border-radius: 10px;
-  /*background-color: #EDEDED !important;*/
-  border: none !important;
-  height: 275px;
+        font-family: var(--font-body) !important;
+    border-radius: 10px;
+    /*background-color: #EDEDED !important;*/
+    border: none !important;
+    height: 275px;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
 }
 
 .react-calendar * {
@@ -77,12 +80,44 @@
     }
 
 
-/* TABLET VIEWPORT */
+/* TABLET AND MOBILE VIEWPORT */
+
+@media (max-width: 1024px) {
+    .react-calendar {
+        height: 260px;
+    }
+
+    .react-calendar__tile {
+        padding: 5px;
+        min-height: 35px;
+    }
+
+    .react-calendar__navigation button {
+        min-width: 30px;
+        padding: 4px;
+    }
+}
 
 @media (max-width: 768px){
 
     #calendar{
         display: none;
+    }
+
+    .react-calendar {
+        height: 240px;
+        font-size: 12px;
+    }
+
+    .react-calendar__tile {
+        padding: 4px;
+        min-height: 30px;
+        font-size: 11px;
+    }
+
+    .react-calendar__navigation button {
+        min-width: 25px;
+        font-size: 12px;
     }
 
     /*.react-calendar{
@@ -128,4 +163,39 @@
         background: none;
     }*/
 
+}
+
+/* MOBILE VIEWPORT - Very small screens */
+@media (max-width: 480px) {
+    .react-calendar {
+        height: 220px;
+        font-size: 11px;
+    }
+
+    .react-calendar__tile {
+        padding: 3px;
+        min-height: 28px;
+        font-size: 10px;
+    }
+
+    .react-calendar__navigation {
+        height: 40px;
+        margin-bottom: 0.5em;
+    }
+
+    .react-calendar__navigation button {
+        min-width: 20px;
+        font-size: 11px;
+        padding: 2px;
+    }
+
+    .react-calendar__month-view__weekdays {
+        font-size: 10px;
+    }
+
+    .react-calendar__year-view__months__month,
+    .react-calendar__decade-view__years__year {
+        padding: 8px !important;
+        font-size: 11px;
+    }
 }

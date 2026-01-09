@@ -202,6 +202,25 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
 }
 
 function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading, onOpenDoc, onUpdateEvaluation, canUpdate }) {
+  const formatNotesForCell = (raw) => {
+    const text = String(raw || '').replace(/\r\n/g, '\n');
+    if (!text.trim()) return '—';
+
+    const pick = (re) => {
+      const m = text.match(re);
+      return m && m[1] ? String(m[1]).trim() : '';
+    };
+
+    const score = pick(/^\s*Score\s*:\s*(.+)\s*$/im) || pick(/^\s*Total\s*Score\s*:\s*(.+)\s*$/im);
+    const remarks = pick(/^\s*Remarks\s*:\s*(.+)\s*$/im) || pick(/^\s*Comments\s*:\s*(.+)\s*$/im);
+
+    if (score || remarks) {
+      return [score ? `Score: ${score}` : null, remarks ? `Remarks: ${remarks}` : null].filter(Boolean).join('\n');
+    }
+
+    // Fallback for legacy/unknown formats
+    return text.trim();
+  };
   const employeeName = employee?.name || 'Employee';
   const position = employee?.position || 'N/A';
   const personnelType = employee?.type || 'N/A';
@@ -273,14 +292,16 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                         const breakdown = docs?.breakdown || null;
                         const finalDoc = docs?.final || null;
                         const legacyFile = docs?.file || null;
+                        const formDoc = docs?.form || null;
                         const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
                         const finalLabel = finalDoc?.fileName || 'Final';
+                        const formLabel = formDoc?.fileName || 'Evaluation Form';
 
                         return (
                           <tr key={ev?.evaluation_id} className="tr-style">
                             <td className="td-style font-medium">{ev?.evaluation_type || '—'}</td>
                             <td className="td-style">{formatShortDate(ev?.evaluation_date) || '—'}</td>
-                            <td className="td-style whitespace-pre-wrap">{ev?.evaluation_notes || '—'}</td>
+                            <td className="td-style whitespace-pre-wrap">{formatNotesForCell(ev?.evaluation_notes)}</td>
                             <td className="td-style">
                               {breakdown || legacyFile ? (
                                 <button
@@ -309,15 +330,36 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                             </td>
                             <td className="td-style">
                               {canUpdate ? (
-                                <button
-                                  type="button"
-                                  className="bg-green-600 text-white px-3 py-1 rounded-md text-xs hover:bg-green-700 transition"
-                                  onClick={() => onUpdateEvaluation(ev)}
-                                >
-                                  Upload/Update
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  {formDoc ? (
+                                    <button
+                                      type="button"
+                                      className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                      onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
+                                    >
+                                      Form
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="bg-green-600 text-white px-3 py-1 rounded-md text-xs hover:bg-green-700 transition"
+                                    onClick={() => onUpdateEvaluation(ev)}
+                                  >
+                                    Upload/Update
+                                  </button>
+                                </div>
                               ) : (
-                                <span className="text-gray-500 text-xs">—</span>
+                                formDoc ? (
+                                  <button
+                                    type="button"
+                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                    onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
+                                  >
+                                    Form
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-500 text-xs">—</span>
+                                )
                               )}
                             </td>
                           </tr>
@@ -766,7 +808,7 @@ export default function EvaluationHistory() {
   };
 
   return (
-    <div className="p-7 lg:mx-18 md:mx-10">
+    <div className="p-7 lg:mx-[4.5rem] md:mx-10">
       <div className="flex justify-between items-center w-full">
         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">Evaluation History</h1>
 

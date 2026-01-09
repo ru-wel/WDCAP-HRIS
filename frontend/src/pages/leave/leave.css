@@ -258,3 +258,165 @@
   padding: 0 !important;
   margin: 0 !important;
 }
+/* ================= RESPONSIVE IMPROVEMENTS ================= */
+
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .fc .fc-toolbar-title {
+    font-size: 22px;
+  }
+
+  .fc .fc-prev-button,
+  .fc .fc-next-button {
+    width: 36px;
+    height: 32px;
+  }
+
+  .fc .fc-today-button {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .fc .fc-daygrid-day-frame {
+    min-height: 100px;
+    padding: 6px;
+  }
+
+  .gc-legend {
+    height: auto;
+    min-height: 400px;
+  }
+
+  .gc-event-pill {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 18px;
+    order: -1;
+  }
+
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  .fc .fc-prev-button,
+  .fc .fc-next-button {
+    width: 32px;
+    height: 30px;
+  }
+
+  .fc .fc-prev-button .fc-icon,
+  .fc .fc-next-button .fc-icon {
+    font-size: 14px;
+  }
+
+  .fc .fc-today-button {
+    height: 30px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
+
+  .fc .fc-col-header-cell-cushion {
+    padding: 6px 0;
+    font-size: 11px;
+  }
+
+  .fc .fc-daygrid-day-frame {
+    min-height: 80px;
+    padding: 4px;
+  }
+
+  .fc .fc-daygrid-day-number {
+    font-size: 11px;
+  }
+
+  .gc-event-pill {
+    padding: 3px 6px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+
+  .gc-legend {
+    padding: 14px;
+    height: auto;
+    min-height: 300px;
+  }
+
+  .gc-legend-title {
+    font-size: 18px;
+  }
+
+  .gc-legend-item {
+    font-size: 12px;
+    margin-top: 12px;
+    gap: 8px;
+  }
+
+  .gc-legend-color {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Stack calendar and legend vertically on mobile */
+  .grid.lg\\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Very small mobile devices */
+@media (max-width: 480px) {
+  .fc .fc-toolbar-title {
+    font-size: 16px;
+  }
+
+  .fc .fc-prev-button,
+  .fc .fc-next-button {
+    width: 28px;
+    height: 28px;
+  }
+
+  .fc .fc-today-button {
+    height: 28px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .fc .fc-col-header-cell-cushion {
+    font-size: 10px;
+  }
+
+  .fc .fc-daygrid-day-frame {
+    min-height: 70px;
+    padding: 3px;
+  }
+
+  .fc .fc-daygrid-day-number {
+    font-size: 10px;
+  }
+
+  .gc-event-pill {
+    padding: 2px 5px;
+    font-size: 9px;
+  }
+
+  .fc .fc-more-popover {
+    max-height: 60vh;
+  }
+
+  .fc .fc-more-popover .fc-popover-body {
+    max-height: 45vh;
+  }
+}

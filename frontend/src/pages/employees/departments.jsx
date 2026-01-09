@@ -396,8 +396,6 @@ export default function Departments() {
     setActiveEditDeptId(null);
   };
 
-  const startDelete = () => setMode("delete");
-
   const hasUnsavedChanges = () => {
     if (mode === 'add') return Boolean(newDeptName.trim());
     if (mode !== 'edit') return false;
@@ -600,7 +598,7 @@ export default function Departments() {
     <div>
       <Navbar />
 
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
             Departments
@@ -702,7 +700,7 @@ export default function Departments() {
                   onClick={() =>
                     openConfirm({
                       title: 'Update departments',
-                      message: 'Enter edit mode? You can update or delete departments.',
+                      message: 'Enter edit mode? You can update departments.',
                       confirmText: 'OK',
                       cancelText: 'Cancel',
                       onConfirm: () => setShowUpdateActions(true),
@@ -713,19 +711,18 @@ export default function Departments() {
                 </button>
               ) : (
                 <div className="flex gap-3">
-                  <button
-                    onClick={startDelete}
-                    className="cursor-pointer bg-red-700 text-white px-4 py-2 rounded-md
-                               hover:bg-red-600 hover:scale-105
-                               transition duration-300 ease-in-out"
-                  >
-                    Delete Department
-                  </button>
                   <button className="green-button" onClick={startEdit}>
                     Edit Departments
                   </button>
                   <button className="mustard-button" onClick={startAdd}>
                     Add New Department
+                  </button>
+                  <button
+                    type="button"
+                    className="cursor-pointer bg-[#990100] text-white px-4 py-2 rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                    onClick={() => setShowUpdateActions(false)}
+                  >
+                    Cancel
                   </button>
                 </div>
               )}

@@ -284,7 +284,7 @@ function EvaluationLogs() {
     <div>
       <Navbar />
 
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         {/* HEADER */}
         <div className="md:flex justify-between items-center w-full mb-5">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">Evaluation</h1>

@@ -46,15 +46,9 @@ export const createEmployeeWithAccountSchema = Joi.object({
     'string.email': 'Please provide a valid email address',
     'any.required': 'Email is required'
   }),
-  password: Joi.string()
-    .min(8)
-    .pattern(new RegExp('^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)'))
-    .required()
-    .messages({
-      'string.min': 'Password must be at least 8 characters long',
-      'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
-      'any.required': 'Password is required'
-    }),
+  // Password is auto-assigned by the system after employee_id is generated.
+  // We accept it for backward compatibility but do not require it.
+  password: Joi.string().trim().allow('', null).optional(),
   role: Joi.string().valid(ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE).default(ROLES.EMPLOYEE).messages({
     'any.only': 'Role must be either Admin, HR, or Employee'
   }),

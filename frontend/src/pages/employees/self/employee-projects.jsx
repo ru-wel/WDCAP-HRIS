@@ -53,11 +53,12 @@ export default function EmployeeProjects() {
   const [projects, setProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('project_name_az');
+  const [isProjectBased, setIsProjectBased] = useState(false);
 
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      const res = await get('/projects');
+      const res = await get('/projects/my');
       const rows = Array.isArray(res?.data) ? res.data : [];
       setProjects(rows);
     } catch (e) {
@@ -69,7 +70,19 @@ export default function EmployeeProjects() {
   };
 
   useEffect(() => {
-    fetchProjects();
+    const run = async () => {
+      try {
+        const me = await get('/employees/me');
+        const personnel = String(me?.data?.personnel_type || '').trim().toLowerCase();
+        const isPb = personnel === 'project-based' || personnel === 'project based';
+        setIsProjectBased(isPb);
+        if (!isPb) await fetchProjects();
+      } catch {
+        setIsProjectBased(false);
+        await fetchProjects();
+      }
+    };
+    run();
   }, []);
 
   const filtered = useMemo(() => {
@@ -117,7 +130,7 @@ export default function EmployeeProjects() {
     <div>
       <Navbar />
 
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Projects</h1>
 
@@ -161,10 +174,12 @@ export default function EmployeeProjects() {
         <hr className="text-[#990100] mt-6" />
 
         <div className="mt-6">
-          {loading ? (
+          {isProjectBased ? (
+            <div className="text-sm text-gray-600">Projects are not available for Project-Based employees.</div>
+          ) : loading ? (
             <div className="text-sm text-gray-600">Loading projects…</div>
           ) : filtered.length === 0 ? (
-            <div className="text-sm text-gray-600">No projects found.</div>
+            <div className="text-sm text-gray-600">No Projects Displayed at the moment.</div>
           ) : (
             <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-6">
               {visibleProjects.map((p) => (

@@ -42,10 +42,10 @@ function CalendarModal({ open, onClose }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-[#990100]">Calendar</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-x-hidden">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-[#990100]">Calendar</h2>
           <button
             type="button"
             onClick={onClose}
@@ -55,9 +55,9 @@ function CalendarModal({ open, onClose }) {
           </button>
         </div>
 
-        <div className="p-6 flex items-center justify-center">
-          <div className="flex justify-center w-full">
-            <Calendar className="rounded-lg border border-gray-300 p-3" />
+        <div className="p-4 sm:p-6 flex items-center justify-center overflow-x-hidden">
+          <div className="flex justify-center w-full min-w-0 overflow-x-hidden">
+            <Calendar className="rounded-lg border border-gray-300 p-2 sm:p-3 w-full max-w-full" />
           </div>
         </div>
       </div>
@@ -118,6 +118,12 @@ const normalizeSummary = (payload) => {
             id: typeof r.target_employee.id === 'string' ? r.target_employee.id : null,
             employeeCode: typeof r.target_employee.employee_code === 'string' ? r.target_employee.employee_code : null,
             name: typeof r.target_employee.name === 'string' ? r.target_employee.name : null,
+          }
+          : null,
+        targetProject: r.target_project && typeof r.target_project === 'object'
+          ? {
+            id: typeof r.target_project.id === 'string' ? r.target_project.id : null,
+            name: typeof r.target_project.name === 'string' ? r.target_project.name : null,
           }
           : null,
         user: {
@@ -241,9 +247,14 @@ const pickAuditTarget = (row) => {
     if (targetEmployeeLabel) return targetEmployeeLabel;
   }
   if (table === 'project_assignments') {
-    const emp = String(v.employee_id || v.employee_name || '').trim();
-    const proj = String(v.project_id || v.project_name || '').trim();
-    const label = [emp, proj].filter(Boolean).join(' → ');
+    const empLabel = (() => {
+      const name = String(row?.targetEmployee?.name || '').trim();
+      const code = String(row?.targetEmployee?.employeeCode || '').trim();
+      if (name && code) return `${name} (${code})`;
+      return name || code || '';
+    })();
+    const projLabel = String(row?.targetProject?.name || v.project_name || '').trim();
+    const label = [empLabel, projLabel].filter(Boolean).join(' → ');
     if (label) return label;
   }
   if (table === 'performance_evaluations' || table === 'evaluation') {
@@ -344,6 +355,7 @@ function Dashboard() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
   const canSeeAuditDashboard = user?.role === ROLES.ADMIN;
+  const [isProjectBased, setIsProjectBased] = useState(false);
 
   const rawName = String(user?.name || '').trim();
   const safeName = rawName && !rawName.includes('@') ? rawName : '';
@@ -398,6 +410,26 @@ function Dashboard() {
     };
   }, []);
 
+  // For employees: determine if project-based to hide Projects card
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!isEmployee) {
+        setIsProjectBased(false);
+        return;
+      }
+      try {
+        const res = await get('/employees/me');
+        const personnel = String(res?.data?.personnel_type || '').trim().toLowerCase();
+        if (!cancelled) setIsProjectBased(personnel === 'project-based' || personnel === 'project based');
+      } catch {
+        if (!cancelled) setIsProjectBased(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [isEmployee]);
+
   const statValues = useMemo(() => {
     return {
       employees: summary.employeesCount ?? '—',
@@ -410,7 +442,7 @@ function Dashboard() {
 
   return (
     <div>
-      <div className="px-6 lg:px-10 py-6">
+      <div className="p-4 sm:p-6 lg:p-7 md:mx-10 lg:mx-[4.5rem]">
         <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-[#990100]">
@@ -457,12 +489,14 @@ function Dashboard() {
                 value="View"
                 onClick={() => navigate("/evaluation/history")}
               />
-              <StatCard
-                title="Projects"
-                icon="icons/red-projects.png"
-                value={loading ? '…' : statValues.activeProjects}
-                onClick={() => navigate("/projects")}
-              />
+              {isProjectBased ? null : (
+                <StatCard
+                  title="Projects"
+                  icon="icons/red-projects.png"
+                  value={loading ? '…' : statValues.activeProjects}
+                  onClick={() => navigate("/projects")}
+                />
+              )}
             </section>
 
             <section className="mt-8">
@@ -489,17 +523,17 @@ function Dashboard() {
                           const route = getAuditRouteForRow(row);
                           if (route) navigate(route);
                         }}
-                        className="flex items-start justify-between border-b border-[#f0dede] pb-3 rounded-md px-2 -mx-2 cursor-pointer hover:bg-gray-50"
+                        className="flex min-w-0 items-start justify-between gap-3 border-b border-[#f0dede] pb-3 rounded-md px-2 cursor-pointer hover:bg-gray-50"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm text-gray-900">
-                            <span className="font-semibold">
+                            <span className="font-semibold block truncate">
                               {row.user.email || 'Unknown user'}
                             </span>
                           </p>
                           <p className="text-xs text-gray-600 mt-1">{formatAuditAction(row)}</p>
                         </div>
-                        <span className="text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
+                        <span className="shrink-0 text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
                           {row.user.role || 'User'}
                         </span>
                       </div>
@@ -631,17 +665,17 @@ function Dashboard() {
                           const route = getAuditRouteForRow(row);
                           if (route) navigate(route);
                         }}
-                        className="flex items-start justify-between border-b border-[#f0dede] pb-3 rounded-md px-2 -mx-2 cursor-pointer hover:bg-gray-50"
+                        className="flex min-w-0 items-start justify-between gap-3 border-b border-[#f0dede] pb-3 rounded-md px-2 cursor-pointer hover:bg-gray-50"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm text-gray-900">
-                            <span className="font-semibold">
+                            <span className="font-semibold block truncate">
                               {row.actor?.name || row.user.email || 'Unknown user'}
                             </span>
                           </p>
                           <p className="text-xs text-gray-600 mt-1">{formatAuditAction(row)}</p>
                         </div>
-                        <span className="text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
+                        <span className="shrink-0 text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
                           {row.actor?.role || row.user.role || 'User'}
                         </span>
                       </div>

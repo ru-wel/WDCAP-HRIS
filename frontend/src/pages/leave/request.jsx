@@ -179,6 +179,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -190,14 +191,21 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
     const fetchTypes = async () => {
       try {
         setLoadingTypes(true);
+        // Load employee profile for eligibility checks
+        try {
+          const prof = await get('/employees/me');
+          setEmployeeProfile(prof?.data || null);
+        } catch {
+          setEmployeeProfile(null);
+        }
+
         const resp = await get("/leave/types");
         const types = Array.isArray(resp?.data) ? resp.data : [];
         setLeaveTypes(types);
-        if (types.length) {
-          setLeaveTypeId(String(types[0].leave_type_id ?? ""));
-        } else {
-          setLeaveTypeId("");
-        }
+
+        // Preselect the first enabled type
+        const firstEnabled = types.find((t) => isTypeEnabled(t));
+        setLeaveTypeId(firstEnabled ? String(firstEnabled.leave_type_id ?? "") : "");
       } catch (e) {
         console.error("Failed to load leave types:", e);
         setLeaveTypes([]);
@@ -209,6 +217,33 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
 
     fetchTypes();
   }, [open]);
+
+  const isTypeEnabled = (t) => {
+    const name = String(t?.leave_type_name || '').toLowerCase();
+    const hireDateIso = String(employeeProfile?.hire_date || '').slice(0, 10);
+    const personnelType = String(employeeProfile?.personnel_type || '').toLowerCase();
+
+    let probationary = personnelType === 'probationary';
+
+    if (probationary && hireDateIso) {
+      try {
+        const hired = new Date(`${hireDateIso}T00:00:00`);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - hired.getTime()) / (24 * 60 * 60 * 1000));
+        if (diffDays >= 365) probationary = false; // treat as regularized after 1 year
+      } catch {
+        // ignore parse errors; fall back to personnel type only
+      }
+    }
+
+    if (probationary) {
+      // Only Leave Without Pay allowed during probationary period
+      return name.includes('without pay');
+    }
+
+    // Regular / others: allow all
+    return true;
+  };
 
   const canSubmit = Boolean(leaveTypeId && startDate && endDate);
 
@@ -265,7 +300,11 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
               <option value="">Loading…</option>
             ) : leaveTypes.length ? (
               leaveTypes.map((t) => (
-                <option key={String(t.leave_type_id)} value={String(t.leave_type_id)}>
+                <option
+                  key={String(t.leave_type_id)}
+                  value={String(t.leave_type_id)}
+                  disabled={!isTypeEnabled(t)}
+                >
                   {t.leave_type_name}
                 </option>
               ))
@@ -273,6 +312,29 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
               <option value="">No leave types</option>
             )}
           </select>
+
+          {(() => {
+            const type = String(employeeProfile?.personnel_type || '').toLowerCase();
+            const hire = String(employeeProfile?.hire_date || '').slice(0, 10);
+            let show = false;
+            if (type === 'probationary') {
+              show = true;
+              if (hire) {
+                try {
+                  const d = new Date(`${hire}T00:00:00`);
+                  const diff = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+                  if (diff >= 365) show = false;
+                } catch {
+                  // ignore
+                }
+              }
+            }
+            return show ? (
+              <div className="col-span-2 text-xs text-gray-600">
+                Only <b>Leave Without Pay</b> is available during the probationary period.
+              </div>
+            ) : null;
+          })()}
 
           <div className="text-right font-semibold">Start Date:</div>
           <input
@@ -624,7 +686,7 @@ function LeaveRequest() {
 
   return (
     <div>
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
             Leave Requests

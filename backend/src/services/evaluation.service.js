@@ -3,7 +3,13 @@ import { BadRequestError, InternalServerError, NotFoundError } from '../utils/er
 import { AUDIT_ACTIONS } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from './mail.service.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { deleteFromDrive, downloadFromDrive, ensureDriveUserAccess, getOrCreateEmployeeFolder, getOrCreateFolder, isDriveEnabled, uploadToDrive } from './googleDrive.service.js';
+import { uploadEvaluationFormToDrive } from './googleDriveEvaluation.service.js';
+import { buildEvaluationFormPdfBuffer } from './googleDriveEvaluation.service.js';
+import { Readable } from 'stream';
 
 const EVALUATION_FIELDS = `
   evaluation_id,
@@ -31,6 +37,49 @@ const WEBSITE_COLORS = {
   gray: '#6B7280'
 };
 
+const LOGO_CID = 'arise-logo-login';
+let cachedLogoAttachment = undefined;
+
+const getEmailLogoAttachment = async () => {
+  if (cachedLogoAttachment !== undefined) return cachedLogoAttachment;
+
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const logoPath = path.resolve(__dirname, '../../../frontend/public/arise-logo-login.png');
+    const content = await fs.readFile(logoPath);
+
+    cachedLogoAttachment = {
+      filename: 'arise-logo-login.png',
+      content,
+      cid: LOGO_CID,
+      contentType: 'image/png'
+    };
+
+    return cachedLogoAttachment;
+  } catch {
+    cachedLogoAttachment = null;
+    return null;
+  }
+};
+
+const getFrontendBaseUrl = () => {
+  const raw = String(process.env.FRONTEND_URL || process.env.CLIENT_URL || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\/$/, '');
+};
+
+const formatLetterDate = (value) => {
+  const d = value ? new Date(value) : new Date();
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-US', {
+    timeZone: 'Asia/Manila',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+};
+
 const toIsoDate = (value) => {
   if (!value) return '';
   if (typeof value === 'string') return value.slice(0, 10);
@@ -39,6 +88,52 @@ const toIsoDate = (value) => {
   } catch {
     return '';
   }
+};
+
+const toUtcIsoDate = (dt) => {
+  if (!(dt instanceof Date) || Number.isNaN(dt.getTime())) return '';
+  return dt.toISOString().slice(0, 10);
+};
+
+const parseIsoDateUtc = (iso) => {
+  const s = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return new Date(`${s}T00:00:00Z`);
+};
+
+const addMonthsUtcClamped = (dt, months) => {
+  if (!(dt instanceof Date) || Number.isNaN(dt.getTime())) return null;
+  const baseY = dt.getUTCFullYear();
+  const baseM = dt.getUTCMonth();
+  const baseD = dt.getUTCDate();
+
+  const targetMonthStart = new Date(Date.UTC(baseY, baseM + Number(months || 0), 1));
+  const y = targetMonthStart.getUTCFullYear();
+  const m = targetMonthStart.getUTCMonth();
+  const maxDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const d = Math.min(baseD, maxDay);
+  return new Date(Date.UTC(y, m, d));
+};
+
+const hasScoreOrRemarks = (notes) => {
+  const s = String(notes || '').trim();
+  if (!s) return false;
+  return /^\s*(score|remarks)\s*:/im.test(s);
+};
+
+const isEmptyDoc = (docPath) => {
+  if (docPath === null || typeof docPath === 'undefined') return true;
+  if (typeof docPath === 'object') return Object.keys(docPath || {}).length === 0;
+  return String(docPath).trim().length === 0;
+};
+
+const buildQuarterRangeUtc = ({ year, quarter }) => {
+  const y = Number(year);
+  const q = Number(quarter);
+  const startMonth = (q - 1) * 3;
+  const start = new Date(Date.UTC(y, startMonth, 1));
+  const end = new Date(Date.UTC(y, startMonth + 3, 0));
+  return { startIso: toUtcIsoDate(start), endIso: toUtcIsoDate(end) };
 };
 
 const formatEmployeeName = (employee) => {
@@ -59,25 +154,37 @@ const safeJsonParse = (value) => {
   }
 };
 
-const buildEvaluationEmailHtml = ({ title, message, recipientName, details, statusPill }) => {
+const buildEvaluationEmailHtml = ({ title, message, recipientName, details, statusPill, logoSrc, date }) => {
   const safeDetails = (details || []).filter((d) => d && d.label);
   const safeRecipient = String(recipientName || 'Sir/Ma’am');
+  const dateLine = formatLetterDate(date);
   const safeTitle = String(title || 'Evaluation');
 
   const pillBg = statusPill?.bg || WEBSITE_COLORS.mustard;
   const pillLabel = statusPill?.label || 'NOTICE';
 
+  const frontendBase = getFrontendBaseUrl();
+  const logoUrl = frontendBase ? `${frontendBase}/arise-logo-login.png` : '';
+  const effectiveLogoSrc = logoSrc || logoUrl;
+
+  const confidentiality =
+    'Confidentiality Notice: This e-mail communication and any attachments may contain confidential and privileged information for the use of the designated recipient(s). If you are not the intended recipient, any review, disclosure, dissemination, distribution, or copying of this message is prohibited. If you have received this communication in error, please notify the sender immediately by replying to this message and delete it from your computer.';
+
   return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${WEBSITE_COLORS.red};padding:24px 0;margin:0;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${WEBSITE_COLORS.red};padding:24px 0;margin:0;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
       <tr>
         <td align="center" style="padding:0 16px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;background:#ffffff;border-radius:14px;overflow:hidden;">
             <tr>
-              <td style="padding:20px 22px 18px;">
+              <td style="padding:20px 22px 12px;">
+                <div style="text-align:center;margin:2px 0 12px;">
+                  ${effectiveLogoSrc ? `<img src="${escapeHtml(effectiveLogoSrc)}" alt="ARISE" style="max-width:170px;height:auto;display:inline-block;" />` : ''}
+                </div>
+
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
                   <tr>
                     <td align="left" style="padding:0;">
-                      <div style="letter-spacing:0.04em;font-size:22px;color:${WEBSITE_COLORS.red};font-weight:800;margin:0;">
+                      <div style="font-family:'Bebas Neue','Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;letter-spacing:0.04em;font-size:24px;color:${WEBSITE_COLORS.red};margin:0;">
                         ${escapeHtml(safeTitle)}
                       </div>
                     </td>
@@ -88,6 +195,8 @@ const buildEvaluationEmailHtml = ({ title, message, recipientName, details, stat
                     </td>
                   </tr>
                 </table>
+
+                ${dateLine ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">${escapeHtml(dateLine)}</div>` : ''}
 
                 <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
 
@@ -108,6 +217,14 @@ const buildEvaluationEmailHtml = ({ title, message, recipientName, details, stat
               </td>
             </tr>
           </table>
+
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;margin-top:14px;">
+            <tr>
+              <td style="padding:0 6px;font-size:11px;line-height:1.5;color:#fef2f2;opacity:0.9;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+                <i>${escapeHtml(confidentiality)}</i>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
@@ -115,6 +232,20 @@ const buildEvaluationEmailHtml = ({ title, message, recipientName, details, stat
 };
 
 const getEmployeeRecipientEmail = async (employee) => {
+  const userId = employee?.user_id;
+  if (userId) {
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', userId)
+        .maybeSingle();
+      if (data?.email) return data.email;
+    } catch {
+      // fall through
+    }
+  }
+
   const employeeCode = employee?.employee_id;
   if (!employeeCode) return '';
 
@@ -163,7 +294,18 @@ export const listEvaluations = async ({ employee_id, from, to } = {}) => {
     const { data, error } = await query;
     if (error) throw new InternalServerError(error.message);
 
-    return (data || []).map((r) => ({
+    const rows = Array.isArray(data) ? data : [];
+
+    // Defensive de-dupe: some schemas/joins can yield duplicate evaluation rows.
+    // Keep the first occurrence per evaluation_id.
+    const byId = new Map();
+    for (const r of rows) {
+      const key = String(r?.evaluation_id ?? '');
+      if (!key) continue;
+      if (!byId.has(key)) byId.set(key, r);
+    }
+
+    return Array.from(byId.values()).map((r) => ({
       ...r,
       employee_name: formatEmployeeName(r.employees),
       employee_code: r.employees?.employee_id || null,
@@ -204,7 +346,7 @@ export const createSchedule = async (payload, user) => {
 
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, employee_id, first_name, last_name')
+    .select('id, user_id, employee_id, first_name, last_name')
     .eq('id', payload.employee_id)
     .single();
 
@@ -261,11 +403,16 @@ export const createSchedule = async (payload, user) => {
   try {
     const recipientEmail = await getEmployeeRecipientEmail(employee);
     if (recipientEmail) {
+      const logoAttachment = await getEmailLogoAttachment();
+      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
       const html = buildEvaluationEmailHtml({
         title: 'Evaluation Scheduled',
         message: 'Your performance evaluation has been scheduled. Please check the details below.',
         recipientName: employee.first_name || formatEmployeeName(employee) || 'Employee',
         statusPill: { label: 'SCHEDULED', bg: WEBSITE_COLORS.mustard },
+        logoSrc,
+        date: created.evaluation_date,
         details: [
           { label: 'Type', value: created.evaluation_type },
           { label: 'Date', value: toIsoDate(created.evaluation_date) }
@@ -274,9 +421,10 @@ export const createSchedule = async (payload, user) => {
 
       await sendEmail({
         to: recipientEmail,
-        subject: 'Evaluation Scheduled',
+        subject: 'WDCAP HRIS — Evaluation Scheduled',
         text: `Your evaluation has been scheduled.\nType: ${created.evaluation_type}\nDate: ${toIsoDate(created.evaluation_date)}`,
-        html
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined
       });
     }
   } catch (e) {
@@ -290,6 +438,188 @@ export const createSchedule = async (payload, user) => {
     position_title: created.employees?.positions?.position_title || null,
     personnel_type: created.employees?.personnel_type || null
   };
+};
+
+export const ensureSchedule = async (payload, user) => {
+  if (!payload?.employee_id) throw new BadRequestError('Employee is required');
+  if (!payload?.evaluation_type) throw new BadRequestError('Evaluation type is required');
+  if (!payload?.evaluation_date) throw new BadRequestError('Evaluation date is required');
+
+  const now = new Date().toISOString();
+  const evalDate = toIsoDate(payload.evaluation_date);
+
+  // If a schedule already exists for this employee/type/date, reuse it.
+  const { data: existing, error: existingErr } = await supabase
+    .from('performance_evaluations')
+    .select(EVALUATION_FIELDS)
+    .eq('employee_id', payload.employee_id)
+    .eq('evaluation_type', payload.evaluation_type)
+    .eq('evaluation_date', evalDate)
+    .maybeSingle();
+
+  if (existingErr) throw new InternalServerError(existingErr.message);
+  if (existing) {
+    return {
+      ...existing,
+      employee_name: formatEmployeeName(existing.employees),
+      employee_code: existing.employees?.employee_id || null,
+      position_title: existing.employees?.positions?.position_title || null,
+      personnel_type: existing.employees?.personnel_type || null
+    };
+  }
+
+  // Ensure employee exists.
+  const { data: employee, error: empErr } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('id', payload.employee_id)
+    .maybeSingle();
+
+  if (empErr) throw new InternalServerError(empErr.message);
+  if (!employee) throw new NotFoundError('Employee not found');
+
+  const insertPayload = {
+    employee_id: payload.employee_id,
+    evaluation_type: payload.evaluation_type,
+    evaluation_date: evalDate,
+    evaluation_notes: null,
+    evaluation_document_path: null,
+    created_at: now,
+    updated_at: now
+  };
+
+  const { data: created, error } = await supabase
+    .from('performance_evaluations')
+    .insert(insertPayload)
+    .select(EVALUATION_FIELDS)
+    .single();
+
+  if (error) throw new InternalServerError(error.message);
+
+  // audit log (best-effort)
+  try {
+    if (user?.id) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action_type: AUDIT_ACTIONS.CREATE,
+        table_name: 'performance_evaluations',
+        record_id: String(created.evaluation_id),
+        new_values: created,
+        timestamp: now
+      });
+    }
+  } catch (e) {
+    logger.warn('Evaluation ensureSchedule audit log failed:', e?.message || e);
+  }
+
+  return {
+    ...created,
+    employee_name: formatEmployeeName(created.employees),
+    employee_code: created.employees?.employee_id || null,
+    position_title: created.employees?.positions?.position_title || null,
+    personnel_type: created.employees?.personnel_type || null
+  };
+};
+
+export const listPendingDueEvaluations = async ({ year, quarter } = {}) => {
+  if (!Number.isInteger(Number(year))) throw new BadRequestError('Year is required');
+  if (!Number.isInteger(Number(quarter)) || Number(quarter) < 1 || Number(quarter) > 4) {
+    throw new BadRequestError('Quarter must be between 1 and 4');
+  }
+
+  const { EMPLOYMENT_STATUSES } = await import('../config/constants.js');
+  const { startIso, endIso } = buildQuarterRangeUtc({ year: Number(year), quarter: Number(quarter) });
+  const startUtc = parseIsoDateUtc(startIso);
+  const endUtc = parseIsoDateUtc(endIso);
+  if (!startUtc || !endUtc) throw new InternalServerError('Failed to compute quarter range');
+
+  // Fetch active employees with hire date.
+  const { data: employees, error: empErr } = await supabase
+    .from('employees')
+    .select('id, employee_id, first_name, last_name, hire_date, personnel_type, employment_status, positions ( position_title )')
+    .eq('employment_status', EMPLOYMENT_STATUSES.ACTIVE)
+    .not('hire_date', 'is', null);
+
+  if (empErr) throw new InternalServerError(empErr.message);
+
+  const list = Array.isArray(employees) ? employees : [];
+
+  const dueCandidates = [];
+  for (const e of list) {
+    const hireIso = e?.hire_date ? String(e.hire_date).slice(0, 10) : '';
+    const hireDate = parseIsoDateUtc(hireIso);
+    if (!hireDate) continue;
+
+    const personnel = String(e?.personnel_type || '').trim();
+
+    const employeeBase = {
+      employee_db_id: e.id,
+      employee_code: e.employee_id || '',
+      employee_name: `${e.first_name || ''} ${e.last_name || ''}`.trim(),
+      position_title: e.positions?.position_title || '',
+      personnel_type: personnel,
+      hire_date: hireIso,
+    };
+
+    // 6-month probationary evaluation (hire_date + 6 months)
+    const probationDue = addMonthsUtcClamped(hireDate, 6);
+    const probationIso = toUtcIsoDate(probationDue);
+    if (probationIso && probationIso >= startIso && probationIso <= endIso) {
+      dueCandidates.push({
+        ...employeeBase,
+        due_date: probationIso,
+        evaluation_type: 'Probationary',
+      });
+    }
+
+    // Annual evaluation on the hire-date anniversary for this year (and beyond)
+    // Show it only if it's at least 12 months after hire.
+    const annualGate = addMonthsUtcClamped(hireDate, 12);
+    const hireMonth = hireDate.getUTCMonth();
+    const hireDay = hireDate.getUTCDate();
+    const y = startUtc.getUTCFullYear();
+    const maxDay = new Date(Date.UTC(y, hireMonth + 1, 0)).getUTCDate();
+    const annDay = Math.min(hireDay, maxDay);
+    const anniversary = new Date(Date.UTC(y, hireMonth, annDay));
+    if (annualGate && anniversary.getTime() >= annualGate.getTime()) {
+      const annIso = toUtcIsoDate(anniversary);
+      if (annIso && annIso >= startIso && annIso <= endIso) {
+        dueCandidates.push({
+          ...employeeBase,
+          due_date: annIso,
+          evaluation_type: `ANNUAL (${y})`,
+        });
+      }
+    }
+  }
+
+  if (!dueCandidates.length) return [];
+
+  // Check existing evaluations (scheduled or completed) for these employees/types.
+  const employeeIds = Array.from(new Set(dueCandidates.map((d) => d.employee_db_id)));
+  const types = Array.from(new Set(dueCandidates.map((d) => d.evaluation_type)));
+
+  const { data: evals, error: evalErr } = await supabase
+    .from('performance_evaluations')
+    .select('employee_id, evaluation_type, evaluation_notes, evaluation_document_path')
+    .in('employee_id', employeeIds)
+    .in('evaluation_type', types)
+    .limit(2000);
+
+  if (evalErr) throw new InternalServerError(evalErr.message);
+
+  const existingKey = new Set();
+  for (const r of Array.isArray(evals) ? evals : []) {
+    const key = `${String(r?.employee_id || '')}::${String(r?.evaluation_type || '')}`;
+    existingKey.add(key);
+  }
+
+  return dueCandidates
+    .filter((d) => !existingKey.has(`${String(d.employee_db_id)}::${String(d.evaluation_type)}`))
+    .sort((a, b) => {
+      if (a.due_date !== b.due_date) return String(a.due_date).localeCompare(String(b.due_date));
+      return String(a.employee_name).localeCompare(String(b.employee_name));
+    });
 };
 
 export const updateSchedule = async (evaluationId, payload, user) => {
@@ -333,17 +663,22 @@ export const updateSchedule = async (evaluationId, payload, user) => {
   try {
     const { data: employee } = await supabase
       .from('employees')
-      .select('id, employee_id, first_name, last_name')
+      .select('id, user_id, employee_id, first_name, last_name')
       .eq('id', updated.employee_id)
       .maybeSingle();
 
     const recipientEmail = await getEmployeeRecipientEmail(employee);
     if (recipientEmail) {
+      const logoAttachment = await getEmailLogoAttachment();
+      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
       const html = buildEvaluationEmailHtml({
         title: 'Evaluation Schedule Updated',
         message: 'Your performance evaluation schedule has been updated.',
         recipientName: employee?.first_name || formatEmployeeName(employee) || 'Employee',
         statusPill: { label: 'UPDATED', bg: WEBSITE_COLORS.green },
+        logoSrc,
+        date: updated.evaluation_date,
         details: [
           { label: 'Type', value: updated.evaluation_type },
           { label: 'Date', value: toIsoDate(updated.evaluation_date) }
@@ -352,9 +687,10 @@ export const updateSchedule = async (evaluationId, payload, user) => {
 
       await sendEmail({
         to: recipientEmail,
-        subject: 'Evaluation Schedule Updated',
+        subject: 'WDCAP HRIS — Evaluation Schedule Updated',
         text: `Your evaluation schedule has been updated.\nType: ${updated.evaluation_type}\nDate: ${toIsoDate(updated.evaluation_date)}`,
-        html
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined
       });
     }
   } catch (e) {
@@ -384,7 +720,9 @@ const buildEvaluationFileName = ({ kind, employee, evaluationType, evaluationDat
     ? 'Evaluation_Breakdown'
     : kind === 'final'
       ? 'Evaluation_Final'
-      : 'Evaluation';
+      : kind === 'form'
+        ? 'Evaluation_Form'
+        : 'Evaluation';
 
   const safeType = sanitizeForFileName(String(evaluationType || ''));
   const typePart = safeType ? `_${safeType}` : '';
@@ -402,21 +740,19 @@ const buildEvaluationFileName = ({ kind, employee, evaluationType, evaluationDat
     : `${prefix}${typePart}_${empName}_${isoDate}`;
 };
 
-const putIntoNotes = ({ existingNotes, score, remarks }) => {
+const putIntoNotes = ({ existingNotes, score, remarks, evaluationForm }) => {
   const s = typeof score === 'string' ? score.trim() : score;
   const hasScore = s !== null && s !== undefined && String(s).trim() !== '';
   const hasRemarks = String(remarks || '').trim().length > 0;
-
   if (!hasScore && !hasRemarks) return existingNotes || null;
 
   const lines = [];
+
   if (hasScore) lines.push(`Score: ${String(s).trim()}`);
   if (hasRemarks) lines.push(`Remarks: ${String(remarks).trim()}`);
 
-  // Keep older notes below for traceability.
-  const prev = String(existingNotes || '').trim();
-  const next = lines.join('\n');
-  return prev ? `${next}\n\n${prev}` : next;
+  // Keep this field short/clean for the table view.
+  return lines.join('\n');
 };
 
 export const submitEvaluation = async (evaluationId, payload, user) => {
@@ -427,10 +763,19 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
   let documentPayload = existing.evaluation_document_path || null;
   let documentObj = safeJsonParse(existing.evaluation_document_path) || null;
 
+  // Always persist filled form inputs when provided (so it can be regenerated later)
+  const hasFormPayload = payload?.evaluation_form && typeof payload.evaluation_form === 'object';
+  if (hasFormPayload) {
+    const nextDocObj = documentObj && typeof documentObj === 'object' ? { ...documentObj } : {};
+    nextDocObj.form_data = payload.evaluation_form;
+    documentObj = nextDocObj;
+    documentPayload = JSON.stringify(nextDocObj);
+  }
+
   // Resolve employee for folder + notifications
   const { data: employee, error: empErr } = await supabase
     .from('employees')
-    .select('id, employee_id, first_name, last_name')
+    .select('id, user_id, employee_id, first_name, last_name')
     .eq('id', existing.employee_id)
     .single();
 
@@ -524,7 +869,7 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     await Promise.all(uploads);
   }
 
-  const nextNotes = putIntoNotes({ existingNotes: existing.evaluation_notes, score: payload?.score, remarks: payload?.remarks });
+  const nextNotes = putIntoNotes({ existingNotes: existing.evaluation_notes, score: payload?.score, remarks: payload?.remarks, evaluationForm: payload?.evaluation_form });
 
   const patch = {
     evaluation_notes: nextNotes,
@@ -549,6 +894,61 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
   // Same issue as updateSchedule: ensure relations/derived fields are present.
   const hydrated = await getEvaluationById(updated.evaluation_id);
 
+  // Upload the filled evaluation form to employee's Drive folder (best-effort)
+  if (payload?.evaluation_form && isDriveEnabled()) {
+    try {
+      const { evaluationFolder, employeeFolder } = await ensureEvaluationFolder(employee);
+
+      const recipientEmail = await getEmployeeRecipientEmail(employee);
+      if (recipientEmail) {
+        await ensureDriveUserAccess({ fileId: employeeFolder.folderId, email: recipientEmail, role: 'reader' });
+        await ensureDriveUserAccess({ fileId: evaluationFolder.folderId, email: recipientEmail, role: 'reader' });
+      }
+
+      const generatedName = buildEvaluationFileName({
+        kind: 'form',
+        employee,
+        evaluationType: payload?.evaluation_type || existing?.evaluation_type,
+        evaluationDate: existing?.evaluation_date,
+        originalName: 'Evaluation_Form.pdf'
+      });
+
+      const formUpload = await uploadEvaluationFormToDrive({
+        evaluationData: {
+          ...payload,
+          evaluation_type: payload?.evaluation_type || existing?.evaluation_type,
+          evaluation_date: existing?.evaluation_date
+        },
+        employee,
+        parentFolderId: evaluationFolder.folderId,
+        fileName: generatedName
+      });
+
+      if (recipientEmail && formUpload?.fileId) {
+        await ensureDriveUserAccess({ fileId: formUpload.fileId, email: recipientEmail, role: 'reader' });
+      }
+
+      const nextDocObj = {
+        ...(documentObj && typeof documentObj === 'object' ? documentObj : {}),
+        form: formUpload,
+        form_data: payload.evaluation_form
+      };
+
+      await supabase
+        .from('performance_evaluations')
+        .update({
+          evaluation_document_path: JSON.stringify(nextDocObj),
+          updated_at: now
+        })
+        .eq('evaluation_id', evaluationId);
+
+      logger.info(`Evaluation form uploaded to Drive: ${formUpload?.fileId}`);
+    } catch (error) {
+      logger.warn('Could not upload evaluation form to Google Drive:', error.message);
+      // Continue without Drive upload (non-critical)
+    }
+  }
+
   try {
     await supabase.from('audit_logs').insert({
       user_id: user.id,
@@ -567,11 +967,16 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
   try {
     const recipientEmail = await getEmployeeRecipientEmail(employee);
     if (recipientEmail) {
+      const logoAttachment = await getEmailLogoAttachment();
+      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
       const html = buildEvaluationEmailHtml({
         title: 'Evaluation Updated',
         message: 'Your performance evaluation has been updated. You can now view your score/remarks and attached document(s) in the HRIS.',
         recipientName: employee.first_name || formatEmployeeName(employee) || 'Employee',
         statusPill: { label: 'UPDATED', bg: WEBSITE_COLORS.green },
+        logoSrc,
+        date: updated.evaluation_date,
         details: [
           { label: 'Type', value: updated.evaluation_type },
           { label: 'Date', value: toIsoDate(updated.evaluation_date) }
@@ -580,9 +985,10 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
 
       await sendEmail({
         to: recipientEmail,
-        subject: 'Evaluation Updated',
+          subject: 'WDCAP HRIS — Evaluation Updated',
         text: `Your evaluation has been updated.\nType: ${updated.evaluation_type}\nDate: ${toIsoDate(updated.evaluation_date)}`,
-        html
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined
       });
     }
   } catch (e) {
@@ -602,7 +1008,7 @@ const pickDocHandle = ({ evaluation, doc }) => {
   const raw = evaluation?.evaluation_document_path;
   const obj = safeJsonParse(raw);
 
-  const key = doc === 'breakdown' ? 'breakdown' : doc === 'final' ? 'final' : 'file';
+  const key = doc === 'breakdown' ? 'breakdown' : doc === 'final' ? 'final' : doc === 'form' ? 'form' : 'file';
 
   if (obj && typeof obj === 'object') {
     const handle = obj[key] || obj.file || null;
@@ -617,6 +1023,36 @@ const pickDocHandle = ({ evaluation, doc }) => {
 
 export const downloadEvaluationDocument = async ({ evaluationId, doc } = {}) => {
   const evaluation = await getEvaluationById(evaluationId);
+  const obj = safeJsonParse(evaluation?.evaluation_document_path) || null;
+
+  // If form file handle is missing, generate from stored inputs.
+  if (String(doc || '').toLowerCase() === 'form' && obj?.form_data) {
+    const employee = evaluation?.employees || {};
+    const pdfBuffer = await buildEvaluationFormPdfBuffer(
+      {
+        evaluation_form: obj.form_data,
+        evaluation_type: evaluation?.evaluation_type,
+        evaluation_date: evaluation?.evaluation_date
+      },
+      employee
+    );
+
+    const fileName = buildEvaluationFileName({
+      kind: 'form',
+      employee,
+      evaluationType: evaluation?.evaluation_type,
+      evaluationDate: evaluation?.evaluation_date,
+      originalName: 'Evaluation_Form.pdf'
+    });
+
+    return {
+      provider: 'generated',
+      mimeType: 'application/pdf',
+      fileName,
+      stream: Readable.from(pdfBuffer)
+    };
+  }
+
   const handle = pickDocHandle({ evaluation, doc });
   if (!handle) throw new NotFoundError('Evaluation document not found');
 
@@ -642,6 +1078,22 @@ export const downloadEvaluationDocument = async ({ evaluationId, doc } = {}) => 
 
 export const previewEvaluationDocument = async ({ evaluationId, doc } = {}) => {
   const evaluation = await getEvaluationById(evaluationId);
+  const obj = safeJsonParse(evaluation?.evaluation_document_path) || null;
+
+  // If form file handle is missing, still allow preview via authenticated stream endpoint.
+  if (String(doc || '').toLowerCase() === 'form' && obj?.form_data) {
+    const employee = evaluation?.employees || {};
+    const fileName = buildEvaluationFileName({
+      kind: 'form',
+      employee,
+      evaluationType: evaluation?.evaluation_type,
+      evaluationDate: evaluation?.evaluation_date,
+      originalName: 'Evaluation_Form.pdf'
+    });
+
+    return { provider: 'generated', url: null, fileName, mimeType: 'application/pdf' };
+  }
+
   const handle = pickDocHandle({ evaluation, doc });
   if (!handle) throw new NotFoundError('Evaluation document not found');
 

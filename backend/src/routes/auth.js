@@ -1,7 +1,7 @@
 import express from 'express';
 import * as authController from '../controllers/auth.controller.js';
 import { validate } from '../middleware/validate.js';
-import { adminResetPasswordSchema, changePasswordSchema, loginSchema, passwordResetRequestSchema, registerSchema } from '../validations/auth.validation.js';
+import { adminResetPasswordSchema, changePasswordSchema, loginSchema, passwordResetRequestSchema, registerSchema, resetPasswordSchema } from '../validations/auth.validation.js';
 import { authenticate, authorizeRoles } from '../middleware/auth.js';
 import { ROLES } from '../config/constants.js';
 
@@ -14,6 +14,8 @@ router.get('/me', authenticate, authController.getCurrentUser);                 
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);                     // /api/auth/change-password
 router.post('/admin-reset-password', authenticate, authorizeRoles(ROLES.ADMIN), validate(adminResetPasswordSchema), authController.adminResetPassword);
 router.post('/password-reset-request', validate(passwordResetRequestSchema), authController.requestPasswordReset);
+router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 router.post('/refresh', authController.refreshToken);
+router.post('/google-login', authController.googleLogin);                                                                        // /api/auth/google-login
 
 export default router;
