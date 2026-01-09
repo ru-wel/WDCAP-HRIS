@@ -57,6 +57,28 @@ const extractTargetEmployeeHint = (log) => {
   };
 };
 
+const extractTargetProjectHint = (log) => {
+  const table = String(log?.table_name || '').trim().toLowerCase();
+  const preferred = normalizeJsonObject(log?.new_values);
+  const fallback = normalizeJsonObject(log?.old_values);
+  const values = preferred || fallback || {};
+
+  if (table === 'projects') {
+    const name = String(values?.project_name || values?.name || '').trim();
+    const id = String(values?.id || '').trim();
+    return { projectId: UUID_REGEX.test(id) ? id : null, projectName: name || null };
+  }
+
+  const directProjectId = values?.project_id ?? values?.projectId ?? null;
+  const asString = (v) => (typeof v === 'string' ? v.trim() : '');
+  const maybeId = asString(directProjectId);
+
+  return {
+    projectId: UUID_REGEX.test(maybeId) ? maybeId : null,
+    projectName: null,
+  };
+};
+
 export const enrichAuditLogs = async (logs) => {
   const rows = Array.isArray(logs) ? logs : [];
   if (rows.length === 0) return [];
@@ -66,16 +88,21 @@ export const enrichAuditLogs = async (logs) => {
   );
 
   const targetHints = rows.map(extractTargetEmployeeHint);
+  const projectHints = rows.map(extractTargetProjectHint);
   const targetEmployeeDbIds = Array.from(
     new Set(targetHints.map((h) => h?.employeeDbId).filter((id) => UUID_REGEX.test(String(id || ''))))
   );
   const targetEmployeeCodes = Array.from(
     new Set(targetHints.map((h) => String(h?.employeeCode || '').trim()).filter(Boolean))
   );
+  const targetProjectIds = Array.from(
+    new Set(projectHints.map((h) => h?.projectId).filter((id) => UUID_REGEX.test(String(id || ''))))
+  );
 
   let employeesByUserId = {};
   let employeesById = {};
   let employeesByCode = {};
+  let projectsById = {};
 
   if (actorUserIds.length > 0) {
     const { data: actorEmployees, error: actorEmployeesError } = await supabase
@@ -123,6 +150,21 @@ export const enrichAuditLogs = async (logs) => {
     }
   }
 
+  if (targetProjectIds.length > 0) {
+    const { data: projects, error: projectsError } = await supabase
+      .from('projects')
+      .select('id, project_name')
+      .in('id', targetProjectIds);
+
+    if (!projectsError && Array.isArray(projects)) {
+      projectsById = projects.reduce((acc, p) => {
+        if (!p?.id) return acc;
+        acc[p.id] = p;
+        return acc;
+      }, {});
+    }
+  }
+
   return rows.map((log, idx) => {
     const user = log?.users || {};
     const actorEmployee = employeesByUserId[log?.user_id] || null;
@@ -133,7 +175,9 @@ export const enrichAuditLogs = async (logs) => {
     });
 
     const hint = targetHints[idx] || {};
+    const projHint = projectHints[idx] || {};
     let targetEmployee = null;
+    let targetProject = null;
 
     if (hint?.employeeName || hint?.employeeCode) {
       targetEmployee = {
@@ -157,6 +201,13 @@ export const enrichAuditLogs = async (logs) => {
       };
     }
 
+    if (projHint?.projectName) {
+      targetProject = { id: projHint?.projectId || null, name: projHint.projectName };
+    } else if (projHint?.projectId && projectsById[projHint.projectId]) {
+      const p = projectsById[projHint.projectId];
+      targetProject = { id: p.id, name: p.project_name || null };
+    }
+
     return {
       ...log,
       actor: {
@@ -166,6 +217,7 @@ export const enrichAuditLogs = async (logs) => {
         employee_code: actorEmployee?.employee_id || user?.employee_id || null,
       },
       target_employee: targetEmployee,
+      target_project: targetProject,
     };
   });
 };

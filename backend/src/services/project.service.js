@@ -164,6 +164,32 @@ export const getProjectMembers = async (projectId) => {
   }
 };
 
+export const getProjectsForEmployee = async (employeeDbId) => {
+  try {
+    if (!employeeDbId) return [];
+
+    const { data, error } = await supabase
+      .from('project_assignments')
+      .select(
+        `
+        projects ( id, project_name, site_location, start_date, end_date, status, created_at, updated_at )
+        `
+      )
+      .eq('employee_id', employeeDbId);
+
+    if (error) throw new InternalServerError(error.message);
+
+    const projects = (data || [])
+      .map((r) => r?.projects)
+      .filter((p) => p && p.id);
+
+    return attachProjectCodes(projects);
+  } catch (error) {
+    logger.error(`Error fetching projects for employee ${employeeDbId}:`, error);
+    throw error;
+  }
+};
+
 export const updateProject = async (projectId, updateData, userId) => {
   try {
     const { data: existingProject, error: fetchError } = await supabase

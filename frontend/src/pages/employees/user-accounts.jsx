@@ -9,8 +9,6 @@ import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
 
-const RESET_REQUESTS_LAST_SEEN_KEY = 'resetRequestsLastSeenAt';
-
 function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
     const [data, setData] = useState(employeeAcc);
@@ -52,43 +50,12 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
             return;
         }
 
-        const snapshot = {
-            title: confirmState.title,
-            message: confirmState.message,
-            confirmText: confirmState.confirmText,
-            cancelText: confirmState.cancelText,
-            onConfirm: confirmState.onConfirm,
-        };
-
         try {
+            // Close the current dialog first to prevent "sticky" modals and
+            // avoid racing state updates when the action opens its own dialog.
+            closeConfirm();
             setConfirmBusy(true);
             await fn?.();
-
-            setConfirmState((prev) => {
-                const isSameDialog =
-                    prev.open &&
-                    prev.onConfirm === snapshot.onConfirm &&
-                    prev.title === snapshot.title &&
-                    prev.message === snapshot.message &&
-                    prev.confirmText === snapshot.confirmText &&
-                    prev.cancelText === snapshot.cancelText;
-
-                if (!isSameDialog) return prev;
-
-                const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
-                if (!wasConfirmation) {
-                    return { ...prev, open: false, onConfirm: null };
-                }
-
-                return {
-                    open: true,
-                    title: 'Success',
-                    message: 'Action completed successfully.',
-                    confirmText: 'OK',
-                    cancelText: null,
-                    onConfirm: null,
-                };
-            });
         } catch (e) {
             setConfirmState({
                 open: true,
@@ -112,13 +79,24 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
     const [initialData, setInitialData] = useState(employeeAcc);
 
     useEffect(() => {
+        if (!isOpen || !employeeAcc) return;
+        // Always start in view mode when the modal opens.
         setData(employeeAcc);
         setInitialData(employeeAcc);
         setEditData(false);
         setResetMode(false);
         setResetPassword('');
         setResetConfirmPassword('');
-    }, [employeeAcc]);
+        setConfirmBusy(false);
+        setConfirmState({
+            open: false,
+            title: 'Confirmation',
+            message: '',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            onConfirm: null,
+        });
+    }, [isOpen, employeeAcc]);
 
     if (!isOpen || !employeeAcc) return null;
 
@@ -127,8 +105,8 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
     const unsavedChanges = JSON.stringify(currentData) !== JSON.stringify(originalData);
 
     return (
-        <div className="fixed inset-0 flex items-center justify-center z-[1000] bg-[#EDEDED]/50">
-             <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto border border-gray-300">
+            <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
+             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-3xl max-h-[95vh] overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition" 
@@ -146,7 +124,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                     }}> ✕ </button>
                 </div>
 
-                <div className="pt-5 md:px-35 px-10">
+                <div className="pt-5 px-4 sm:px-10 md:px-14">
 
                     <p className='lg:text-sm text-xs'><b>Employee ID:</b> {currentData.id}</p>
                     <div className="lg:pt-3 pt-2">
@@ -300,7 +278,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                     )}
 
                     {resetMode && !editData ? (
-                        <div className="pt-5 md:px-35 px-10">
+                        <div className="pt-5 px-4 sm:px-10 md:px-14">
                             <p className='lg:text-sm text-xs pb-2 font-medium'>New Password</p>
                             <input
                                 type="password"
@@ -416,56 +394,6 @@ function UserAccounts (){
     const [sortOrder, setSortOrder] = useState('email_az');
     const [reportOpen, setReportOpen] = useState(false);
 
-    const [resetRequests, setResetRequests] = useState([]);
-    const [resetRequestsLoading, setResetRequestsLoading] = useState(false);
-    const [resetRequestsError, setResetRequestsError] = useState('');
-    const [resetRequestsLastSeenAt, setResetRequestsLastSeenAt] = useState(() => {
-        try {
-            return window.localStorage.getItem(RESET_REQUESTS_LAST_SEEN_KEY) || '';
-        } catch {
-            return '';
-        }
-    });
-
-    const fetchResetRequests = async () => {
-        setResetRequestsLoading(true);
-        setResetRequestsError('');
-        try {
-            const res = await get('/audit-logs/table/users');
-            if (!res?.success) throw new Error(res?.message || 'Failed to fetch reset requests');
-
-            const rows = Array.isArray(res?.data) ? res.data : [];
-            const requests = rows
-                .filter((r) => String(r?.action_type || '').toUpperCase() === 'PASSWORD_RESET_REQUEST')
-                .map((r) => {
-                    const rawTs = r?.timestamp || '';
-                    const email = r?.new_values?.email || r?.record_id || '';
-                    return {
-                        id: r?.id || `${email}-${rawTs}`,
-                        email,
-                        timestampRaw: rawTs,
-                        timestamp: rawTs
-                            ? new Date(rawTs).toLocaleString('en-US', {
-                                  month: '2-digit',
-                                  day: '2-digit',
-                                  year: '2-digit',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                              })
-                            : ''
-                    };
-                });
-
-            setResetRequests(requests);
-        } catch (e) {
-            console.error(e);
-            setResetRequests([]);
-            setResetRequestsError(e?.message || 'Failed to load reset requests');
-        } finally {
-            setResetRequestsLoading(false);
-        }
-    };
-
     const fetchUsers = async () => {
         setLoading(true);
         try {
@@ -501,38 +429,7 @@ function UserAccounts (){
 
     useEffect(() => {
         fetchUsers();
-        fetchResetRequests();
     }, []);
-
-    const newResetRequestsCount = useMemo(() => {
-        const lastSeen = resetRequestsLastSeenAt ? Date.parse(resetRequestsLastSeenAt) : null;
-        if (!lastSeen || Number.isNaN(lastSeen)) return resetRequests.length;
-        return resetRequests.filter((r) => {
-            const ts = r?.timestampRaw ? Date.parse(r.timestampRaw) : null;
-            if (!ts || Number.isNaN(ts)) return false;
-            return ts > lastSeen;
-        }).length;
-    }, [resetRequests, resetRequestsLastSeenAt]);
-
-    const visibleResetRequests = useMemo(() => {
-        const lastSeen = resetRequestsLastSeenAt ? Date.parse(resetRequestsLastSeenAt) : null;
-        if (!lastSeen || Number.isNaN(lastSeen)) return resetRequests;
-        return resetRequests.filter((r) => {
-            const ts = r?.timestampRaw ? Date.parse(r.timestampRaw) : null;
-            if (!ts || Number.isNaN(ts)) return false;
-            return ts > lastSeen;
-        });
-    }, [resetRequests, resetRequestsLastSeenAt]);
-
-    const markResetRequestsAsSeen = () => {
-        const now = new Date().toISOString();
-        setResetRequestsLastSeenAt(now);
-        try {
-            window.localStorage.setItem(RESET_REQUESTS_LAST_SEEN_KEY, now);
-        } catch {
-            // ignore storage errors
-        }
-    };
 
     const handleOpen = (employeeAcc) => {
         setViewEmployeeAcc(employeeAcc);
@@ -574,6 +471,10 @@ function UserAccounts (){
     };
 
     const deleteEmployeeAcc = async (employeeId) => {
+        const target = employeesAcc.find((u) => u.id === employeeId);
+        if (target?.status && String(target.status).toUpperCase() !== 'INACTIVE') {
+            throw new Error('Archive the employee first (Employees page), then delete the user account.');
+        }
         // optimistic UI
         setEmployeesAcc(prev => prev.filter(emp => emp.id !== employeeId));
         try {
@@ -681,7 +582,7 @@ function UserAccounts (){
 
     return(
         <div className="">
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
                 {/* HEADER */}
                 <div className="md:flex justify-between items-center w-full">
 
@@ -731,56 +632,6 @@ function UserAccounts (){
                 </div>
 
                 <hr className='text-[#990100] mt-6 '/>
-
-                <div className="mt-5 rounded-lg border border-gray-300 bg-white p-4">
-                    <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-sm font-semibold text-[#483D3D]">Password Reset Requests</h2>
-                            <span className="inline-flex items-center rounded-full bg-[#990100]/15 px-3 py-1 text-xs font-semibold text-[#990100]">
-                                {newResetRequestsCount} New
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            {newResetRequestsCount > 0 ? (
-                                <button
-                                    type="button"
-                                    className="text-xs font-semibold text-[#990100] hover:text-[#ad3332] underline"
-                                    onClick={markResetRequestsAsSeen}
-                                >
-                                    Mark as read
-                                </button>
-                            ) : null}
-                            <button
-                                type="button"
-                                className="text-xs font-semibold text-[#990100] hover:text-[#ad3332] underline"
-                                onClick={fetchResetRequests}
-                                disabled={resetRequestsLoading}
-                            >
-                                {resetRequestsLoading ? 'Refreshing…' : 'Refresh'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {resetRequestsError ? (
-                        <p className="mt-2 text-xs text-gray-600">{resetRequestsError}</p>
-                    ) : resetRequestsLoading ? (
-                        <p className="mt-2 text-xs text-gray-600">Loading reset requests…</p>
-                    ) : visibleResetRequests.length === 0 ? (
-                        <p className="mt-2 text-xs text-gray-600">No new reset requests.</p>
-                    ) : (
-                        <div className="mt-3 grid gap-2">
-                            {visibleResetRequests.slice(0, 5).map((r) => (
-                                <div key={r.id} className="flex items-center justify-between rounded-md bg-[#EDEDED] px-3 py-2">
-                                    <div className="min-w-0">
-                                        <p className="text-xs font-semibold text-[#483D3D] truncate">{r.email || 'Unknown email'}</p>
-                                        <p className="text-[11px] text-gray-600">{r.timestamp || ''}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
 
                 <div className="flex justify-end mt-5">
                     <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>

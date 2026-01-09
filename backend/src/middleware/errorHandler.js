@@ -1,7 +1,33 @@
 import logger from "../utils/logger.js";
+import { FILE_VALIDATION } from "../config/constants.js";
+
+const formatMaxMb = (bytes) => {
+  const n = Number(bytes);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return String(Math.round(n / (1024 * 1024)));
+};
 
 // global error handling middleware
 const errorHandler = (err, req, res, next) => {   // express default error handling
+  // Normalize common upload errors (multer)
+  if (err?.name === 'MulterError') {
+    const maxMb = formatMaxMb(FILE_VALIDATION?.MAX_FILE_SIZE) || '10';
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      err.statusCode = 400;
+      err.isExpected = true;
+      err.message = `File is too large. Maximum size is ${maxMb}MB.`;
+    } else {
+      err.statusCode = 400;
+      err.isExpected = true;
+      err.message = err.message || 'Upload failed.';
+    }
+  }
+
+  if (!err?.statusCode && err?.message && /^Invalid file type\./i.test(err.message)) {
+    err.statusCode = 400;
+    err.isExpected = true;
+  }
+
   const statusCode = err.statusCode || 500;       // default to 500 if no status code
   const isExpected = err.isExpected || false;     // check if error is expected or bug
   if (statusCode >= 500){                         // if error code is 500+, log full error

@@ -13,11 +13,11 @@ function ModalShell({ open, title, onClose, children }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden">
-        <div className="bg-[#990100] text-white px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden max-h-[95vh] flex flex-col">
+        <div className="bg-[#990100] text-white px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
+          <h2 className="text-base sm:text-lg font-semibold">{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -27,7 +27,7 @@ function ModalShell({ open, title, onClose, children }) {
             ×
           </button>
         </div>
-        <div className="px-10 py-8">{children}</div>
+        <div className="px-4 sm:px-8 lg:px-10 py-6 sm:py-8 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

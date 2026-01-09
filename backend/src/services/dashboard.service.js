@@ -59,6 +59,48 @@ const getRecentAuditLogs = async (limit = 5) => {
   }));
 };
 
+const getRecentAuditLogsByUser = async (userId, limit = 5) => {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select(
+      `
+        id,
+        user_id,
+        action_type,
+        table_name,
+        record_id,
+        old_values,
+        new_values,
+        timestamp,
+        users ( id, email, role, employee_id )
+      `
+    )
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false })
+    .limit(limit);
+
+  if (error) throw new InternalServerError(error.message);
+
+  const enriched = await enrichAuditLogs(data || []);
+
+  return enriched.map((r) => ({
+    id: r.id,
+    action_type: r.action_type,
+    table_name: r.table_name,
+    record_id: r.record_id,
+    old_values: r.old_values,
+    new_values: r.new_values,
+    timestamp: r.timestamp,
+    user: {
+      email: r.users?.email || '',
+      role: r.users?.role || ''
+    },
+    actor: r.actor || null,
+    target_employee: r.target_employee || null,
+  }));
+};
+
 const getPendingEvaluations = async ({ limit = 5 } = {}) => {
   // "Pending" = scheduled evaluation with no submitted result yet.
   // A result can be either uploaded docs OR score/remarks saved into notes.
@@ -142,6 +184,7 @@ export const getDashboardSummary = async (user) => {
   try {
     const role = user?.role || '';
     const employeeId = user?.employee_id || null;
+    const userId = user?.id || null;
 
     const pendingLeaveRequestsCount = await countRows('leave_requests', {
       column: 'leave_request_id',
@@ -176,6 +219,14 @@ export const getDashboardSummary = async (user) => {
         recentAuditLogs,
         pendingEvaluationsCount: pendingEvaluations?.count ?? 0,
         pendingEvaluations: pendingEvaluations?.items ?? []
+      });
+    } else if (role === ROLES.EMPLOYEE) {
+      const [recentAuditLogs] = await Promise.all([
+        getRecentAuditLogsByUser(userId, 5)
+      ]);
+
+      Object.assign(summary, {
+        recentAuditLogs
       });
     }
 

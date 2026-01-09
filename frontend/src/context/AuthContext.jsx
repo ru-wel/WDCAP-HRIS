@@ -70,6 +70,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const googleLogin = async (googleToken) => {
+    try {
+      const response = await post('/auth/google-login', { googleToken }, false);
+
+      if (response.success) {
+        const { user: userData, session } = response.data;
+
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, session.access_token);
+        localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, session.refresh_token);
+
+        // calculate and store token expiry
+        const expiryTime = Date.now() + (session.expires_in * 1000);
+        localStorage.setItem(STORAGE_KEYS.TOKEN_EXPIRY, expiryTime.toString());
+
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userData));
+
+        setUser(userData);
+        return userData;
+      }
+
+      throw new Error(response.message || 'Google login failed');
+    } catch (error) {
+      console.error('Google login error:', error);
+      throw error;
+    }
+  };
+
   const logout =  async () => {
     try {
       await post('/auth/logout').catch(() => {});
@@ -100,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     return user.role === roles;
   };
 
-  const value = { user, login, logout, isAuthenticated, hasRole, loading };
+  const value = { user, login, googleLogin, logout, isAuthenticated, hasRole, loading };
 
   if (loading) {
     return null;

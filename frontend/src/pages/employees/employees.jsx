@@ -102,11 +102,12 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     };
 
     useEffect(() => {
-        if (!employee) return;
+        if (!isOpen || !employee) return;
+        // Always start in view mode when the modal opens.
         setData(employee);
         setInitialData(employee);
         setEditData(false);
-    }, [employee]);
+    }, [isOpen, employee]);
 
     {/* WHEN EDITING THE VALUE */}
     const handleChange = (a) => {
@@ -227,11 +228,11 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
     return(
         
-        <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50">
+        <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
 
-            <div className="bg-white rounded-lg shadow-lg md:p-6 px-3 py-6 lg:w-150 md:w-130 w-80 md:h-auto h-100 overflow-y-auto border border-gray-300">
-                <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
-                    <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Information of {data.first_name} {data.last_name}</h1>
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-3xl max-h-[95vh] overflow-y-auto border border-gray-300">
+                <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
+                    <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.first_name} {data.last_name}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition" onClick={() => {
                         if (unsavedChanges){
                             openConfirm({
@@ -276,27 +277,14 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                     <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
                         <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Department:</b></p>
-                            <div className="flex items-center gap-2">
-                                <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-39 md:w-32 w-46 disabled:text-gray-600'>
-                                    <option value="">Select Department</option>
-                                    {departments.map((dept) => (
-                                        <option key={dept.id} value={dept.id}>
-                                            {dept.department_name}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {editData && (
-                                    <button
-                                        type="button"
-                                        onClick={handleSave}
-                                        disabled={loading || !unsavedChanges || !data.department_id || !data.position_id}
-                                        className='bg-[#FFA500] px-4 py-[6px] lg:text-[13px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
-                                    >
-                                        {loading ? 'Saving...' : 'Save'}
-                                    </button>
-                                )}
-                            </div>
+                            <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-39 md:w-32 w-46 disabled:text-gray-600'>
+                                <option value="">Select Department</option>
+                                {departments.map((dept) => (
+                                    <option key={dept.id} value={dept.id}>
+                                        {dept.department_name}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         
                         <div className="flex items-center md:justify-between md:pl-2">
@@ -452,8 +440,10 @@ function Employees(){
             });
 
         const sorted = [...filtered].sort((a, b) => {
-            const aName = `${a?.last_name || ''} ${a?.first_name || ''}`.trim();
-            const bName = `${b?.last_name || ''} ${b?.first_name || ''}`.trim();
+            const aName = `${a?.first_name || ''} ${a?.last_name || ''}`.trim();
+            const bName = `${b?.first_name || ''} ${b?.last_name || ''}`.trim();
+
+            const tieBreakByEmployeeId = () => compareText(a?.employee_id, b?.employee_id);
 
             switch (sortOrder) {
                 case 'employee_id_asc':
@@ -461,23 +451,23 @@ function Employees(){
                 case 'employee_id_desc':
                     return compareText(b?.employee_id, a?.employee_id);
                 case 'name_az':
-                    return compareText(aName, bName);
+                    return compareText(aName, bName) || tieBreakByEmployeeId();
                 case 'name_za':
-                    return compareText(bName, aName);
+                    return compareText(bName, aName) || tieBreakByEmployeeId();
                 case 'position_az':
-                    return compareText(a?.position_title, b?.position_title);
+                    return compareText(a?.position_title, b?.position_title) || tieBreakByEmployeeId();
                 case 'position_za':
-                    return compareText(b?.position_title, a?.position_title);
+                    return compareText(b?.position_title, a?.position_title) || tieBreakByEmployeeId();
                 case 'hire_date_oldest':
-                    return compareDate(a?.hire_date, b?.hire_date);
+                    return compareDate(a?.hire_date, b?.hire_date) || tieBreakByEmployeeId();
                 case 'hire_date_newest':
-                    return compareDate(b?.hire_date, a?.hire_date);
+                    return compareDate(b?.hire_date, a?.hire_date) || tieBreakByEmployeeId();
                 case 'personnel_type_az':
-                    return compareText(a?.personnel_type, b?.personnel_type);
+                    return compareText(a?.personnel_type, b?.personnel_type) || tieBreakByEmployeeId();
                 case 'personnel_type_za':
-                    return compareText(b?.personnel_type, a?.personnel_type);
+                    return compareText(b?.personnel_type, a?.personnel_type) || tieBreakByEmployeeId();
                 default:
-                    return compareText(aName, bName);
+                    return compareText(aName, bName) || tieBreakByEmployeeId();
             }
         });
 
@@ -642,7 +632,7 @@ function Employees(){
         <div className="">
             <Navbar />
 
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
 
                 {/* HEADER */}
                 <div className="md:flex justify-between items-center w-full">

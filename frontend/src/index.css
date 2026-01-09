@@ -36,6 +36,13 @@
     font-family: var(--font-body);
   }
 
+  /* Prevent horizontal overflow from fixed-width form controls on small screens */
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+  }
+
   button, input, select, textarea, table {
     font-family: var(--font-body);
   }
@@ -74,19 +81,23 @@
   }
 
   .div-table{
-    @apply w-full max-w-full overflow-x-auto bg-white border border-gray-300 rounded-lg mt-5 shadow-lg lg:px-6 px-6 py-6;
+    /* Responsive container enabling horizontal scroll on small screens */
+    @apply w-full max-w-full overflow-x-auto bg-white border border-gray-300 rounded-lg mt-5 shadow-lg px-3 lg:px-6 py-4 lg:py-6;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
   }
 
   .table-style{
+    /* Allow table to scroll instead of squishing columns */
     @apply w-full text-left;
-    min-width: 100%;
+    min-width: 48rem; /* ~768px baseline width for comfortable columns */
   }
 
   @media (max-width: 640px) {
     .table-style {
       table-layout: fixed;
+      min-width: 36rem; /* allow tighter but still readable tables on phones */
     }
   }
 
@@ -114,6 +125,17 @@
     @apply px-5 py-3 lg:text-sm text-xs text-gray-900 align-middle whitespace-normal break-words;
   }
 
+  /* Tighter spacing and font sizes on smaller screens for better fit */
+  @media (max-width: 1024px) {
+    .th-style { @apply px-4; }
+    .td-style, .td-style-nobtn { @apply px-4; }
+  }
+
+  @media (max-width: 640px) {
+    .th-style { @apply px-3 text-[10px]; }
+    .td-style, .td-style-nobtn { @apply px-3 text-[11px]; }
+  }
+
   .generate-report-button{
     @apply bg-[#ad3332] cursor-pointer text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:bg-[#990100] hover:scale-105 transition duration-300 ease-in-out;
   }
@@ -124,6 +146,91 @@
 
   .mustard-button{
     @apply bg-[#F59E0B] cursor-pointer text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-sm text-xs rounded-md hover:scale-105 transition duration-300 ease-in-out
+  }
+
+  /* Modal responsiveness */
+  .modal-container {
+    @apply fixed inset-0 flex items-center justify-center z-50 bg-black/40;
+    padding: 1rem;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-lg shadow-lg w-full max-w-2xl mx-auto overflow-y-auto border border-gray-300;
+    max-height: calc(100vh - 2rem);
+  }
+
+  .modal-content-large {
+    @apply bg-white rounded-lg shadow-lg w-full max-w-4xl mx-auto overflow-y-auto border border-gray-300;
+    max-height: calc(100vh - 2rem);
+  }
+
+  @media (max-width: 768px) {
+    .modal-container {
+      padding: 0.5rem;
+    }
+    .modal-content, .modal-content-large {
+      max-height: calc(100vh - 1rem);
+    }
+  }
+
+  /* Form field responsiveness */
+  .form-row {
+    @apply grid gap-4;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 768px) {
+    .form-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Page container improvements */
+  .page-container {
+    @apply p-4 sm:p-6 lg:p-7;
+    @apply mx-auto;
+    max-width: 1400px;
+  }
+
+  @media (min-width: 768px) {
+    .page-container {
+      @apply mx-10;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .page-container {
+      @apply mx-[4.5rem];
+    }
+  }
+
+  /* Button group responsiveness */
+  .button-group {
+    @apply flex flex-wrap gap-3 justify-end;
+  }
+
+  @media (max-width: 640px) {
+    .button-group button {
+      @apply flex-1 min-w-[120px];
+    }
+  }
+
+  /* Input field improvements for mobile */
+  @media (max-width: 640px) {
+    input, select, textarea {
+      font-size: 16px !important; /* Prevent iOS zoom on focus */
+    }
+  }
+
+  /* Header search and filter improvements */
+  .header-controls {
+    @apply flex flex-col sm:flex-row items-stretch sm:items-center gap-3;
+  }
+
+  @media (max-width: 640px) {
+    .header-controls > * {
+      @apply w-full;
+    }
   }
 
   

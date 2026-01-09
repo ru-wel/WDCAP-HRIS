@@ -100,10 +100,24 @@ export const submitEvaluation = async (req, res, next) => {
     const breakdownFile = (files.breakdown_file && files.breakdown_file[0]) ? files.breakdown_file[0] : null;
     const finalFile = (files.final_file && files.final_file[0]) ? files.final_file[0] : null;
 
+    // Parse evaluation_form if provided as JSON string
+    let evaluationForm = null;
+    if (req.body.evaluation_form) {
+      try {
+        evaluationForm = typeof req.body.evaluation_form === 'string' 
+          ? JSON.parse(req.body.evaluation_form) 
+          : req.body.evaluation_form;
+      } catch (e) {
+        // If parsing fails, log but continue
+        console.warn('Failed to parse evaluation_form:', e.message);
+      }
+    }
+
     const payload = {
       score: req.body.score,
       remarks: req.body.remarks,
       evaluation_type: req.body.evaluation_type,
+      evaluation_form: evaluationForm,
       file: singleFile
         ? {
             buffer: singleFile.buffer,
@@ -149,7 +163,7 @@ export const downloadEvaluationDocument = async (req, res, next) => {
 
     const result = await evaluationService.downloadEvaluationDocument({ evaluationId: evaluation_id, doc });
 
-    if (result?.provider === 'google_drive') {
+    if (result?.provider === 'google_drive' || result?.provider === 'generated') {
       res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `${disposition}; filename="${result.fileName || 'evaluation'}"`);
       return result.stream.pipe(res);
@@ -172,12 +186,39 @@ export const previewEvaluationDocument = async (req, res, next) => {
     const result = await evaluationService.previewEvaluationDocument({ evaluationId: evaluation_id, doc });
 
     // For Drive-backed docs, point to our authenticated inline stream endpoint.
-    if (result?.provider === 'google_drive') {
+    if (result?.provider === 'google_drive' || result?.provider === 'generated') {
       const origin = `${req.protocol}://${req.get('host')}`;
       result.url = `${origin}${req.baseUrl}/${evaluation_id}/document/download?disposition=inline&doc=${encodeURIComponent(doc || 'file')}`;
     }
 
     res.status(200).json({ success: true, message: 'Preview URL generated successfully', data: result });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const listPendingDueEvaluations = async (req, res, next) => {
+  try {
+    const year = Number(req.body?.year);
+    const quarter = Number(req.body?.quarter);
+
+    const rows = await evaluationService.listPendingDueEvaluations({ year, quarter });
+    res.status(200).json({ success: true, message: 'Pending due evaluations retrieved successfully', data: rows });
+  } catch (e) {
+    next(e);
+  }
+};
+
+export const ensureSchedule = async (req, res, next) => {
+  try {
+    const payload = {
+      employee_id: req.body.employee_id,
+      evaluation_type: req.body.evaluation_type,
+      evaluation_date: req.body.evaluation_date,
+    };
+
+    const row = await evaluationService.ensureSchedule(payload, req.user);
+    res.status(200).json({ success: true, message: 'Evaluation schedule ensured successfully', data: row });
   } catch (e) {
     next(e);
   }

@@ -5,6 +5,13 @@ import logger from "../utils/logger.js";
 
 const userFields = "id, employee_id, email, role, created_at";
 
+const DELETED_EMAIL_PREFIX = 'deleted+';
+
+const isSoftDeletedEmail = (email) => {
+  const normalized = String(email || '').trim().toLowerCase();
+  return normalized.startsWith(DELETED_EMAIL_PREFIX);
+};
+
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -65,7 +72,9 @@ export const getAllUsers = async (requester) => {
       }
     }
 
-    return (users || []).map((u) => ({
+    const visibleUsers = (users || []).filter((u) => !isSoftDeletedEmail(u.email));
+
+    return visibleUsers.map((u) => ({
       ...u,
       status: statusByUserId[u.id] || "ACTIVE",
     }));
@@ -106,7 +115,7 @@ export const updateUserByEmployeeId = async (employeeId, { role, status }, actor
         user_id: actorId,
         action_type: AUDIT_ACTIONS.UPDATE,
         table_name: "users",
-        record_id: existingUser.employee_id || existingUser.id,
+        record_id: existingUser.id,
         old_values: { role: existingUser.role },
         new_values: { role: updatedUser.role },
         timestamp: new Date().toISOString(),
@@ -178,7 +187,17 @@ export const deleteUserByEmployeeId = async (employeeId, actorId) => {
       .eq(key, value)
       .maybeSingle();
 
-    if (fetchUserError || !existingUser) throw new NotFoundError('User not found');
+    // Idempotent delete: if the user no longer exists (or is already hidden/soft-deleted), treat as success.
+    if (fetchUserError || !existingUser || isSoftDeletedEmail(existingUser.email)) {
+      return {
+        id: key === 'id' ? value : null,
+        employee_id: key === 'employee_id' ? value : null,
+        email: '',
+        role: '',
+        created_at: null,
+        alreadyDeleted: true
+      };
+    }
 
     const { data: linkedEmployee, error: employeeLookupError } = await supabase
       .from('employees')
@@ -189,9 +208,61 @@ export const deleteUserByEmployeeId = async (employeeId, actorId) => {
     if (employeeLookupError) throw new InternalServerError(employeeLookupError.message);
 
     if (linkedEmployee) {
-      throw new ConflictError(
-        'Cannot delete a user account that is linked to an employee profile. Archive the employee instead to preserve records and 201 files.'
-      );
+      const normalized = String(linkedEmployee.employment_status || '').trim().toUpperCase();
+      const isArchived = normalized === String(EMPLOYMENT_STATUSES.INACTIVE).trim().toUpperCase();
+
+      if (!isArchived) {
+        throw new ConflictError(
+          'Cannot delete a user account that is linked to an ACTIVE employee profile. Archive the employee first (Employees page), then delete the user account (User Accounts page).'
+        );
+      }
+
+      // NOTE: employees.user_id is NOT NULL in this DB, so we cannot unlink an employee profile.
+      // To support the required flow (archive first, then delete), we do a *hard disable*:
+      // - Delete Supabase Auth user (removes login access)
+      // - Soft-delete app user row by changing email to a safe marker
+      // - Hide soft-deleted users from User Accounts listing
+
+      const markerEmail = `${DELETED_EMAIL_PREFIX}${linkedEmployee.employee_id || existingUser.employee_id || existingUser.id}@wdcap.invalid`;
+
+      // Best-effort: delete the Supabase Auth identity first.
+      try {
+        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(existingUser.id);
+        if (authDeleteError) {
+          logger.warn(`Failed to delete Auth user (will still soft-delete app user): ${authDeleteError.message}`);
+        }
+      } catch (authDeleteErr) {
+        logger.warn('Failed to delete Auth user (will still soft-delete app user):', authDeleteErr);
+      }
+
+      const { data: updated, error: updateError } = await supabase
+        .from('users')
+        .update({ email: markerEmail })
+        .eq('id', existingUser.id)
+        .select(userFields)
+        .maybeSingle();
+
+      if (updateError) {
+        throw new InternalServerError(updateError.message);
+      }
+
+      const effectiveUpdated = updated || { ...existingUser, email: markerEmail };
+
+      const { error: auditError } = await supabase.from('audit_logs').insert({
+        user_id: actorId,
+        action_type: AUDIT_ACTIONS.DELETE,
+        table_name: 'users',
+        record_id: existingUser.id,
+        old_values: existingUser,
+        new_values: { deleted: true, email: existingUser.email, deleted_email: markerEmail },
+        timestamp: new Date().toISOString()
+      });
+
+      if (auditError) {
+        throw new InternalServerError(`Failed to create audit log: ${auditError.message}`);
+      }
+
+      return effectiveUpdated;
     }
 
     const { data: deleted, error } = await supabase
@@ -199,20 +270,38 @@ export const deleteUserByEmployeeId = async (employeeId, actorId) => {
       .delete()
       .eq(key, value)
       .select(userFields)
-      .single();
+      .maybeSingle();
 
-    if (error || !deleted) throw new NotFoundError("User not found");
+    if (error) throw new InternalServerError(error.message);
 
-    await supabase.from("audit_logs").insert({
+    // Some environments may not return the deleted row representation; treat as success if no error.
+    const effectiveDeleted = deleted || existingUser;
+
+    const { error: auditError } = await supabase.from("audit_logs").insert({
       user_id: actorId,
       action_type: AUDIT_ACTIONS.DELETE,
       table_name: "users",
-      record_id: deleted.employee_id || deleted.id,
-      old_values: deleted,
+      record_id: effectiveDeleted.id,
+      old_values: effectiveDeleted,
       timestamp: new Date().toISOString(),
     });
 
-    return deleted;
+    if (auditError) {
+      throw new InternalServerError(`Failed to create audit log: ${auditError.message}`);
+    }
+
+    // Best-effort: delete the Supabase Auth identity too.
+    // This ensures the account can no longer log in.
+    try {
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(existingUser.id);
+      if (authDeleteError) {
+        logger.warn(`Deleted app user but failed to delete Auth user: ${authDeleteError.message}`);
+      }
+    } catch (authDeleteErr) {
+      logger.warn('Deleted app user but failed to delete Auth user:', authDeleteErr);
+    }
+
+    return effectiveDeleted;
   } catch (error) {
     logger.error("deleteUserByEmployeeId error:", error);
     throw error;

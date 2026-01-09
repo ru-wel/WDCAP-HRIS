@@ -153,7 +153,7 @@ function ReportsLogs (){
 
             <Navbar />
 
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
                 {/* HEADER */}
                 <div className="md:flex justify-between items-center w-full">
 

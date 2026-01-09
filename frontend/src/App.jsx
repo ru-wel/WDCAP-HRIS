@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet, BrowserRouter, useLocation } from 'rea
 import { NavSide } from "./components/sidenav";
 import { useAuth } from './context/AuthContext.jsx';
 import Login from "./pages/login/login.jsx";
+import ResetPassword from './pages/login/reset-password.jsx';
 import Dashboard from './pages/dashboard/dashboard.jsx';
 import Employees from './pages/employees/employees.jsx';
 import Onboarding from './pages/onboarding/onboarding.jsx';
@@ -45,6 +46,7 @@ function TitleManager() {
       // Exact routes
       const exact = {
         '/login': 'ARISE | LOGIN',
+        '/reset-password': 'ARISE | RESET PASSWORD',
         '/dashboard': 'ARISE | DASHBOARD',
         '/profile': 'ARISE | PROFILE',
 
@@ -123,6 +125,7 @@ function App() {
       <Routes>
         {/* public route (no auth needeed) */}
         <Route path="/login" element={<Login />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* protected routes */}
         <Route element={<ProtectedLayoutWithSidebar />}>

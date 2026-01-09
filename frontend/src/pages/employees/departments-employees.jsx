@@ -393,7 +393,7 @@ export default function DepartmentEmployees() {
     <div>
       <Navbar />
 
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
             <button
@@ -649,14 +649,14 @@ export default function DepartmentEmployees() {
               </div>
 
               <div className="py-10">
-                <div className="flex items-center justify-center gap-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-5">
                   <span className="font-bold text-lg">Position Title:</span>
 
-                  <div className="flex flex-col">
+                  <div className="flex flex-col w-full sm:w-auto">
                     <input
                       value={addPositionTitleDraft}
                       onChange={(e) => setAddPositionTitleDraft(e.target.value)}
-                      className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      className="w-full sm:w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
                       disabled={positionSaving}
                     />
                     {positionError && (
@@ -717,14 +717,14 @@ export default function DepartmentEmployees() {
               </div>
 
               <div className="py-10">
-                <div className="flex items-center justify-center gap-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-5">
                   <span className="font-bold text-lg">Position Title:</span>
 
-                  <div className="flex flex-col">
+                  <div className="flex flex-col w-full sm:w-auto">
                     <input
                       value={positionTitleDraft}
                       onChange={(e) => setPositionTitleDraft(e.target.value)}
-                      className="w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      className="w-full sm:w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
                       readOnly={!isEditingPosition || positionSaving}
                       disabled={positionSaving}
                     />

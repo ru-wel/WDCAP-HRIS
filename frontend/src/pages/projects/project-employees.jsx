@@ -93,8 +93,8 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#EDEDED]/50 z-50">
-    <div className="bg-white rounded-lg shadow-lg w-[560px] max-w-[90%] p-6 min-h-[300px]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto">
 
         <div className="bg-[#990100] rounded-lg px-5 py-3 flex justify-between items-center">
           <h1 className="text-white text-lg font-semibold">Add New Employee</h1>
@@ -488,7 +488,7 @@ function ProjectEmployees() {
 
   return (
     <div>
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="flex justify-between items-center">
 
           <div className="flex items-center gap-3">

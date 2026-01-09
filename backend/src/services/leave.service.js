@@ -38,7 +38,7 @@ const getEmailLogoAttachment = async () => {
   try {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const logoPath = path.resolve(__dirname, '../../../frontend/public/icons/arise-logo-login.png');
+    const logoPath = path.resolve(__dirname, '../../../frontend/public/arise-logo-login.png');
     const content = await fs.readFile(logoPath);
 
     cachedLogoAttachment = {
@@ -132,7 +132,7 @@ const buildLeaveEmailHtml = ({ title, message, details, status, recipientName, d
 
   const { label: statusLabel, bg: statusBg } = leaveStatusBadge(status);
   const frontendBase = getFrontendBaseUrl();
-  const logoUrl = frontendBase ? `${frontendBase}/icons/arise-logo-login.png` : '';
+  const logoUrl = frontendBase ? `${frontendBase}/arise-logo-login.png` : '';
   const effectiveLogoSrc = logoSrc || logoUrl;
 
   const confidentiality =
@@ -216,7 +216,7 @@ const statusTitle = (status) => {
 const statusSubject = (status) => {
   const normalized = normalizeLeaveStatusLabel(status);
   const label = normalized.charAt(0) + normalized.slice(1).toLowerCase();
-  return `Leave Request — ${label}`;
+  return `WDCAP HRIS — Leave Request — ${label}`;
 };
 
 const getFirstName = (fullName) => {
@@ -566,6 +566,47 @@ export const listLeaveRequests = async ({ status, employee_id } = {}) => {
 export const createLeaveRequest = async (payload, user) => {
   try {
     if (!payload?.employee_id) throw new BadRequestError('Employee id is required');
+
+    // Eligibility check: restrict probationary employees (< 1 year) to LWP only
+    try {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('employee_id, hire_date, personnel_type')
+        .eq('employee_id', payload.employee_id)
+        .maybeSingle();
+
+      const hireDate = emp?.hire_date ? String(emp.hire_date).slice(0, 10) : '';
+      const personnel = String(emp?.personnel_type || '').trim().toLowerCase();
+      let probationary = personnel === 'probationary';
+
+      if (probationary && hireDate) {
+        try {
+          const hired = new Date(`${hireDate}T00:00:00`);
+          const now = new Date();
+          const diffDays = Math.floor((now.getTime() - hired.getTime()) / (24 * 60 * 60 * 1000));
+          if (diffDays >= 365) probationary = false;
+        } catch {
+          // ignore parse errors; keep based on personnel_type
+        }
+      }
+
+      if (probationary && payload.leave_type_id) {
+        const { data: lt } = await supabase
+          .from('leave_types')
+          .select('leave_type_id, leave_type_name')
+          .eq('leave_type_id', payload.leave_type_id)
+          .maybeSingle();
+
+        const name = String(lt?.leave_type_name || '').toLowerCase();
+        const isLwp = name.includes('without pay');
+        if (!isLwp) {
+          throw new BadRequestError('Only Leave Without Pay is allowed for probationary employees.');
+        }
+      }
+    } catch (eligErr) {
+      if (eligErr?.statusCode) throw eligErr;
+      // If eligibility check fails unexpectedly, continue to avoid hard blocking
+    }
 
     const timestamp = new Date().toISOString();
     const insertPayload = {

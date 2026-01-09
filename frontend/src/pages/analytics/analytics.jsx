@@ -157,7 +157,7 @@ function Analytics() {
 
   return (
     <div>
-      <div className="p-7 lg:mx-18 md:mx-10">
+      <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">

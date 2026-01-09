@@ -201,14 +201,6 @@ function StepOne({ data, setData, departments, positions }) {
 function StepTwo({ data, setData }) {
     const isNonEmpty = (v) => String(v || '').trim().length > 0;
     const isEmailValid = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || ''));
-    const isPasswordValid = (v) => {
-        const s = String(v || '');
-        if (s.length < 8) return false;
-        if (!/[A-Z]/.test(s)) return false;
-        if (!/[a-z]/.test(s)) return false;
-        if (!/[0-9]/.test(s)) return false;
-        return true;
-    };
     const validFieldClass = (isValid) =>
         isValid ? ' !border-green-600 ring-2 ring-green-200 focus:!outline-green-600' : '';
 
@@ -219,12 +211,12 @@ function StepTwo({ data, setData }) {
             <h1 className='text-white font-medium lg:text-lg text-medium'>Create New Account</h1>
         </div>
 
-        <div className="md:px-20 px-8 px-2">
+        <div className="px-2 sm:px-8 md:px-20">
 
             <div className="flex items-center justify-center lg:pt-5 pt-3">
                 <div className="">
                     <p className='text-sm pb-2'><b>Role:</b></p>
-                    <select name="role" className={`input-field lg:w-75 md:w-50 w-40${validFieldClass(isNonEmpty(data.role))}`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
+                    <select name="role" className={`input-field ${validFieldClass(isNonEmpty(data.role))}`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
                         <option value="">Select Role</option>
                         <option value={ROLES.ADMIN}>{ROLES.ADMIN}</option>
                         <option value={ROLES.HR}>{ROLES.HR}</option>
@@ -237,27 +229,17 @@ function StepTwo({ data, setData }) {
             <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
                 <div className="">
                     <p className='text-sm pb-2'><b>Email:</b></p>
-                    <input type="email" name="email" className={`input-field lg:w-75 md:w-50 w-40${validFieldClass(isEmailValid(data.email))}`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
+                    <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))}`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
                 </div>
             </div>
 
             <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
-                <div className="">
-                    <p className='lg:text-sm text-xs pb-2'><b>Enter Password:</b></p>
-                    <input type="password" name="password" className={`input-field lg:w-75 md:w-50 w-40${validFieldClass(isPasswordValid(data.password))}`} placeholder="Enter Password" value={data.password} onChange={(e) => setData({...data, password: e.target.value})} required/>
-                                        <p className="mt-2 text-[11px] text-gray-600 lg:w-75 md:w-50 w-40">
-                                            Password must be at least 8 characters and include at least 1 uppercase, 1 lowercase, and 1 number.
-                                        </p>
-                </div>
-            </div>
-
-            <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
-                <div className="">
-                    <p className='lg:text-sm text-xs pb-2'><b>Re-enter Password:</b></p>
-                    <input type="password" name="rePassword" className={`input-field lg:w-75 md:w-50 w-40${validFieldClass(isNonEmpty(data.rePassword) && data.rePassword === data.password)}`} placeholder="Re-enter Password" value={data.rePassword} onChange={(e) => setData({...data, rePassword: e.target.value})} required/>
-                                        <p className="mt-2 text-[11px] text-gray-600 lg:w-75 md:w-50 w-40">
-                                            Must match the password exactly.
-                                        </p>
+                <div className="w-full max-w-sm">
+                    <p className='lg:text-sm text-xs pb-2'><b>Password:</b></p>
+                    <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+                        The initial password is automatically set to the employee’s <b>Employee ID</b>.
+                        The employee must log in and <b>change their password</b> after the first login.
+                    </div>
                 </div>
             </div>
 
@@ -464,28 +446,10 @@ function Onboarding(){
 
     // validation of step 2 fields
     const validateStep2 = () => {
-        if (!formData.email || !formData.role || !formData.password || !formData.rePassword) {
+        if (!formData.email || !formData.role) {
             setError("Please fill out all fields");
             return false;
         }
-
-        if (formData.password !== formData.rePassword) {
-            setError("Passwords do not match");
-            return false;
-        }
-
-        if (formData.password.length < 8) {
-            setError("Password must be at least 8 characters");
-            return false;
-        }
-
-        // Must contain at least one uppercase, one lowercase, and one number
-        const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
-        if (!strong.test(formData.password)) {
-            setError("Password must contain at least one uppercase letter, one lowercase letter, and one number");
-            return false;
-        }
-
         return true;
     };
 
@@ -510,7 +474,6 @@ function Onboarding(){
             const response = await post('/onboarding/complete', {
                 // account info
                 email: formData.email,
-                password: formData.password,
                 role: formData.role,
                 // employee info
                 first_name: formData.fname,
@@ -531,9 +494,17 @@ function Onboarding(){
                 throw new Error(response.message || 'Failed to onboard employee');
             }
 
+            const emailStatus = (() => {
+                const e = response?.data?.email;
+                if (!e) return null;
+                if (e.skipped) return 'Email: skipped (SMTP not configured)';
+                if (e.error) return `Email: failed (${e.error})`;
+                return 'Email: sent';
+            })();
+
             openConfirm({
                 title: 'Success',
-                message: 'Employee onboarded successfully!',
+                message: ['Employee onboarded successfully!', emailStatus].filter(Boolean).join('\n'),
                 confirmText: 'OK',
                 cancelText: null,
                 onConfirm: () => navigate('/employees'),
@@ -554,7 +525,7 @@ function Onboarding(){
 
     if (loadingData) {
         return (
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
                 <p className="text-sm text-gray-600">Loading…</p>
             </div>
         );
@@ -563,7 +534,7 @@ function Onboarding(){
     return(
 
         <div className="">
-            <div className="p-7 lg:mx-18 md:mx-10">
+            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
                 <div className="mb-10">
                     <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold'>Onboarding</h1>
                 </div>

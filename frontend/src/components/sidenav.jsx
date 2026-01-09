@@ -5,10 +5,13 @@ import { ROLES } from "../constants/config.js";
 import gsap from 'gsap';
 import ConfirmModal from "./confirm-modal.jsx";
 import Preloader from "./preloader.jsx";
+import { get } from "../services/api.js";
 
 export default function Sidenav({
   initialActive = "Dashboard",
   initialSub = "Onboarding",
+  mobileOpen,
+  setMobileOpen,
 }) {
   const { user, logout } = useAuth();
   const role = user?.role;
@@ -21,8 +24,14 @@ export default function Sidenav({
   const [isHovered, setIsHovered] = useState(false);
   const didAutoOpenRef = useRef(false);
 
+  const closeMobile = () => setMobileOpen?.(false);
+
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [isProjectBased, setIsProjectBased] = useState(false);
+
+  const desktopWidthClass = isHovered ? "md:w-44" : "md:w-20";
+  const mobileTranslateClass = mobileOpen ? "translate-x-0" : "-translate-x-full";
 
   const handleLogout = () => {
     setLogoutConfirmOpen(true);
@@ -98,6 +107,26 @@ export default function Sidenav({
     if (didAutoOpenRef.current) return;
     didAutoOpenRef.current = true;
     setOpenGroup("Employees");
+  }, [isEmployee]);
+
+  // For employees: detect personnel_type to optionally hide Projects
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!isEmployee) {
+        setIsProjectBased(false);
+        return;
+      }
+      try {
+        const res = await get('/employees/me');
+        const personnel = String(res?.data?.personnel_type || '').trim().toLowerCase();
+        if (!cancelled) setIsProjectBased(personnel === 'project-based' || personnel === 'project based');
+      } catch {
+        if (!cancelled) setIsProjectBased(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
   }, [isEmployee]);
 
   const items = [
@@ -190,6 +219,7 @@ export default function Sidenav({
           if (item.label === "Employees") return false;
           if (item.label === "Analytics") return false;
           if (item.label === "Audit Logs") return false;
+          if (isProjectBased && item.label === "Projects") return false;
           return true;
         }),
       ]
@@ -201,6 +231,7 @@ export default function Sidenav({
   const handleMainClick = (item) => {
     if (item.path) {
       navigate(item.path);
+      closeMobile();
     } else if (item.type === "group" || item.type === "dropdown") {
       setOpenGroup((prev) => (prev === item.label ? null : item.label));
     }
@@ -213,6 +244,7 @@ export default function Sidenav({
   const handleSubClick = (parentLabel, childItem) => {
     setOpenGroup(parentLabel);
     navigate(childItem.path);
+    closeMobile();
   };
 
   return (
@@ -228,39 +260,75 @@ export default function Sidenav({
         onCancel={() => setLogoutConfirmOpen(false)}
         confirmDisabled={loggingOut}
       />
+
+      {mobileOpen ? (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 md:hidden"
+          onClick={closeMobile}
+          aria-hidden="true"
+        />
+      ) : null}
+
       <aside
-        className={`fixed inset-y-0 left-0 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px] transition-all duration-300 ease-in-out ${
-          isHovered ? "w-44" : "w-20"
-        } z-10`}
+        className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px] transition-all duration-300 ease-in-out w-64 ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-      <div className="px-3 mb-5 flex items-center justify-start">
-        <div className="bg-white rounded-2xl w-12 h-12 flex items-center justify-center overflow-hidden">
-          <a href="/dashboard">
-            <img src="/tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" />
-          </a>
+        <div className="md:hidden px-3 pb-2 flex items-center justify-end">
+          <button
+            type="button"
+            className="rounded-md px-2 py-1 text-white/90 hover:text-white hover:bg-white/10"
+            onClick={closeMobile}
+            aria-label="Close navigation"
+            title="Close"
+          >
+            ✕
+          </button>
         </div>
-      </div>
 
-      <nav className="flex-1 min-h-0 px-3 space-y-2 overflow-y-auto pb-3">
-        {finalVisibleItems.map((item) => {
-          if (item.type === "item") {
-            return (
-              <NavItem
-                key={item.label}
-                label={item.label}
-                icon={item.icon}
-                active={activeMain === item.label}
-                onClick={() => handleMainClick(item)}
-                isHovered={isHovered}
-              />
-            );
-          }
+        <div className="px-3 mb-5 flex items-center justify-start">
+          <div className="bg-white rounded-2xl w-12 h-12 flex items-center justify-center overflow-hidden">
+            <a href="/dashboard">
+              <img src="/tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" />
+            </a>
+          </div>
+        </div>
 
-          if (item.type === "dropdown") {
+        <nav className="flex-1 min-h-0 px-3 space-y-2 overflow-y-auto pb-3">
+          {finalVisibleItems.map((item) => {
+            if (item.type === "item") {
+              return (
+                <NavItem
+                  key={item.label}
+                  label={item.label}
+                  icon={item.icon}
+                  active={activeMain === item.label}
+                  onClick={() => handleMainClick(item)}
+                  isHovered={isHovered}
+                />
+              );
+            }
+
+            if (item.type === "dropdown") {
+              return (
+                <NavDropdown
+                  key={item.label}
+                  label={item.label}
+                  icon={item.icon}
+                  items={item.children}
+                  isOpen={openGroup === item.label}
+                  active={activeMain === item.label}
+                  activeSub={activeSub}
+                  onMainClick={() => handleMainClick(item)}
+                  onToggleClick={() => handleToggle(item.label)}
+                  onSubClick={handleSubClick}
+                  isHovered={isHovered}
+                />
+              );
+            }
+
             return (
-              <NavDropdown
+              <NavGroup
                 key={item.label}
                 label={item.label}
                 icon={item.icon}
@@ -274,60 +342,45 @@ export default function Sidenav({
                 isHovered={isHovered}
               />
             );
-          }
+          })}
+        </nav>
 
-          return (
-            <NavGroup
-              key={item.label}
-              label={item.label}
-              icon={item.icon}
-              items={item.children}
-              isOpen={openGroup === item.label}
-              active={activeMain === item.label}
-              activeSub={activeSub}
-              onMainClick={() => handleMainClick(item)}
-              onToggleClick={() => handleToggle(item.label)}
-              onSubClick={handleSubClick}
-              isHovered={isHovered}
+        <div className="px-3 mt-3 space-y-2">
+          <button
+            type="button"
+            className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
+              !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
+            }`}
+            onClick={() => {
+              navigate('/profile');
+              closeMobile();
+            }}
+            title={!isHovered ? 'My Profile' : ''}
+          >
+            <img
+              src="/icons/account-icon.png"
+              alt="My Profile"
+              className="h-5 w-5 object-contain brightness-0 invert"
             />
-          );
-        })}
-      </nav>
+            {isHovered && <span className="text-left text-[14px]">My Profile</span>}
+          </button>
 
-      <div className="px-3 mt-3 space-y-2">
-        <button
-          type="button"
-          className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
-            !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
-          }`}
-          onClick={() => navigate('/profile')}
-          title={!isHovered ? 'My Profile' : ''}
-        >
-          <img
-            src="/icons/account-icon.png"
-            alt="My Profile"
-            className="h-5 w-5 object-contain brightness-0 invert"
-          />
-          {isHovered && <span className="text-left text-[14px]">My Profile</span>}
-        </button>
-
-        <button
-          type="button"
-          className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
-            !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
-          }`}
-          onClick={handleLogout}
-          title={!isHovered ? 'Logout' : ''}
-        >
-          <img
-            src="/icons/account-icon.png"
-            alt="Logout"
-            className="h-5 w-5 object-contain brightness-0 invert"
-          />
-          {isHovered && <span className="text-left text-[14px]">Logout</span>}
-        </button>
-      </div>
-
+          <button
+            type="button"
+            className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
+              !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
+            }`}
+            onClick={handleLogout}
+            title={!isHovered ? 'Logout' : ''}
+          >
+            <img
+              src="/icons/account-icon.png"
+              alt="Logout"
+              className="h-5 w-5 object-contain brightness-0 invert"
+            />
+            {isHovered && <span className="text-left text-[14px]">Logout</span>}
+          </button>
+        </div>
       </aside>
     </>
   );
@@ -336,6 +389,11 @@ export default function Sidenav({
 export function NavSide({ children }) {
   const location = useLocation();
   const contentRef = useRef(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   useLayoutEffect(() => {
     if (!contentRef.current) return;
@@ -348,9 +406,31 @@ export function NavSide({ children }) {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen w-screen bg-[#EDEDED] relative">
-      <Sidenav />
-      <main data-lenis-wrapper className="bg-white text-gray-900 overflow-x-hidden min-h-screen ml-20">
+    <div className={`min-h-screen w-full bg-[#EDEDED] relative ${mobileOpen ? "overflow-hidden" : ""}`}>
+      <Sidenav mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <main
+        data-lenis-wrapper
+        className="bg-white text-gray-900 overflow-x-hidden min-h-screen ml-0 md:ml-20 md:peer-hover:ml-44 min-w-0 w-full transition-[margin] duration-300"
+      >
+        <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200">
+          <div className="px-4 py-3 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="rounded-md px-2 py-1 text-[#990100] hover:bg-gray-100"
+              aria-label="Open navigation"
+              title="Menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+            <div className="text-sm font-medium text-gray-700">Menu</div>
+          </div>
+        </div>
+
         <div data-lenis-content ref={contentRef} className="min-h-screen">
           {children}
         </div>

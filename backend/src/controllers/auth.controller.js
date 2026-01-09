@@ -138,16 +138,79 @@ export const requestPasswordReset = async (req, res, next) => {
   try {
     const { email } = req.body || {};
 
-    await authService.requestPasswordReset({
+    // Prefer explicit Origin header (browser), else infer from Referer.
+    let originBaseUrl = req.get('origin') || '';
+    if (!originBaseUrl) {
+      try {
+        const ref = req.get('referer') || '';
+        if (ref) originBaseUrl = new URL(ref).origin;
+      } catch {
+        originBaseUrl = '';
+      }
+    }
+
+    const result = await authService.requestPasswordReset({
       email,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      originBaseUrl
+    });
+
+    // Always return a generic success response.
+    const payload = {
+      success: true,
+      message: 'If the account exists, password reset instructions have been sent.'
+    };
+
+    // Dev-only: include debug details so local testing isn't blind.
+    if (String(process.env.NODE_ENV || '').toLowerCase() === 'development') {
+      payload.debug = result?.debug || null;
+    }
+
+    res.status(200).json(payload);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { access_token, new_password } = req.body || {};
+
+    const result = await authService.resetPasswordWithToken({
+      access_token,
+      new_password,
       ip: req.ip,
       userAgent: req.get('user-agent')
     });
 
-    // Always return a generic success response.
     res.status(200).json({
       success: true,
-      message: 'If the account exists, your request has been sent to Admin/HR.'
+      message: 'Password reset successfully',
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Google login controller (Supabase-based)
+export const googleLogin = async (req, res, next) => {
+  try {
+    const { googleToken } = req.body || {};
+
+    if (!googleToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google token is required'
+      });
+    }
+
+    const result = await authService.googleLogin({ googleToken });
+    res.status(200).json({
+      success: true,
+      message: 'Google login successful',
+      data: result
     });
   } catch (error) {
     next(error);
