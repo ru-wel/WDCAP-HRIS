@@ -22,4 +22,4 @@ build/
 coverage/
 
 # Optional: ignore Markdown files if you want
-# *.md
+*.md
