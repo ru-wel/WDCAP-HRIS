@@ -106,10 +106,10 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
     return (
             <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
-             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-3xl max-h-[95vh] overflow-y-auto border border-gray-300">
+             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-160 md:w-120 w-80  overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" 
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" 
                     onClick={() => {
                         if (unsavedChanges){
                             openConfirm({
@@ -128,8 +128,8 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
                     <p className='lg:text-sm text-xs'><b>Employee ID:</b> {currentData.id}</p>
                     <div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Role</p>
-                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.role || ""} disabled = {!editData || loading} onChange={handleChange} required>
+                        <p className='lg:text-sm text-xs pb-2 font-semibold'>Role:</p>
+                        <select name="role" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs cursor-pointer disabled:cursor-default' value={currentData.role || ""} disabled = {!editData || loading} onChange={handleChange} required>
                             <option value="">Select Role</option>
                             <option value="Admin">Admin</option>
                             <option value="HR">HR</option>
@@ -139,13 +139,13 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
                     {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
                     <div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Email</p>
-                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs" value={currentData.email || ""} disabled />
+                        <p className='lg:text-sm text-xs pb-2 font-semibold'>Email:</p>
+                        <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs disabled:cursor-default" value={currentData.email || ""} disabled />
                     </div>
 
                     <div className="lg:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs pb-2 font-medium'>Status</p>
-                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={currentData.status || ""} disabled = {!editData || loading} onChange={handleChange} required>
+                        <p className='lg:text-sm text-xs pb-2 font-semibold'>Status:</p>
+                        <select name="status" className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs cursor-pointer disabled:cursor-default' value={currentData.status || ""} disabled = {!editData || loading} onChange={handleChange} required>
                             <option value="">Select Status</option>
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="INACTIVE">INACTIVE</option>
@@ -161,15 +161,15 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                             <button
                                 onClick={() => setEditData(true)}
                                 disabled={loading}
-                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
-                                Update Record
+                                Update Account
                             </button>
 
                             <button
                                 onClick={() => setResetMode((p) => !p)}
                                 disabled={loading}
-                                className='bg-[#FFA500] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#FFA500] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
                                 {resetMode ? 'Cancel Reset' : 'Reset Password'}
                             </button>
@@ -201,14 +201,14 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                                     });
                                 }}
                                 disabled={loading}
-                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
-                                {loading ? "Deleting..." : "Delete Record"}
+                                {loading ? "Deleting..." : "Delete Account"}
                             </button>
                         </div>
                     ):(
                         <div className="flex justify-center gap-4">
-                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                            <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
                                     onClick = {() => {
                                         if (unsavedChanges){
                                             openConfirm({
@@ -270,7 +270,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                                     });
                                 }}
                                 disabled={loading}
-                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                             >
                                 {loading ? "Saving..." : "Save Changes"}
                             </button>
@@ -305,7 +305,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                                 <button
                                     type="button"
                                     disabled={loading}
-                                    className='bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'
+                                    className='bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'
                                     onClick={() => {
                                         if (!resetPassword || !resetConfirmPassword) {
                                             openConfirm({
@@ -633,9 +633,9 @@ function UserAccounts (){
 
                 <hr className='text-[#990100] mt-6 '/>
 
-                <div className="flex justify-end mt-5">
+                {/*<div className="flex justify-end mt-5">
                     <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>
-                </div>
+                </div>*/}
 
                 <ReportModal
                     open={reportOpen}
@@ -670,7 +670,7 @@ function UserAccounts (){
                                         <p className="mb-3">{error}</p>
                                         <button
                                             onClick={fetchUsers}
-                                            className="bg-[#990100] text-white px-4 py-2 rounded hover:bg-[#ad3332]"
+                                            className="bg-[#990100] text-white px-4 py-2 rounded hover:bg-[#ad3332] cursor-pointer"
                                         >
                                             Retry
                                         </button>
@@ -716,7 +716,7 @@ function UserAccounts (){
                                             })()}
                                         </td>
                                         <td className="td-style">
-                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => handleOpen(row)}>
+                                            <button className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => handleOpen(row)}>
                                                 View Details
                                             </button>
                                         </td>
