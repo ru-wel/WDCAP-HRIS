@@ -230,10 +230,10 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
         
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
 
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 w-full max-w-3xl max-h-[95vh] overflow-y-auto border border-gray-300">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-180 md:w-140 w-80 lg:h-140 md:h-120 h-100 overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
                     <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.first_name} {data.last_name}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" onClick={() => {
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={() => {
                         if (unsavedChanges){
                             openConfirm({
                                 message: 'You have unsaved changes. Do you want to close it without saving?',
@@ -248,36 +248,36 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                 </div>
 
                 <div className="px-3">
-                    <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left">
+                    <div className="md:grid md:grid-cols-2 gap-4 items-center lg:pt-5 pt-3 text-left">
                         <div className="pr-2 md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.employee_id}</p>
                         </div>
                         
-                        <div className="flex items-center md:pl-2">
-                            <p className='lg:text-sm text-xs pr-2'><b>Employment Status:</b></p>
-                            <select name="employment_status" value = {data.employment_status} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-25 md:w-20 w-35 disabled:text-gray-600'>
+                        <div className=" items-center">
+                            <p className='lg:text-sm text-xs pr-2 pb-1.5'><b>Employment Status:</b></p>
+                            <select name="employment_status" value = {data.employment_status} disabled = {!editData || loading} onChange={handleChange} className='modal-employees-field cursor-pointer disabled:cursor-default'>
                                 <option value={EMPLOYMENT_STATUSES.ACTIVE}>{EMPLOYMENT_STATUSES.ACTIVE}</option>
                                 <option value={EMPLOYMENT_STATUSES.INACTIVE}>{EMPLOYMENT_STATUSES.INACTIVE}</option>
                             </select>
                         </div>
                     </div>
 
-                    <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
-                        <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-3'><b>First Name:</b></p>
-                            <input type="text" name="first_name" value = {data.first_name} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md lg:text-sm text-xs focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] text-sm lg:w-39 md:w-32 w-46 disabled:text-gray-600" />
+                    <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left"> 
+                        <div className="items-center md:pb-0 pb-3">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>First Name:</b></p>
+                            <input type="text" name="first_name" value = {data.first_name} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" />
                         </div>
                         
-                        <div className="flex items-center md:justify-between md:pl-2">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-4'><b>Last Name:</b></p>
-                            <input type="text" name="last_name" value = {data.last_name} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md lg:text-sm text-xs focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] text-sm lg:w-40 md:w-35 w-46 disabled:text-gray-600" />
+                        <div className=" items-center ">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Last Name:</b></p>
+                            <input type="text" name="last_name" value = {data.last_name} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" />
                         </div>
                     </div>
 
-                    <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
-                        <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Department:</b></p>
-                            <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='shadow-sm lg:text-sm text-xs border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-39 md:w-32 w-46 disabled:text-gray-600'>
+                    <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left"> 
+                        <div className=" items-center md:pb-0 pb-3">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Department:</b></p>
+                            <select name="department_id" value = {data.department_id} disabled = {!editData || loading} onChange={handleChange} className='modal-employees-field cursor-pointer disabled:cursor-default'>
                                 <option value="">Select Department</option>
                                 {departments.map((dept) => (
                                     <option key={dept.id} value={dept.id}>
@@ -287,9 +287,9 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                             </select>
                         </div>
                         
-                        <div className="flex items-center md:justify-between md:pl-2">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-8'><b>Position:</b></p>
-                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading || !data.department_id} onChange={handleChange} className='shadow-sm border border-[#990100] lg:text-sm text-xs p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-40 md:w-35 w-45 disabled:text-gray-600'>
+                        <div className="items-center ">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Position:</b></p>
+                            <select name="position_id" value = {data.position_id} disabled = {!editData || loading || !data.department_id} onChange={handleChange} className='modal-employees-field cursor-pointer disabled:cursor-default'>
                                 <option value="">Select Position</option>
                                     {positions
                                         .filter((pos) => {
@@ -305,19 +305,19 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         </div>
                     </div>
 
-                    <div className="md:grid md:grid-cols-2 items-center lg:pt-5 pt-3 text-left"> 
-                        <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Personnel Type:</b></p>
-                            <select name="personnel_type" className='shadow-sm border border-[#990100] p-1 text-[#990100] focus:outline-gray-400 rounded-md lg:w-33 md:w-28 w-41 lg:text-sm text-xs disabled:text-gray-600' value = {data.personnel_type} disabled = {!editData || loading} onChange={handleChange}>
+                    <div className="md:grid md:grid-cols-2 items-center gap-4 pt-3 text-left"> 
+                        <div className=" items-center md:pb-0 pb-3">
+                            <p className='lg:text-sm text-xs md:pr-0 pr-2 pb-1.5'><b>Personnel Type:</b></p>
+                            <select name="personnel_type" className='modal-employees-field cursor-pointer disabled:cursor-default' value = {data.personnel_type} disabled = {!editData || loading} onChange={handleChange}>
                                 <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
                                 <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
                                 <option value={PERSONNEL_TYPES.PROJECT_BASED}>Project-{PERSONNEL_TYPES.PROJECT_BASED}</option>
                             </select>
                         </div>
                         
-                        <div className="flex items-center md:justify-between md:pl-2">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-7'><b>Hire Date:</b></p>
-                            <input type="date" name="hire_date" value = {data.hire_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-44 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" min = "2019-01-01" max = {maxDate} />
+                        <div className="items-center md:pb-0 pb-3">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Hire Date:</b></p>
+                            <input type="date" name="hire_date" value = {data.hire_date} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field cursor-pointer disabled:cursor-default" min = "2019-01-01" max = {maxDate} />
                         </div>
                     </div>
 
@@ -327,32 +327,32 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
                     <h2 className='lg:text-md text:sm text-left pb-4'><b>Personal Information</b></h2>
 
-                    <div className="md:grid md:grid-cols-2 items-center text-left"> 
+                    <div className="md:grid md:grid-cols-2 gap-4 items-center text-left"> 
                         
-                        <div className="flex items-center md:justify-between pr-2 md:pb-0 pb-3">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-5'><b>Birth Date:</b></p>
-                            <input type="date" name="birth_date" value={data.birth_date} disabled = {!editData || loading} onChange={handleChange} className="block lg:w-40 md:w-35 w-45 rounded-md border border-[#990100] shadow-sm focus:outline-gray-400 p-1 lg:text-sm text-xs text-[#990100] disabled:text-gray-600" max = {maxDate} />
+                        <div className="items-center md:pb-0 pb-3">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Birth Date:</b></p>
+                            <input type="date" name="birth_date" value={data.birth_date} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field cursor-pointer disabled:cursor-default" max = {maxDate} />
                         </div>
 
-                        <div className="flex items-center md:justify-between md:pl-2">
-                            <p className='lg:text-sm text-xs md:pr-0 pr-5'><b>Phone No.:</b></p>
-                            <input type="tel" name="phone_number" value = {data.phone_number} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-40 md:w-35 w-45 disabled:text-gray-600" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }}/>
+                        <div className="items-center ">
+                            <p className='lg:text-sm text-xs pb-1.5'><b>Phone No.:</b></p>
+                            <input type="tel" name="phone_number" value = {data.phone_number} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }}/>
                         </div>
                     </div>
 
-                    <div className="md:flex md:justify-between items-center text-left lg:pt-5 pt-3">
-                        <p className='lg:text-sm text-xs md:pr-0 pr-2'><b>Home Address:</b></p>
-                        <input type="text" name="address" value = {data.address} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-100 md:w-85 w-66 disabled:text-gray-600 mt-2 md:mt-0" />
+                    <div className="items-center text-left pt-3">
+                        <p className='lg:text-sm text-xs pb-1.5'><b>Home Address:</b></p>
+                        <input type="text" name="address" value = {data.address} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" />
                     </div>
 
-                    <div className="md:flex md:justify-between items-center text-left lg:pt-5 md:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs'><b>Emergency Contact Name:</b></p>
-                        <input type="text" name="emergency_contact_name" value = {data.emergency_contact_name} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-80 md:w-70 w-66 disabled:text-gray-600 mt-2 md:mt-0" />
+                    <div className="items-center text-left pt-3 ">
+                        <p className='lg:text-sm text-xs pb-1.5'><b>Emergency Contact Name:</b></p>
+                        <input type="text" name="emergency_contact_name" value = {data.emergency_contact_name} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" />
                     </div>
 
-                    <div className="md:flex justify-between items-center text-left lg:pt-5 md:pt-3 pt-2">
-                        <p className='lg:text-sm text-xs'><b>Emergency Contact No.:</b></p>
-                        <input type="tel" name="emergency_contact_number" value = {data.emergency_contact_number} disabled = {!editData || loading} onChange={handleChange} className="bg-white rounded-md text-sm focus:outline-gray-400 border border-[#990100] shadow-sm p-1 text-[#990100] lg:text-sm text-xs lg:w-80 md:w-70 w-66 disabled:text-gray-600 mt-2 md:mt-0" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }} />
+                    <div className="items-center text-left pt-3">
+                        <p className='lg:text-sm text-xs pb-1.5'><b>Emergency Contact No.:</b></p>
+                        <input type="tel" name="emergency_contact_number" value = {data.emergency_contact_number} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }} />
                     </div>
                     
 
@@ -362,12 +362,12 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
                         {!editData ? (
                             <div className="flex justify-end gap-4">
-                                <button onClick = {() => setEditData(true)} disabled={loading} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out'>Update Record</button>
-                                <button onClick={handleDelete} disabled={loading} className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'>{loading ? 'Archiving ...' : 'Archive Employee'}</button>
+                                <button onClick = {() => setEditData(true)} disabled={loading} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>Update Record</button>
+                                <button onClick={handleDelete} disabled={loading} className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>{loading ? 'Archiving ...' : 'Archive Employee'}</button>
                             </div>
                         ) : (
                             <div className="flex justify-end gap-4">
-                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out'
+                                <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
                                     onClick = {() => {
                                         if (unsavedChanges){
                                             openConfirm({
@@ -387,7 +387,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                                     Cancel Changes
                                 </button>
 
-                                <button onClick={handleSave} disabled={loading} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50'>
+                                <button onClick={handleSave} disabled={loading} className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer'>
                                     {loading ? 'Saving...' : 'Save Changes'}
                                 </button>
                             </div>
@@ -579,7 +579,7 @@ function Employees(){
                         <p className="text-red-600 mb-4">{error}</p>
                         <button
                             onClick={fetchEmployees}
-                            className="bg-[#990100] text-white px-4 py-2 rounded"
+                            className="bg-[#990100] text-white px-4 py-2 rounded cursor-pointer"
                         >
                             Retry
                         </button>
@@ -678,9 +678,9 @@ function Employees(){
                 </div>
                 <hr className='text-[#990100] mt-6 '/>
 
-                <div className="flex justify-end mt-5">
+                {/*<div className="flex justify-end mt-5">
                     <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>
-                </div>
+                </div>*/}
 
                 {/* TABLE */}
                 
@@ -724,7 +724,7 @@ function Employees(){
                                         </td>
                                         <td className="td-style">
                                             <button
-                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out "
+                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                                 onClick={() => handleOpen(row)}
                                             >
                                                 View Details

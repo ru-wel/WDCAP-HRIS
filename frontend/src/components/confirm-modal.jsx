@@ -32,7 +32,7 @@ export default function ConfirmModal({
       aria-modal="true"
       aria-label={title || "Confirmation"}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+      <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden">
         <div className="px-4 sm:px-5 py-3 bg-[#990100]">
           <h2 className="text-white text-sm font-semibold tracking-wide">
             {title || "Confirmation"}
@@ -47,7 +47,7 @@ export default function ConfirmModal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
               >
                 {cancelText}
               </button>
@@ -56,7 +56,7 @@ export default function ConfirmModal({
               type="button"
               onClick={onConfirm}
               disabled={confirmDisabled}
-              className={`px-5 py-2 rounded-full text-sm text-white transition ${
+              className={`px-5 py-2 rounded-full text-sm text-white transition cursor-pointer ${
                 confirmDisabled
                   ? "bg-[#ad3332]/60 cursor-not-allowed"
                   : "bg-[#990100] hover:bg-[#ad3332]"

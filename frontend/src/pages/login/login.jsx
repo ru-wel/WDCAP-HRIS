@@ -200,7 +200,7 @@ function Login(){
                               aria-label={showPassword ? 'Hide password' : 'Show password'}
                               onClick={toggleShowPassword}
                               disabled={loading}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-[#990100] hover:text-[#ad3332] disabled:opacity-60"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-[#990100] hover:text-[#ad3332] disabled:opacity-60 cursor-pointer"
                             >
                               <svg
                                 width="20"
@@ -241,7 +241,7 @@ function Login(){
                                 }
                               }}
                               disabled={loading}
-                              className="h-4 w-4"
+                              className="h-4 w-4 cursor-pointer"
                             />
                             <label htmlFor="rememberAccount" className="md:text-md text-sm text-[#483D3D]">
                               Always remember this account
@@ -280,7 +280,7 @@ function Login(){
 
                         <button
                           type="button"
-                          className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm"
+                          className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm cursor-pointer"
                           onClick={() => setForgotOpen(true)}
                         >
                           Forgot Password?

@@ -125,6 +125,10 @@
     @apply px-5 py-3 lg:text-sm text-xs text-gray-900 align-middle whitespace-normal break-words;
   }
 
+  .modal-employees-field{
+    @apply shadow-sm border border-[#990100] lg:text-sm text-xs md:p-1.5 p-1 text-[#990100] focus:outline-gray-400 rounded-md w-full disabled:text-gray-600 ;
+  }
+
   /* Tighter spacing and font sizes on smaller screens for better fit */
   @media (max-width: 1024px) {
     .th-style { @apply px-4; }
