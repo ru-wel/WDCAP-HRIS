@@ -42,7 +42,7 @@ function DepartmentCard({
             ? () => onSelectEdit?.(id)
             : undefined
       }
-      className={`relative bg-[#EDEDED] rounded-lg shadow-lg px-7 pt-6 transition-all duration-300 text-left w-full
+      className={`relative bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 pt-6 transition-all duration-300 text-left w-full
         ${showDeleteOverlay ? "pb-20" : "pb-6"}
         ${isClickable ? "hover:scale-105 cursor-pointer" : ""}
       `}
@@ -132,7 +132,7 @@ function DepartmentCard({
 
 function NewDepartmentCard({ value, onChange }) {
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-7 py-6 min-h-[140px]">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 py-6 min-h-[140px]">
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}

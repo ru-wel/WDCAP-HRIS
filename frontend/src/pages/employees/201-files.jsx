@@ -867,10 +867,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
                     <div className="mt-4 lg:flex items-center lg:justify-between">
                         <p className="lg:text-md text-sm">
+                            Showing <b>{currentChecklist.length}</b> of <b>{checklist.length}</b> file{checklist.length !== 1 ? 's' : ''} {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
+
                             Showing <b>{currentChecklist.length}</b> of <b>{checklist.length}</b> file{checklist.length !== 1 ? 's' : ''}
-                            {checklistPageCount ? (
-                                <> | Page <b>{Math.floor(checklistOffset / checklistItemsPerPage) + 1}</b> of <b>{checklistPageCount}</b></>
-                            ) : null}
+                            {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
                         </p>
 
                         {checklistPageCount > 0 && (
@@ -1304,7 +1304,7 @@ export default function OnboardingFiles() {
                         />
 
                         <div className="div-table">
-                            {loading && <div className="text-sm text-gray-600 mb-3">Loading 201 Files…</div>}
+                            {/*{loading && <div className="text-sm text-gray-600 mb-3">Loading 201 Files…</div>}*/}
                             <table className="table-style">
                                 <thead className="thead-style">
                                     <tr>
