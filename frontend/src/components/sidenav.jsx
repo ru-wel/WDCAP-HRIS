@@ -1,11 +1,11 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import gsap from "gsap";
 import { useAuth } from "../context/AuthContext.jsx";
 import { ROLES } from "../constants/config.js";
-import gsap from 'gsap';
+import { get } from "../services/api.js";
 import ConfirmModal from "./confirm-modal.jsx";
 import Preloader from "./preloader.jsx";
-import { get } from "../services/api.js";
 
 export default function Sidenav({
   initialActive = "Dashboard",
@@ -15,27 +15,28 @@ export default function Sidenav({
 }) {
   const { user, logout } = useAuth();
   const role = user?.role;
+
   const isEmployee = role === ROLES.EMPLOYEE;
   const isHr = role === ROLES.HR;
   const isAdmin = role === ROLES.ADMIN;
+
   const navigate = useNavigate();
   const location = useLocation();
+
   const [openGroup, setOpenGroup] = useState(initialActive);
   const [isHovered, setIsHovered] = useState(false);
   const didAutoOpenRef = useRef(false);
-
-  const closeMobile = () => setMobileOpen?.(false);
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isProjectBased, setIsProjectBased] = useState(false);
 
+  const closeMobile = () => setMobileOpen?.(false);
+
   const desktopWidthClass = isHovered ? "md:w-44" : "md:w-20";
   const mobileTranslateClass = mobileOpen ? "translate-x-0" : "-translate-x-full";
 
-  const handleLogout = () => {
-    setLogoutConfirmOpen(true);
-  };
+  const handleLogout = () => setLogoutConfirmOpen(true);
 
   const confirmLogout = async () => {
     try {
@@ -43,25 +44,26 @@ export default function Sidenav({
       setLoggingOut(true);
       await logout();
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
       setLoggingOut(false);
     }
   };
 
   const getActiveStatesFromPath = () => {
     const path = location.pathname;
-    if (path.startsWith("/projects/")) {
-      return { main: "Projects", sub: null };
-    }
+
+    // My Profile highlighted as its own main item
+    if (path.startsWith("/profile")) return { main: "My Profile", sub: null };
+
+    if (path.startsWith("/projects/")) return { main: "Projects", sub: null };
+
     if (isEmployee) {
       if (path.startsWith("/employees/201-files")) return { main: "Employees", sub: "201 Files" };
       if (path.startsWith("/employees/departments")) return { main: "Employees", sub: "Departments" };
-      if (path.startsWith("/profile")) return { main: "Employees", sub: "User Account" };
     } else {
-      if (path.startsWith("/employees/departments/")) {
-        return { main: "Employees", sub: "Departments" };
-      }
+      if (path.startsWith("/employees/departments/")) return { main: "Employees", sub: "Departments" };
     }
+
     const pathMappings = {
       "/dashboard": { main: "Dashboard", sub: null },
 
@@ -83,7 +85,6 @@ export default function Sidenav({
       "/evaluation/upload": { main: "Evaluation", sub: "Upload Result" },
 
       "/departments": { main: "Departments", sub: null },
-      "/profile": { main: "Employees", sub: "User Account" },
 
       "/analytics": { main: "Analytics", sub: null },
 
@@ -96,12 +97,13 @@ export default function Sidenav({
       "/audit/evaluation": { main: "Audit Logs", sub: "Evaluation" },
       "/audit/reports": { main: "Audit Logs", sub: "Reports" },
     };
+
     return pathMappings[path] || { main: initialActive, sub: initialSub };
   };
 
   const { main: activeMain, sub: activeSub } = getActiveStatesFromPath();
 
-  // For employees: ensure the Employees dropdown is open by default
+  // Auto-open Employees group for employee users (once)
   useEffect(() => {
     if (!isEmployee) return;
     if (didAutoOpenRef.current) return;
@@ -109,33 +111,36 @@ export default function Sidenav({
     setOpenGroup("Employees");
   }, [isEmployee]);
 
-  // For employees: detect personnel_type to optionally hide Projects
+  // Detect if employee is project-based
   useEffect(() => {
     let cancelled = false;
+
     const run = async () => {
       if (!isEmployee) {
         setIsProjectBased(false);
         return;
       }
+
       try {
-        const res = await get('/employees/me');
-        const personnel = String(res?.data?.personnel_type || '').trim().toLowerCase();
-        if (!cancelled) setIsProjectBased(personnel === 'project-based' || personnel === 'project based');
+        const res = await get("/employees/me");
+        const personnel = String(res?.data?.personnel_type || "").trim().toLowerCase();
+
+        if (!cancelled) {
+          setIsProjectBased(personnel === "project-based" || personnel === "project based");
+        }
       } catch {
         if (!cancelled) setIsProjectBased(false);
       }
     };
+
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isEmployee]);
 
   const items = [
-    {
-      label: "Dashboard",
-      icon: "dashboard",
-      type: "item",
-      path: "/dashboard",
-    },
+    { label: "Dashboard", icon: "dashboard", type: "item", path: "/dashboard" },
     {
       label: "Employees",
       icon: "employees",
@@ -148,12 +153,7 @@ export default function Sidenav({
         { label: "Departments", path: "/employees/departments" },
       ],
     },
-    {
-      label: "Projects",
-      icon: "projects",
-      type: "item",
-      path: "/projects",
-    },
+    { label: "Projects", icon: "projects", type: "item", path: "/projects" },
     {
       label: "Leave",
       icon: "leave",
@@ -175,12 +175,7 @@ export default function Sidenav({
         ...(!isEmployee ? [{ label: "Upload Result", path: "/evaluation/upload" }] : []),
       ],
     },
-    {
-      label: "Analytics",
-      icon: "analytics",
-      type: "item",
-      path: "/analytics",
-    },
+    { label: "Analytics", icon: "analytics", type: "item", path: "/analytics" },
     {
       label: "Audit Logs",
       icon: "audit",
@@ -198,6 +193,7 @@ export default function Sidenav({
     },
   ];
 
+  // Hide audit logs for HR in your existing logic
   const hrHiddenLabels = new Set(["Audit Logs"]);
 
   const finalVisibleItems = isEmployee
@@ -217,6 +213,7 @@ export default function Sidenav({
         ...items.filter((item) => {
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
+          if (item.label === "Evaluation") return false;
           if (item.label === "Analytics") return false;
           if (item.label === "Audit Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;
@@ -247,9 +244,12 @@ export default function Sidenav({
     closeMobile();
   };
 
+  const isProfileActive = activeMain === "My Profile";
+
   return (
     <>
       {loggingOut ? <Preloader fullScreen text="LOGGING OUT…" /> : null}
+
       <ConfirmModal
         open={logoutConfirmOpen}
         title="Logout"
@@ -263,7 +263,7 @@ export default function Sidenav({
 
       {mobileOpen ? (
         <div
-          className="fixed inset-0 z-20 bg-black/40 md:hidden"
+          className="fixed inset-0 z-20 bg-black/40 md:hidden cursor-pointer"
           onClick={closeMobile}
           aria-hidden="true"
         />
@@ -277,7 +277,7 @@ export default function Sidenav({
         <div className="md:hidden px-3 pb-2 flex items-center justify-end">
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-white/90 hover:text-white hover:bg-white/10"
+            className="rounded-md px-2 py-1 text-white/90 hover:text-white hover:bg-white/10 transition cursor-pointer"
             onClick={closeMobile}
             aria-label="Close navigation"
             title="Close"
@@ -288,13 +288,43 @@ export default function Sidenav({
 
         <div className="px-3 mb-5 flex items-center justify-start">
           <div className="bg-white rounded-2xl w-12 h-12 flex items-center justify-center overflow-hidden">
-            <a href="/dashboard">
+            <a href="/dashboard" className="cursor-pointer">
               <img src="/tab-logo.png" alt="Arise logo" className="w-8 h-8 object-contain" />
             </a>
           </div>
         </div>
 
-        <nav className="flex-1 min-h-0 px-3 space-y-2 overflow-y-auto pb-3">
+        <nav className="flex-1 min-h-0 px-3 space-y-2 overflow-y-auto hide-scrollbar pb-3">
+          <button
+            type="button"
+            className={`group flex items-center gap-3 w-full rounded-lg transition-all duration-200 cursor-pointer select-none
+              ${
+                isProfileActive
+                  ? "bg-white text-[#9b0000] font-medium shadow-sm"
+                  : "text-white/90 hover:text-white hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]"
+              }
+              ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+            `}
+            onClick={() => {
+              navigate("/profile");
+              closeMobile();
+            }}
+            title={!isHovered ? "My Profile" : ""}
+          >
+            <img
+              src="/icons/account-icon.png"
+              alt="My Profile"
+              className="h-5 w-5 object-contain brightness-0 invert transition-transform duration-200 group-hover:scale-110"
+            />
+            {isHovered && (
+              <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
+                My Profile
+              </span>
+            )}
+          </button>
+
+          <hr className="my-2 border-white/30" />
+
           {finalVisibleItems.map((item) => {
             if (item.type === "item") {
               return (
@@ -345,40 +375,25 @@ export default function Sidenav({
           })}
         </nav>
 
-        <div className="px-3 mt-3 space-y-2">
-          <button
-            type="button"
-            className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
-              !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
-            }`}
-            onClick={() => {
-              navigate('/profile');
-              closeMobile();
-            }}
-            title={!isHovered ? 'My Profile' : ''}
-          >
-            <img
-              src="/icons/account-icon.png"
-              alt="My Profile"
-              className="h-5 w-5 object-contain brightness-0 invert"
-            />
-            {isHovered && <span className="text-left text-[14px]">My Profile</span>}
-          </button>
+        {/* ✅ FIX: Logout aligned with the menu items (same outer padding as <nav>) */}
+        <div className="px-3 mt-auto pt-2">
+          <hr className="mb-2 border-white/20" />
 
           <button
             type="button"
-            className={`flex items-center gap-3 w-full rounded-lg transition-colors text-white/90 hover:text-white hover:bg-white/10 ${
-              !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
-            }`}
+            className={`group flex items-center gap-3 w-full rounded-lg transition-all duration-200
+              text-white/90 hover:text-white hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]
+              cursor-pointer select-none ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+            `}
             onClick={handleLogout}
-            title={!isHovered ? 'Logout' : ''}
+            title={!isHovered ? "Logout" : ""}
           >
-            <img
-              src="/icons/account-icon.png"
-              alt="Logout"
-              className="h-5 w-5 object-contain brightness-0 invert"
-            />
-            {isHovered && <span className="text-left text-[14px]">Logout</span>}
+            <span className="text-xl leading-none">⟵</span>
+            {isHovered && (
+              <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
+                Logout
+              </span>
+            )}
           </button>
         </div>
       </aside>
@@ -386,78 +401,33 @@ export default function Sidenav({
   );
 }
 
-export function NavSide({ children }) {
-  const location = useLocation();
-  const contentRef = useRef(null);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current) return;
-
-    gsap.fromTo(
-      contentRef.current,
-      { autoAlpha: 0, y: 10 },
-      { autoAlpha: 1, y: 0, duration: 0.35, ease: 'power2.out' }
-    );
-  }, [location.pathname]);
-
-  return (
-    <div className={`min-h-screen w-full bg-[#EDEDED] relative ${mobileOpen ? "overflow-hidden" : ""}`}>
-      <Sidenav mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <main
-        data-lenis-wrapper
-        className="bg-white text-gray-900 overflow-x-hidden min-h-screen ml-0 md:ml-20 md:peer-hover:ml-44 min-w-0 w-full transition-[margin] duration-300"
-      >
-        <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200">
-          <div className="px-4 py-3 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              className="rounded-md px-2 py-1 text-[#990100] hover:bg-gray-100"
-              aria-label="Open navigation"
-              title="Menu"
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </button>
-            <div className="text-sm font-medium text-gray-700">Menu</div>
-          </div>
-        </div>
-
-        <div data-lenis-content ref={contentRef} className="min-h-screen">
-          {children}
-        </div>
-      </main>
-    </div>
-  );
-}
-
 function NavItem({ label, icon, active, onClick, isHovered }) {
-  const base = "flex items-center gap-3 w-full rounded-lg transition-colors";
+  const base =
+    "group flex items-center gap-3 w-full rounded-lg transition-all duration-200 cursor-pointer select-none";
   const activeClasses = active
     ? "bg-white text-[#9b0000] font-medium shadow-sm"
-    : "text-white/90 hover:text-white";
+    : "text-white/90 hover:text-white hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]";
 
   const iconColor = active ? "red" : "white";
   const iconPath = `/icons/sidenav/${iconColor}-${icon}.png`;
 
   return (
     <button
-      className={`${base} ${activeClasses} ${
-        !isHovered ? "justify-center px-3 py-2" : "px-3 py-2"
-      }`}
+      type="button"
+      className={`${base} ${activeClasses} ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}
       onClick={onClick}
       title={!isHovered ? label : ""}
     >
-      <img src={iconPath} alt={`${label} icon`} className="h-5 w-5 object-contain" />
-      {isHovered && <span className="text-left text-[14px]">{label}</span>}
+      <img
+        src={iconPath}
+        alt={`${label} icon`}
+        className="h-5 w-5 object-contain transition-transform duration-200 group-hover:scale-110"
+      />
+      {isHovered && (
+        <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
+          {label}
+        </span>
+      )}
     </button>
   );
 }
@@ -482,9 +452,14 @@ function NavGroup({
   const isHighlighted = active || isOpen;
 
   const HeaderInner = ({ isActiveLike }) => (
-    <div className={`flex w-full items-center ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}>
+    <div
+      className={`group flex w-full items-center rounded-lg transition-all duration-200
+      ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+      ${!isActiveLike ? "hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]" : ""}`}
+    >
       <button
-        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] ${
+        type="button"
+        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] cursor-pointer ${
           isActiveLike ? "font-medium" : ""
         }`}
         onClick={onMainClick}
@@ -493,18 +468,21 @@ function NavGroup({
         <img
           src={getIconPath(icon, isActiveLike)}
           alt={`${label} icon`}
-          className="h-5 w-5 object-contain"
+          className="h-5 w-5 object-contain transition-transform duration-200 group-hover:scale-110"
           onError={(e) => {
             console.warn(`Icon not found: ${getIconPath(icon, isActiveLike)}`);
             e.target.style.display = "none";
           }}
         />
-        {isHovered && <span className="text-left">{label}</span>}
+        {isHovered && (
+          <span className="text-left transition-all duration-200 group-hover:tracking-wide">{label}</span>
+        )}
       </button>
 
       {isHovered && (
         <button
-          className={`p-1 rounded-md transition-colors ${
+          type="button"
+          className={`p-1 rounded-md transition-colors cursor-pointer ${
             isActiveLike ? "text-[#9b0000]" : "text-white"
           } hover:bg-white hover:text-[#9b0000]`}
           onClick={(e) => {
@@ -531,15 +509,18 @@ function NavGroup({
     <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
       {isOpen && isHovered && (
-        <ul className="px-3 pb-3 text-[13px]">
+        <ul className="px-3 pb-3 text-[13px] max-h-56 overflow-y-auto hide-scrollbar overscroll-contain">
           {items.map((sub, index) => {
             const isSubActive = activeSub === sub.label;
             return (
               <li key={sub.label}>
                 <button
+                  type="button"
                   className={
-                    "flex w-full items-center py-1.5 text-left " +
-                    (isSubActive ? "underline underline-offset-2 font-medium" : "") +
+                    "flex w-full items-center py-1.5 text-left cursor-pointer rounded-md px-2 transition-all duration-150 " +
+                    (isSubActive
+                      ? "bg-[#9b0000]/10 text-[#9b0000] font-medium"
+                      : "hover:bg-[#9b0000]/10 hover:text-[#9b0000] hover:translate-x-[2px]") +
                     (index < items.length - 1 ? " border-b border-[#d6bcbc]" : "")
                   }
                   onClick={() => onSubClick(label, sub)}
@@ -559,7 +540,11 @@ function NavGroup({
         <ul className="mt-1 pl-9 text-[12px] space-y-1 text-white/80">
           {items.map((sub) => (
             <li key={sub.label}>
-              <button className="hover:text-white w-full text-left py-1" onClick={() => onSubClick(label, sub)}>
+              <button
+                type="button"
+                className="hover:text-white w-full text-left py-1 cursor-pointer"
+                onClick={() => onSubClick(label, sub)}
+              >
                 {sub.label}
               </button>
             </li>
@@ -590,9 +575,14 @@ function NavDropdown({
   const isHighlighted = active || isOpen;
 
   const HeaderInner = ({ isActiveLike }) => (
-    <div className={`flex w-full items-center ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}>
+    <div
+      className={`group flex w-full items-center rounded-lg transition-all duration-200
+      ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+      ${!isActiveLike ? "hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]" : ""}`}
+    >
       <button
-        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] ${
+        type="button"
+        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] cursor-pointer ${
           isActiveLike ? "font-medium" : ""
         }`}
         onClick={onMainClick}
@@ -601,18 +591,21 @@ function NavDropdown({
         <img
           src={getIconPath(icon, isActiveLike)}
           alt={`${label} icon`}
-          className="h-5 w-5 object-contain"
+          className="h-5 w-5 object-contain transition-transform duration-200 group-hover:scale-110"
           onError={(e) => {
             console.warn(`Icon not found: ${getIconPath(icon, isActiveLike)}`);
             e.target.style.display = "none";
           }}
         />
-        {isHovered && <span className="text-left">{label}</span>}
+        {isHovered && (
+          <span className="text-left transition-all duration-200 group-hover:tracking-wide">{label}</span>
+        )}
       </button>
 
       {isHovered && (
         <button
-          className={`p-1 rounded-md transition-colors ${
+          type="button"
+          className={`p-1 rounded-md transition-colors cursor-pointer ${
             isActiveLike ? "text-[#9b0000]" : "text-white"
           } hover:bg-white hover:text-[#9b0000]`}
           onClick={(e) => {
@@ -639,15 +632,18 @@ function NavDropdown({
     <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
       {isOpen && isHovered && (
-        <ul className="px-3 pb-3 text-[13px]">
+        <ul className="px-3 pb-3 text-[13px] max-h-56 overflow-y-auto hide-scrollbar overscroll-contain">
           {items.map((sub, index) => {
             const isSubActive = activeSub === sub.label;
             return (
               <li key={sub.label}>
                 <button
+                  type="button"
                   className={
-                    "flex w-full items-center py-1.5 text-left " +
-                    (isSubActive ? "underline underline-offset-2 font-medium" : "") +
+                    "flex w-full items-center py-1.5 text-left cursor-pointer rounded-md px-2 transition-all duration-150 " +
+                    (isSubActive
+                      ? "bg-[#9b0000]/10 text-[#9b0000] font-medium"
+                      : "hover:bg-[#9b0000]/10 hover:text-[#9b0000] hover:translate-x-[2px]") +
                     (index < items.length - 1 ? " border-b border-[#d6bcbc]" : "")
                   }
                   onClick={() => onSubClick(label, sub)}
@@ -667,13 +663,57 @@ function NavDropdown({
         <ul className="mt-1 pl-9 text-[12px] space-y-1 text-white/80">
           {items.map((sub) => (
             <li key={sub.label}>
-              <button className="hover:text-white w-full text-left py-1" onClick={() => onSubClick(label, sub)}>
+              <button
+                type="button"
+                className="hover:text-white w-full text-left py-1 cursor-pointer"
+                onClick={() => onSubClick(label, sub)}
+              >
                 {sub.label}
               </button>
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+export function NavSide({ children, mobileOpen, setMobileOpen }) {
+  const contentRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!contentRef.current) return;
+    gsap.set(contentRef.current, { clearProps: "all" });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidenav mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+
+      <main className="md:pl-20">
+        <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <button
+              type="button"
+              className="rounded-md p-2 hover:bg-gray-100 transition cursor-pointer"
+              onClick={() => setMobileOpen?.((v) => !v)}
+              aria-label="Open menu"
+              title="Menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M4 6H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M4 12H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <path d="M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </button>
+            <div className="text-sm font-medium text-gray-700">Menu</div>
+          </div>
+        </div>
+
+        <div ref={contentRef} className="min-h-screen">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
