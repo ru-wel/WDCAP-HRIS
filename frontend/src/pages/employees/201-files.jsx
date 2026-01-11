@@ -203,7 +203,7 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                     <button
                         type="button"
                         onClick={onClose}
-                        className="text-white/90 hover:text-white text-sm font-medium"
+                        className="text-white/90 hover:text-white text-sm font-medium cursor-pointer"
                     >
                         Close
                     </button>
@@ -233,14 +233,14 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                             <>
                                 <button
                                     type="button"
-                                    className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                                    className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
                                     onClick={() => onReplaceImage?.()}
                                 >
                                     Change Image
                                 </button>
                                 <button
                                     type="button"
-                                    className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                                    className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
                                     onClick={() => onDeleteFile?.()}
                                 >
                                     Delete
@@ -253,7 +253,7 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                                 href={effectiveDownloadUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
                             >
                                 Open
                             </a>
@@ -261,7 +261,7 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2 rounded-full text-sm text-white bg-[#990100] hover:bg-[#ad3332] transition"
+                            className="px-5 py-2 rounded-full text-sm text-white bg-[#990100] hover:bg-[#ad3332] transition cursor-pointer"
                         >
                             OK
                         </button>
@@ -570,14 +570,14 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 }
                 style={{ WebkitOverflowScrolling: 'touch' }}
             >
-                <div className="bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3 w-full shrink-0">
+                <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 m-4">
                     <h1 className="text-white text-lg font-medium lg:text-lg text-sm">201 Files of {employeeFiles.id}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition" onClick={onClose}>
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={onClose}>
                         ✕
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-auto md:p-6 px-3 py-6" style={{ WebkitOverflowScrolling: 'touch' }}>
+                <div className="flex-1 overflow-auto md:p-6 px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="overflow-x-auto">
                     <table className="table-style text-center">
                         <thead>
@@ -600,7 +600,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                     <button
                                                         type="button"
                                                         disabled={!isEmployee && !editData}
-                                                        className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden ${
+                                                        className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer ${
                                                             !isEmployee && !editData
                                                                 ? 'opacity-60 cursor-not-allowed'
                                                                 : 'cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline'
@@ -899,20 +899,20 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                     </div>
 
                     {!isEmployee && (
-                        <div className="pt-7 flex justify-center gap-4">
+                        <div className="pt-7 flex justify-end gap-4">
                             {!editData ? (
                                 <>
-                                    <button
+                                    {/*<button
                                         type="button"
-                                        className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out"
+                                        className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                         onClick={onClose}
                                     >
                                         Close
-                                    </button>
+                                    </button>*/}
                                     <button
                                         type="button"
                                         onClick={() => setEditData(true)}
-                                        className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out"
+                                        className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                     >
                                         Update Record
                                     </button>
@@ -921,7 +921,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                 <>
                                     <button
                                         type="button"
-                                        className="bg-gray-300 lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-gray-800 hover:bg-gray-400 hover:scale-105 transition duration-300 ease-in-out"
+                                        className="bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                         onClick={() =>
                                             openConfirm({
                                                 title: 'Cancel editing',
@@ -932,14 +932,14 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                             })
                                         }
                                     >
-                                        Cancel Editing
+                                        Cancel Changes
                                     </button>
                                     <button
                                         type="button"
-                                        className="bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                                        className="bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer"
                                         onClick={() => setEditData(false)}
                                     >
-                                        Done Editing
+                                        Save Changes
                                     </button>
                                 </>
                             )}
@@ -950,7 +950,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         <div className="pt-7 flex justify-center">
                             <button
                                 type="button"
-                                className="bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                                className="bg-[#990100] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                 onClick={onClose}
                             >
                                 Close
@@ -1268,7 +1268,7 @@ export default function OnboardingFiles() {
                                     <p className="text-sm text-gray-600">Upload and track your required documents.</p>
                                     <button
                                         type="button"
-                                        className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[7px] rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                                        className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[7px] rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                         onClick={() => {
                                             setViewEmployeeFiles(rows[0]);
                                             setModalOpen((prev) => !prev);
@@ -1291,9 +1291,9 @@ export default function OnboardingFiles() {
                     </div>
                 ) : (
                     <>
-                        <div className="flex justify-end mt-5">
+                        {/*<div className="flex justify-end mt-5">
                             <button className="generate-report-button" onClick={() => setReportOpen(true)}>Generate Report</button>
-                        </div>
+                        </div>*/}
 
                         <ReportModal
                             open={reportOpen}
@@ -1347,7 +1347,7 @@ export default function OnboardingFiles() {
                                                     <td className="td-style">
                                                         <button
                                                             type="button"
-                                                            className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                                                            className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                                             onClick={() => handleOpen(row)}
                                                         >
                                                             View Details

@@ -207,7 +207,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                             </button>
                         </div>
                     ):(
-                        <div className="flex justify-center gap-4">
+                        <div className="flex justify-end gap-4">
                             <button className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
                                     onClick = {() => {
                                         if (unsavedChanges){
