@@ -93,7 +93,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="md:text-sm pb-2"><b>Employment Status:</b></p>
-                        <select name="status" className={`input-select${validFieldClass(isNonEmpty(data.status))}`} value={data.status} onChange={(e) => setData({ ...data, status: e.target.value })}>
+                        <select name="status" className={`input-select${validFieldClass(isNonEmpty(data.status))} cursor-pointer`} value={data.status} onChange={(e) => setData({ ...data, status: e.target.value })}>
                             <option value="">Select Status</option>
                             <option value={EMPLOYMENT_STATUSES.ACTIVE}>{EMPLOYMENT_STATUSES.ACTIVE}</option>
                             <option value={EMPLOYMENT_STATUSES.INACTIVE}>{EMPLOYMENT_STATUSES.INACTIVE}</option>
@@ -116,7 +116,7 @@ function StepOne({ data, setData, departments, positions }) {
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <p className="text-sm pb-2"><b>Department:</b></p>
-                        <select className={`input-select${validFieldClass(isNonEmpty(data.department_id))}`} value={data.department_id} onChange={(e) => {
+                        <select className={`input-select${validFieldClass(isNonEmpty(data.department_id))} cursor-pointer`} value={data.department_id} onChange={(e) => {
                             setData({ ...data, department_id: e.target.value, position_id: "" }); // reset position when department changes
                         }} required>
                             <option value="">Select Department</option>
@@ -130,7 +130,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="text-sm pb-2"><b>Position:</b></p>
-                        <select className={`input-select${validFieldClass(isNonEmpty(data.department_id) && isNonEmpty(data.position_id))}`} value={data.position_id} onChange={(e) => setData({ ...data, position_id: e.target.value })} required disabled={!data.department_id}>
+                        <select className={`input-select${validFieldClass(isNonEmpty(data.department_id) && isNonEmpty(data.position_id))} cursor-pointer`} value={data.position_id} onChange={(e) => setData({ ...data, position_id: e.target.value })} required disabled={!data.department_id}>
                             <option value="">Select Position</option>
                             {positions
                                 .filter((pos) => pos.departments?.id === data.department_id)
@@ -146,7 +146,7 @@ function StepOne({ data, setData, departments, positions }) {
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <p className="text-sm pb-2"><b>Personnel Type:</b></p>
-                        <select className={`input-select${validFieldClass(isNonEmpty(data.personnelType))}`} value={data.personnelType} onChange={(e) => setData({ ...data, personnelType: e.target.value })} required>
+                        <select className={`input-select${validFieldClass(isNonEmpty(data.personnelType))} cursor-pointer`} value={data.personnelType} onChange={(e) => setData({ ...data, personnelType: e.target.value })} required>
                             <option value="">Select Type</option>
                             <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
                             <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
@@ -156,7 +156,7 @@ function StepOne({ data, setData, departments, positions }) {
 
                     <div>
                         <p className="text-sm pb-2"><b>Hire Date:</b></p>
-                        <input type="date" className={`input-field${validFieldClass(isHireDateValid(data.hireDate))}`} value={data.hireDate} onChange={(e) => setData({ ...data, hireDate: e.target.value })} min="2019-01-01" max={maxDate} required/>
+                        <input type="date" className={`input-field${validFieldClass(isHireDateValid(data.hireDate))} cursor-pointer`} value={data.hireDate} onChange={(e) => setData({ ...data, hireDate: e.target.value })} min="2019-01-01" max={maxDate} required/>
                     </div>
                 </div>
 
@@ -169,12 +169,12 @@ function StepOne({ data, setData, departments, positions }) {
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
                         <p className="text-sm pb-2"><b>Birth Date:</b></p>
-                        <input type="date" className={`input-field${validFieldClass(isBirthDateValid(data.birthDate))}`} value={data.birthDate} onChange={(e) => setData({ ...data, birthDate: e.target.value })} max={maxDate} required/>
+                        <input type="date" className={`input-field${validFieldClass(isBirthDateValid(data.birthDate))} cursor-pointer`} value={data.birthDate} onChange={(e) => setData({ ...data, birthDate: e.target.value })} max={maxDate} required/>
                     </div>
 
                     <div>
                         <p className="text-sm pb-2"><b>Phone No.:</b></p>
-                        <input type="tel" maxLength="12" className={`input-field${validFieldClass(isPhoneValid(data.phone))}`} value={data.phone} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
+                        <input type="tel" maxLength="12" className={`input-field${validFieldClass(isPhoneValid(data.phone))} `} value={data.phone} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
                     </div>
                 </div>
 
@@ -216,7 +216,7 @@ function StepTwo({ data, setData }) {
             <div className="flex items-center justify-center lg:pt-5 pt-3">
                 <div className="">
                     <p className='text-sm pb-2'><b>Role:</b></p>
-                    <select name="role" className={`input-field ${validFieldClass(isNonEmpty(data.role))}`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
+                    <select name="role" className={`input-field ${validFieldClass(isNonEmpty(data.role))} cursor-pointer w-[250px]`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
                         <option value="">Select Role</option>
                         <option value={ROLES.ADMIN}>{ROLES.ADMIN}</option>
                         <option value={ROLES.HR}>{ROLES.HR}</option>
@@ -229,11 +229,11 @@ function StepTwo({ data, setData }) {
             <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
                 <div className="">
                     <p className='text-sm pb-2'><b>Email:</b></p>
-                    <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))}`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
+                    <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))} w-[250px]`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
                 </div>
             </div>
 
-            <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
+            <div className="flex justify-center items-center text-left lg:pt-5 pt-3">
                 <div className="w-full max-w-sm">
                     <p className='lg:text-sm text-xs pb-2'><b>Password:</b></p>
                     <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
@@ -525,8 +525,8 @@ function Onboarding(){
 
     if (loadingData) {
         return (
-            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-                <p className="text-sm text-gray-600">Loading…</p>
+            <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-md text-gray-600">Loading…</p>
             </div>
         );
     }
@@ -544,7 +544,7 @@ function Onboarding(){
                                                 <div className="flex items-center justify-between gap-3 mb-6">
                                                     <button
                                                         type="button"
-                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition ${
+                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer ${
                                                             steps === 1
                                                                 ? "bg-[#990100] text-white border-[#990100]"
                                                                 : "bg-white text-[#990100] border-[#990100]"
@@ -557,7 +557,7 @@ function Onboarding(){
 
                                                     <button
                                                         type="button"
-                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition ${
+                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer ${
                                                             steps === 2
                                                                 ? "bg-[#990100] text-white border-[#990100]"
                                                                 : "bg-white text-[#990100] border-[#990100]"
@@ -584,13 +584,13 @@ function Onboarding(){
 
                         <div className="flex justify-end mt-6 gap-3">
                         {steps > 1 && (
-                            <button className="bg-[#b74d4c] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#c16666] hover:scale-105 transition duration-300 ease-in-out" onClick={() => setSteps(steps - 1)} disabled={loading}>Previous</button>
+                            <button className="bg-[#b74d4c] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#c16666] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => setSteps(steps - 1)} disabled={loading}>Previous</button>
                         )}
 
                         {steps < 2 ? (
-                            <button className="bg-[#990100] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={handleNext}>Next</button>
+                            <button className="bg-[#990100] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={handleNext}>Next</button>
                         ) : (
-                            <button className="bg-[#990100] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={handleSubmit} disabled={loading}>{loading ? 'Saving ...' : 'Save'}</button>
+                            <button className="bg-[#990100] w-full sm:w-auto px-4 sm:px-5 py-2 text-sm sm:text-base rounded-md text-white hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={handleSubmit} disabled={loading}>{loading ? 'Saving ...' : 'Save'}</button>
                         )}
                         </div>
                     </div>
