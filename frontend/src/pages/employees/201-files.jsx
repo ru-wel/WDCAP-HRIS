@@ -867,10 +867,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
                     <div className="mt-4 lg:flex items-center lg:justify-between">
                         <p className="lg:text-md text-sm">
-                            Showing <b>{currentChecklist.length}</b> of <b>{checklist.length}</b> file{checklist.length !== 1 ? 's' : ''} {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
-
                             Showing <b>{currentChecklist.length}</b> of <b>{checklist.length}</b> file{checklist.length !== 1 ? 's' : ''}
-                            {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
+
                         </p>
 
                         {checklistPageCount > 0 && (
