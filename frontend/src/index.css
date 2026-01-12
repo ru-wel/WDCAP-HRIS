@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
 @import "tailwindcss";
 
 @layer base {
@@ -22,7 +22,7 @@
 
   :root {
     --font-body: "Overused Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-    --font-display: "Bebas Neue", "Overused Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
+    --font-display: "Poppins", "Overused Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans";
 
     /* Tailwind v4 defaults use these CSS vars. Point them at our fonts. */
     --font-sans: var(--font-body);
