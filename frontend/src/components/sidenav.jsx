@@ -34,7 +34,8 @@ export default function Sidenav({
   const closeMobile = () => setMobileOpen?.(false);
 
   const desktopWidthClass = isHovered ? "md:w-44" : "md:w-20";
-  const mobileTranslateClass = mobileOpen ? "translate-x-0" : "-translate-x-full";
+  const mobileWidthClass = "w-64";
+  const mobileTranslateClass = mobileOpen === true ? "translate-x-0" : "-translate-x-full";
 
   const handleLogout = () => setLogoutConfirmOpen(true);
 
@@ -270,7 +271,7 @@ export default function Sidenav({
       ) : null}
 
       <aside
-        className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px] transition-all duration-300 ease-in-out w-64 ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px] transition-all duration-300 ease-in-out w-64 block md:block ${mobileWidthClass} ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -678,7 +679,8 @@ function NavDropdown({
   );
 }
 
-export function NavSide({ children, mobileOpen, setMobileOpen }) {
+export function NavSide({ children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
   const contentRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -696,7 +698,7 @@ export function NavSide({ children, mobileOpen, setMobileOpen }) {
             <button
               type="button"
               className="rounded-md p-2 hover:bg-gray-100 transition cursor-pointer"
-              onClick={() => setMobileOpen?.((v) => !v)}
+              onClick={() => setMobileOpen((v) => !v)}
               aria-label="Open menu"
               title="Menu"
             >
