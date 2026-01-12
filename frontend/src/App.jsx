@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, Outlet, BrowserRouter, useLocation } from 'react-router-dom';
 import { NavSide } from "./components/sidenav";
 import { useAuth } from './context/AuthContext.jsx';
@@ -135,38 +135,178 @@ function App() {
           {/* Main routes */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/departments" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <DepartmentsRoute /> </ProtectedRoute>} />
-          <Route path="/evaluation" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <Evaluation /> </ProtectedRoute>} />
-          <Route path="/evaluation/history" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <EvaluationHistory /> </ProtectedRoute>} />
-          <Route path="/evaluation/upload" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <EvaluationUpload /> </ProtectedRoute>} />
+          <Route
+            path="/departments"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <DepartmentsRoute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/evaluation"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <Evaluation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/evaluation/history"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <EvaluationHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/evaluation/upload"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+                <EvaluationUpload />
+              </ProtectedRoute>
+            }
+          />
 
           {/* START - EMPLOYEES */}
-          <Route path="/employees" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Employees /> </ProtectedRoute> } />
-          <Route path="/employees/onboarding" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Onboarding /> </ProtectedRoute>} />
-          <Route path="/employees/user-accounts" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <UserAccounts /> </ProtectedRoute>} />
-          <Route path='/employees/201-files'element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <OnboardingFiles /> </ProtectedRoute>} />
-          <Route path="/employees/departments" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <DepartmentsRoute /> </ProtectedRoute>} />
-          <Route path="/employees/departments/:departmentId" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <DepartmentDetailsRoute /> </ProtectedRoute>} />
+          <Route
+            path="/employees"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+                <Employees />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/onboarding"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/user-accounts"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <UserAccounts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/201-files"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <OnboardingFiles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/departments"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <DepartmentsRoute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/departments/:departmentId"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <DepartmentDetailsRoute />
+              </ProtectedRoute>
+            }
+          />
           {/* END - EMPLOYEES */}
 
-          <Route path="/projects" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <ProjectsRoute /> </ProtectedRoute>} />
-          <Route path="/projects/:projectId" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}> <ProjectDetailsRoute /> </ProtectedRoute>} />
+          <Route
+            path="/projects"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <ProjectsRoute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/projects/:projectId"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <ProjectDetailsRoute />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/leave" element={<Leave />} />
           <Route path="/leave/request" element={<LeaveRequest />} />
           <Route path="/leave/credits" element={<LeaveCredits />} />
           <Route path="/leave/history" element={<LeaveHistory />} />
 
-          <Route path="/analytics" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}> <Analytics /> </ProtectedRoute>} />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
 
           {/* START -  FOR AUDIT LOGS */}
-          <Route path = "/audit/user-accounts" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <UserAccountsLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/employees" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <EmployeesLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/departments" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <DepartmentsLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/projects" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <ProjectsLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/leave" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <LeaveLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/evaluation" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <EvaluationLogs /> </ProtectedRoute>} />
-          <Route path = "/audit/reports" element = {<ProtectedRoute allowedRoles={[ROLES.ADMIN]}> <ReportsLogs /> </ProtectedRoute>} />
+          <Route
+            path="/audit/user-accounts"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <UserAccountsLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/employees"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <EmployeesLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/departments"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <DepartmentsLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/projects"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <ProjectsLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/leave"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <LeaveLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/evaluation"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <EvaluationLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/audit/reports"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                <ReportsLogs />
+              </ProtectedRoute>
+            }
+          />
           {/* END -  FOR AUDIT LOGS */}
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -177,9 +317,12 @@ function App() {
 }
 
 function ProtectedLayoutWithSidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <ProtectedRoute>
-      <NavSide>
+      {/* ✅ PASS THESE PROPS DOWN */}
+      <NavSide mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}>
         <Outlet />
       </NavSide>
     </ProtectedRoute>

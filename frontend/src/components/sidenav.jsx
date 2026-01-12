@@ -10,7 +10,7 @@ import Preloader from "./preloader.jsx";
 export default function Sidenav({
   initialActive = "Dashboard",
   initialSub = "Onboarding",
-  mobileOpen,
+  mobileOpen = false,
   setMobileOpen,
 }) {
   const { user, logout } = useAuth();
@@ -31,7 +31,34 @@ export default function Sidenav({
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isProjectBased, setIsProjectBased] = useState(false);
 
+  // ✅ Detect mobile (no hover)
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 767px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = (e) => setIsMobile(e.matches);
+
+    // support older safari
+    if (mq.addEventListener) mq.addEventListener("change", handler);
+    else mq.addListener(handler);
+
+    setIsMobile(mq.matches);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener("change", handler);
+      else mq.removeListener(handler);
+    };
+  }, []);
+
   const closeMobile = () => setMobileOpen?.(false);
+
+  // ✅ Key fix: when mobile menu is open, always show labels (like “expanded”)
+  const showLabels = isHovered || (isMobile && mobileOpen);
 
   const desktopWidthClass = isHovered ? "md:w-44" : "md:w-20";
   const mobileTranslateClass = mobileOpen ? "translate-x-0" : "-translate-x-full";
@@ -52,9 +79,7 @@ export default function Sidenav({
   const getActiveStatesFromPath = () => {
     const path = location.pathname;
 
-    // My Profile highlighted as its own main item
     if (path.startsWith("/profile")) return { main: "My Profile", sub: null };
-
     if (path.startsWith("/projects/")) return { main: "Projects", sub: null };
 
     if (isEmployee) {
@@ -103,7 +128,6 @@ export default function Sidenav({
 
   const { main: activeMain, sub: activeSub } = getActiveStatesFromPath();
 
-  // Auto-open Employees group for employee users (once)
   useEffect(() => {
     if (!isEmployee) return;
     if (didAutoOpenRef.current) return;
@@ -111,7 +135,6 @@ export default function Sidenav({
     setOpenGroup("Employees");
   }, [isEmployee]);
 
-  // Detect if employee is project-based
   useEffect(() => {
     let cancelled = false;
 
@@ -193,7 +216,6 @@ export default function Sidenav({
     },
   ];
 
-  // Hide audit logs for HR in your existing logic
   const hrHiddenLabels = new Set(["Audit Logs"]);
 
   const finalVisibleItems = isEmployee
@@ -270,9 +292,10 @@ export default function Sidenav({
       ) : null}
 
       <aside
-        className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px] transition-all duration-300 ease-in-out w-64 ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px]
+        transition-all duration-300 ease-in-out w-64 md:[zoom:0.9] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
+        onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
       >
         <div className="md:hidden px-3 pb-2 flex items-center justify-end">
           <button
@@ -295,6 +318,7 @@ export default function Sidenav({
         </div>
 
         <nav className="flex-1 min-h-0 px-3 space-y-2 overflow-y-auto hide-scrollbar pb-3">
+          {/* MY PROFILE */}
           <button
             type="button"
             className={`group flex items-center gap-3 w-full rounded-lg transition-all duration-200 cursor-pointer select-none
@@ -303,20 +327,22 @@ export default function Sidenav({
                   ? "bg-white text-[#9b0000] font-medium shadow-sm"
                   : "text-white/90 hover:text-white hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]"
               }
-              ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+              ${!showLabels ? "justify-center px-3 py-2" : "px-3 py-2"}
             `}
             onClick={() => {
               navigate("/profile");
               closeMobile();
             }}
-            title={!isHovered ? "My Profile" : ""}
+            title={!showLabels ? "My Profile" : ""}
           >
-            <img
-              src="/icons/account-icon.png"
-              alt="My Profile"
-              className="h-5 w-5 object-contain brightness-0 invert transition-transform duration-200 group-hover:scale-110"
-            />
-            {isHovered && (
+          <img
+            src="/icons/account-icon.png"
+            alt="My Profile"
+            className={`h-5 w-5 object-contain transition-transform duration-200 group-hover:scale-110
+              ${isProfileActive ? "" : "brightness-0 invert"}
+            `}
+          />
+            {showLabels && (
               <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
                 My Profile
               </span>
@@ -334,7 +360,7 @@ export default function Sidenav({
                   icon={item.icon}
                   active={activeMain === item.label}
                   onClick={() => handleMainClick(item)}
-                  isHovered={isHovered}
+                  showLabels={showLabels}
                 />
               );
             }
@@ -352,7 +378,7 @@ export default function Sidenav({
                   onMainClick={() => handleMainClick(item)}
                   onToggleClick={() => handleToggle(item.label)}
                   onSubClick={handleSubClick}
-                  isHovered={isHovered}
+                  showLabels={showLabels}
                 />
               );
             }
@@ -369,13 +395,12 @@ export default function Sidenav({
                 onMainClick={() => handleMainClick(item)}
                 onToggleClick={() => handleToggle(item.label)}
                 onSubClick={handleSubClick}
-                isHovered={isHovered}
+                showLabels={showLabels}
               />
             );
           })}
         </nav>
 
-        {/* ✅ FIX: Logout aligned with the menu items (same outer padding as <nav>) */}
         <div className="px-3 mt-auto pt-2">
           <hr className="mb-2 border-white/20" />
 
@@ -383,13 +408,13 @@ export default function Sidenav({
             type="button"
             className={`group flex items-center gap-3 w-full rounded-lg transition-all duration-200
               text-white/90 hover:text-white hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]
-              cursor-pointer select-none ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+              cursor-pointer select-none ${!showLabels ? "justify-center px-3 py-2" : "px-3 py-2"}
             `}
             onClick={handleLogout}
-            title={!isHovered ? "Logout" : ""}
+            title={!showLabels ? "Logout" : ""}
           >
             <span className="text-xl leading-none">⟵</span>
-            {isHovered && (
+            {showLabels && (
               <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
                 Logout
               </span>
@@ -401,7 +426,7 @@ export default function Sidenav({
   );
 }
 
-function NavItem({ label, icon, active, onClick, isHovered }) {
+function NavItem({ label, icon, active, onClick, showLabels }) {
   const base =
     "group flex items-center gap-3 w-full rounded-lg transition-all duration-200 cursor-pointer select-none";
   const activeClasses = active
@@ -414,16 +439,16 @@ function NavItem({ label, icon, active, onClick, isHovered }) {
   return (
     <button
       type="button"
-      className={`${base} ${activeClasses} ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}`}
+      className={`${base} ${activeClasses} ${!showLabels ? "justify-center px-3 py-2" : "px-3 py-2"}`}
       onClick={onClick}
-      title={!isHovered ? label : ""}
+      title={!showLabels ? label : ""}
     >
       <img
         src={iconPath}
         alt={`${label} icon`}
         className="h-5 w-5 object-contain transition-transform duration-200 group-hover:scale-110"
       />
-      {isHovered && (
+      {showLabels && (
         <span className="text-left text-[14px] transition-all duration-200 group-hover:tracking-wide">
           {label}
         </span>
@@ -442,7 +467,7 @@ function NavGroup({
   onMainClick,
   onToggleClick,
   onSubClick,
-  isHovered,
+  showLabels,
 }) {
   const getIconPath = (iconName, isActive) => {
     const color = isActive ? "red" : "white";
@@ -454,16 +479,16 @@ function NavGroup({
   const HeaderInner = ({ isActiveLike }) => (
     <div
       className={`group flex w-full items-center rounded-lg transition-all duration-200
-      ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+      ${!showLabels ? "justify-center px-3 py-2" : "px-3 py-2"}
       ${!isActiveLike ? "hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]" : ""}`}
     >
       <button
         type="button"
-        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] cursor-pointer ${
+        className={`flex items-center gap-3 ${showLabels ? "flex-1" : ""} text-[14px] cursor-pointer ${
           isActiveLike ? "font-medium" : ""
         }`}
         onClick={onMainClick}
-        title={!isHovered ? label : ""}
+        title={!showLabels ? label : ""}
       >
         <img
           src={getIconPath(icon, isActiveLike)}
@@ -474,12 +499,12 @@ function NavGroup({
             e.target.style.display = "none";
           }}
         />
-        {isHovered && (
+        {showLabels && (
           <span className="text-left transition-all duration-200 group-hover:tracking-wide">{label}</span>
         )}
       </button>
 
-      {isHovered && (
+      {showLabels && (
         <button
           type="button"
           className={`p-1 rounded-md transition-colors cursor-pointer ${
@@ -508,7 +533,7 @@ function NavGroup({
   return isHighlighted ? (
     <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
-      {isOpen && isHovered && (
+      {isOpen && showLabels && (
         <ul className="px-3 pb-3 text-[13px] max-h-56 overflow-y-auto hide-scrollbar overscroll-contain">
           {items.map((sub, index) => {
             const isSubActive = activeSub === sub.label;
@@ -536,7 +561,7 @@ function NavGroup({
   ) : (
     <div>
       <HeaderInner isActiveLike={false} />
-      {isOpen && isHovered && (
+      {isOpen && showLabels && (
         <ul className="mt-1 pl-9 text-[12px] space-y-1 text-white/80">
           {items.map((sub) => (
             <li key={sub.label}>
@@ -565,7 +590,7 @@ function NavDropdown({
   onMainClick,
   onToggleClick,
   onSubClick,
-  isHovered,
+  showLabels,
 }) {
   const getIconPath = (iconName, isActive) => {
     const color = isActive ? "red" : "white";
@@ -577,16 +602,16 @@ function NavDropdown({
   const HeaderInner = ({ isActiveLike }) => (
     <div
       className={`group flex w-full items-center rounded-lg transition-all duration-200
-      ${!isHovered ? "justify-center px-3 py-2" : "px-3 py-2"}
+      ${!showLabels ? "justify-center px-3 py-2" : "px-3 py-2"}
       ${!isActiveLike ? "hover:bg-white/10 hover:shadow-md hover:translate-x-[2px]" : ""}`}
     >
       <button
         type="button"
-        className={`flex items-center gap-3 ${isHovered ? "flex-1" : ""} text-[14px] cursor-pointer ${
+        className={`flex items-center gap-3 ${showLabels ? "flex-1" : ""} text-[14px] cursor-pointer ${
           isActiveLike ? "font-medium" : ""
         }`}
         onClick={onMainClick}
-        title={!isHovered ? label : ""}
+        title={!showLabels ? label : ""}
       >
         <img
           src={getIconPath(icon, isActiveLike)}
@@ -597,12 +622,12 @@ function NavDropdown({
             e.target.style.display = "none";
           }}
         />
-        {isHovered && (
+        {showLabels && (
           <span className="text-left transition-all duration-200 group-hover:tracking-wide">{label}</span>
         )}
       </button>
 
-      {isHovered && (
+      {showLabels && (
         <button
           type="button"
           className={`p-1 rounded-md transition-colors cursor-pointer ${
@@ -631,7 +656,7 @@ function NavDropdown({
   return isHighlighted ? (
     <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
-      {isOpen && isHovered && (
+      {isOpen && showLabels && (
         <ul className="px-3 pb-3 text-[13px] max-h-56 overflow-y-auto hide-scrollbar overscroll-contain">
           {items.map((sub, index) => {
             const isSubActive = activeSub === sub.label;
@@ -659,7 +684,7 @@ function NavDropdown({
   ) : (
     <div>
       <HeaderInner isActiveLike={false} />
-      {isOpen && isHovered && (
+      {isOpen && showLabels && (
         <ul className="mt-1 pl-9 text-[12px] space-y-1 text-white/80">
           {items.map((sub) => (
             <li key={sub.label}>
@@ -679,6 +704,11 @@ function NavDropdown({
 }
 
 export function NavSide({ children, mobileOpen, setMobileOpen }) {
+  // ✅ fallback so it works even if App.jsx doesn't pass props
+  const [internalOpen, setInternalOpen] = useState(false);
+  const effectiveOpen = mobileOpen ?? internalOpen;
+  const effectiveSetOpen = setMobileOpen ?? setInternalOpen;
+
   const contentRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -688,7 +718,7 @@ export function NavSide({ children, mobileOpen, setMobileOpen }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidenav mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <Sidenav mobileOpen={effectiveOpen} setMobileOpen={effectiveSetOpen} />
 
       <main className="md:pl-20">
         <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200">
@@ -696,7 +726,7 @@ export function NavSide({ children, mobileOpen, setMobileOpen }) {
             <button
               type="button"
               className="rounded-md p-2 hover:bg-gray-100 transition cursor-pointer"
-              onClick={() => setMobileOpen?.((v) => !v)}
+              onClick={() => effectiveSetOpen((v) => !v)}
               aria-label="Open menu"
               title="Menu"
             >
