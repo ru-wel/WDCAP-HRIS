@@ -218,9 +218,9 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
       return [score ? `Score: ${score}` : null, remarks ? `Remarks: ${remarks}` : null].filter(Boolean).join('\n');
     }
 
-    // Fallback for legacy/unknown formats
     return text.trim();
   };
+
   const employeeName = employee?.name || 'Employee';
   const position = employee?.position || 'N/A';
   const personnelType = employee?.type || 'N/A';
@@ -247,91 +247,124 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-5xl rounded-xl bg-white shadow-xl border border-gray-200 overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="px-5 py-3 bg-[#990100] flex items-center justify-between flex-shrink-0">
-          <h2 className="text-white text-base font-semibold">Evaluation History of {employee?.employeeCode || employeeName}</h2>
-          <button type="button" onClick={onClose} className="text-white text-2xl font-bold leading-none">×</button>
-        </div>
+      {/* ✅ Removed overflow-hidden so the inner header style looks correct */}
+      <div className="w-full max-w-5xl rounded-xl bg-white shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
+        {/* ✅ Inner padding wrapper (this is the key) */}
+        <div className="p-4 sm:p-6 flex flex-col flex-1 min-h-0">
+          {/* ✅ Boxed header like Employees */}
+          <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 flex-shrink-0">
+            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
+              Evaluation History of {employee?.employeeCode || employeeName}
+            </h1>
 
-        <div className="px-6 py-5 overflow-auto flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-            <div className="flex gap-2"><span className="font-semibold">Employee Name:</span><span>{employeeName}</span></div>
-            <div className="flex gap-2"><span className="font-semibold">Position:</span><span>{position}</span></div>
-            <div className="flex gap-2"><span className="font-semibold">Personnel Type:</span><span>{personnelType}</span></div>
-            <div className="flex gap-2"><span className="font-semibold">Hire Date:</span><span>{hireDate}</span></div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
+              aria-label="Close"
+            >
+              ✕
+            </button>
           </div>
 
-          <hr className="mt-4 border-[#990100]/40" />
+          {/* ✅ Scrollable content */}
+          <div className="pt-6 overflow-auto flex-1 min-h-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+              <div className="flex gap-2"><span className="font-semibold">Employee Name:</span><span>{employeeName}</span></div>
+              <div className="flex gap-2"><span className="font-semibold">Position:</span><span>{position}</span></div>
+              <div className="flex gap-2"><span className="font-semibold">Personnel Type:</span><span>{personnelType}</span></div>
+              <div className="flex gap-2"><span className="font-semibold">Hire Date:</span><span>{hireDate}</span></div>
+            </div>
 
-          <div className="mt-4">
-            {loading ? (
-              <div className="text-sm text-gray-600">Loading evaluations…</div>
-            ) : (
-              <div className="div-table mt-0">
-                <table className="table-style" style={{ minWidth: 'min(900px, 100%)' }}>
-                  <thead className="thead-style">
-                    <tr>
-                      <th className="th-style rounded-tl-lg rounded-bl-lg">Evaluation Type</th>
-                      <th className="th-style">Date</th>
-                      <th className="th-style">Score/Remarks</th>
-                      <th className="th-style">Breakdown</th>
-                      <th className="th-style">Final</th>
-                      <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="tbody-style">
-                    {sortedEvals.length === 0 ? (
-                      <tr className="tr-style">
-                        <td className="td-style" colSpan={6}>
-                          <span className="text-sm text-gray-600">No evaluation records found.</span>
-                        </td>
+            <hr className="mt-4 border-[#990100]/40" />
+
+            <div className="mt-4">
+              {loading ? (
+                <div className="text-sm text-gray-600">Loading evaluations…</div>
+              ) : (
+                <div className="div-table mt-0">
+                  <table className="table-style" style={{ minWidth: 'min(900px, 100%)' }}>
+                    <thead className="thead-style">
+                      <tr>
+                        <th className="th-style rounded-tl-lg rounded-bl-lg">Evaluation Type</th>
+                        <th className="th-style">Date</th>
+                        <th className="th-style">Score/Remarks</th>
+                        <th className="th-style">Breakdown</th>
+                        <th className="th-style">Final</th>
+                        <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                       </tr>
-                    ) : (
-                      sortedEvals.map((ev) => {
-                        const docs = normalizeEvaluationDocs(ev);
-                        const breakdown = docs?.breakdown || null;
-                        const finalDoc = docs?.final || null;
-                        const legacyFile = docs?.file || null;
-                        const formDoc = docs?.form || null;
-                        const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
-                        const finalLabel = finalDoc?.fileName || 'Final';
-                        const formLabel = formDoc?.fileName || 'Evaluation Form';
+                    </thead>
+                    <tbody className="tbody-style">
+                      {sortedEvals.length === 0 ? (
+                        <tr className="tr-style">
+                          <td className="td-style" colSpan={6}>
+                            <span className="text-sm text-gray-600">No evaluation records found.</span>
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedEvals.map((ev) => {
+                          const docs = normalizeEvaluationDocs(ev);
+                          const breakdown = docs?.breakdown || null;
+                          const finalDoc = docs?.final || null;
+                          const legacyFile = docs?.file || null;
+                          const formDoc = docs?.form || null;
+                          const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
+                          const finalLabel = finalDoc?.fileName || 'Final';
+                          const formLabel = formDoc?.fileName || 'Evaluation Form';
 
-                        return (
-                          <tr key={ev?.evaluation_id} className="tr-style">
-                            <td className="td-style font-medium">{ev?.evaluation_type || '—'}</td>
-                            <td className="td-style">{formatShortDate(ev?.evaluation_date) || '—'}</td>
-                            <td className="td-style whitespace-pre-wrap">{formatNotesForCell(ev?.evaluation_notes)}</td>
-                            <td className="td-style">
-                              {breakdown || legacyFile ? (
-                                <button
-                                  type="button"
-                                  className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                  onClick={() => onOpenDoc(ev?.evaluation_id, breakdown ? 'breakdown' : 'file', breakdownLabel)}
-                                >
-                                  {breakdownLabel}
-                                </button>
-                              ) : (
-                                <span className="text-gray-500 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="td-style">
-                              {finalDoc ? (
-                                <button
-                                  type="button"
-                                  className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                  onClick={() => onOpenDoc(ev?.evaluation_id, 'final', finalLabel)}
-                                >
-                                  {finalLabel}
-                                </button>
-                              ) : (
-                                <span className="text-gray-500 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="td-style">
-                              {canUpdate ? (
-                                <div className="flex items-center gap-2">
-                                  {formDoc ? (
+                          return (
+                            <tr key={ev?.evaluation_id} className="tr-style">
+                              <td className="td-style font-medium">{ev?.evaluation_type || '—'}</td>
+                              <td className="td-style">{formatShortDate(ev?.evaluation_date) || '—'}</td>
+                              <td className="td-style whitespace-pre-wrap">{formatNotesForCell(ev?.evaluation_notes)}</td>
+                              <td className="td-style">
+                                {breakdown || legacyFile ? (
+                                  <button
+                                    type="button"
+                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                    onClick={() => onOpenDoc(ev?.evaluation_id, breakdown ? 'breakdown' : 'file', breakdownLabel)}
+                                  >
+                                    {breakdownLabel}
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-500 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="td-style">
+                                {finalDoc ? (
+                                  <button
+                                    type="button"
+                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                    onClick={() => onOpenDoc(ev?.evaluation_id, 'final', finalLabel)}
+                                  >
+                                    {finalLabel}
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-500 text-xs">—</span>
+                                )}
+                              </td>
+                              <td className="td-style">
+                                {canUpdate ? (
+                                  <div className="flex items-center gap-2">
+                                    {formDoc ? (
+                                      <button
+                                        type="button"
+                                        className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                        onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
+                                      >
+                                        Form
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      className="bg-green-600 text-white px-3 py-1 rounded-md text-xs hover:bg-green-700 transition"
+                                      onClick={() => onUpdateEvaluation(ev)}
+                                    >
+                                      Upload/Update
+                                    </button>
+                                  </div>
+                                ) : (
+                                  formDoc ? (
                                     <button
                                       type="button"
                                       className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
@@ -339,56 +372,39 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                                     >
                                       Form
                                     </button>
-                                  ) : null}
-                                  <button
-                                    type="button"
-                                    className="bg-green-600 text-white px-3 py-1 rounded-md text-xs hover:bg-green-700 transition"
-                                    onClick={() => onUpdateEvaluation(ev)}
-                                  >
-                                    Upload/Update
-                                  </button>
-                                </div>
-                              ) : (
-                                formDoc ? (
-                                  <button
-                                    type="button"
-                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                    onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
-                                  >
-                                    Form
-                                  </button>
-                                ) : (
-                                  <span className="text-gray-500 text-xs">—</span>
-                                )
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                                  ) : (
+                                    <span className="text-gray-500 text-xs">—</span>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-gray-700">
-                <span className="font-semibold">Last Updated:</span> {lastUpdated || '—'}
-              </div>
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-xs text-gray-700">
+                  <span className="font-semibold">Last Updated:</span> {lastUpdated || '—'}
+                </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="bg-[#990100] text-white px-4 py-2 rounded-md text-sm hover:bg-[#ad3332] transition disabled:opacity-60"
-                  disabled={loading || sortedEvals.length === 0}
-                  onClick={() => employee && sortedEvals.length ? employee?.onGenerateReport?.() : null}
-                >
-                  Generate Report
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="bg-[#990100] text-white px-4 py-2 rounded-md text-sm hover:bg-[#ad3332] transition disabled:opacity-60"
+                    disabled={loading || sortedEvals.length === 0}
+                    onClick={() => employee && sortedEvals.length ? employee?.onGenerateReport?.() : null}
+                  >
+                    Generate Report
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </div>{/* end scrollable content */}
+        </div>{/* end padding wrapper */}
       </div>
     </div>
   );
@@ -529,7 +545,6 @@ export default function EvaluationHistory() {
     const match = rows.find((r) => String(r?.id) === String(targetId));
     if (!match) return;
 
-    // Best-effort auto-open details when coming from /evaluation cards.
     openDetails(match);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, rows]);
@@ -630,9 +645,7 @@ export default function EvaluationHistory() {
         end_date: endDate || null,
         row_count: rowsForExport.length,
         source: 'employees',
-      }).catch(() => {
-        // best-effort only
-      });
+      }).catch(() => {});
 
       const columns = [
         { header: 'Employee ID', value: (r) => r?.employeeCode || '' },
@@ -642,17 +655,13 @@ export default function EvaluationHistory() {
         { header: 'Personnel Type', value: (r) => r?.type || '' },
       ];
 
-      if (isCsv) {
-        exportRowsToCsv({ filename, columns, rows: rowsForExport });
-      } else {
-        exportRowsToXlsx({ filename, sheetName: 'Employees', columns, rows: rowsForExport });
-      }
+      if (isCsv) exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      else exportRowsToXlsx({ filename, sheetName: 'Employees', columns, rows: rowsForExport });
 
       setReportOpen(false);
       return;
     }
 
-    // evaluations (details modal)
     const employee = detailsEmployee;
     const evaluations = Array.isArray(detailsEvals) ? detailsEvals : [];
     const rowsForExport = (startDate || endDate)
@@ -669,9 +678,7 @@ export default function EvaluationHistory() {
       end_date: endDate || null,
       row_count: rowsForExport.length,
       source: 'performance_evaluations',
-    }).catch(() => {
-      // best-effort only
-    });
+    }).catch(() => {});
 
     const columns = [
       { header: 'Employee ID', value: () => employee?.employeeCode || '' },
@@ -681,11 +688,8 @@ export default function EvaluationHistory() {
       { header: 'Notes', value: (r) => r?.evaluation_notes || '' },
     ];
 
-    if (isCsv) {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    } else {
-      exportRowsToXlsx({ filename, sheetName: 'Evaluation History', columns, rows: rowsForExport });
-    }
+    if (isCsv) exportRowsToCsv({ filename, columns, rows: rowsForExport });
+    else exportRowsToXlsx({ filename, sheetName: 'Evaluation History', columns, rows: rowsForExport });
 
     setReportOpen(false);
   };
