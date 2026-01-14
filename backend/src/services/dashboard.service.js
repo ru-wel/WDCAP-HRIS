@@ -124,8 +124,9 @@ const getPendingEvaluations = async ({ limit = 5 } = {}) => {
         )
       `
     )
+    .is('evaluation_document_path', null) // filter out completed evaluations that have documents
     .order('evaluation_date', { ascending: true })
-    .limit(200);
+    .limit(50);
 
   if (error) throw new InternalServerError(error.message);
 
@@ -138,17 +139,10 @@ const getPendingEvaluations = async ({ limit = 5 } = {}) => {
     return /^\s*(score|remarks)\s*:/im.test(s);
   };
 
-  const isEmptyDoc = (docPath) => {
-    if (docPath === null || typeof docPath === 'undefined') return true;
-    if (typeof docPath === 'object') return Object.keys(docPath || {}).length === 0;
-    return String(docPath).trim().length === 0;
-  };
-
   const pending = rows.filter((r) => {
-    const docEmpty = isEmptyDoc(r?.evaluation_document_path);
     const textHasResult = hasScoreOrRemarks(r?.evaluation_notes);
-    // pending only when no docs AND no score/remarks
-    return docEmpty && !textHasResult;
+    // pending only when no score/remarks in notes
+    return !textHasResult;
   });
 
   // Deduplicate by employee to match "employees who are due" language.

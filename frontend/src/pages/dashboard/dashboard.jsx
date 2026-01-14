@@ -369,6 +369,8 @@ function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    let lastFetchTime = 0;
+    const COOLDOWN_MS = 30000; // 30 seconds cooldown to minimize API calls
 
     const run = async () => {
       try {
@@ -378,7 +380,10 @@ function Dashboard() {
         const res = await get('/dashboard/summary');
         const normalized = normalizeSummary(res?.data);
 
-        if (!cancelled) setSummary(normalized);
+        if (!cancelled) {
+          setSummary(normalized);
+          lastFetchTime = Date.now();
+        }
       } catch (e) {
         if (!cancelled) {
           setSummary(normalizeSummary(null));
@@ -391,12 +396,19 @@ function Dashboard() {
 
     const refresh = () => {
       if (cancelled) return;
+
+      // prevent API refresh if data fetched recently (within 30 seconds)
+      const timeSinceLastFetch = Date.now() - lastFetchTime;
+      if (timeSinceLastFetch < COOLDOWN_MS) {
+        return;
+      }
+
       run();
     };
 
-    refresh();
+    run();
 
-    // Keep dashboard stats current without requiring a full page reload.
+    // keep dashboard stats without requiring a full page reload.
     window.addEventListener('focus', refresh);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refresh();
