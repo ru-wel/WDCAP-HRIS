@@ -94,7 +94,7 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
-    <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto" data-lenis-prevent>
 
         <div className="bg-[#990100] rounded-lg px-5 py-3 flex justify-between items-center">
           <h1 className="text-white text-lg font-semibold">Add New Employee</h1>
@@ -135,7 +135,7 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
               </div>
 
               {filteredEmployees.length > 0 && (
-                <div className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto">
+                <div className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto" data-lenis-prevent>
                   {filteredEmployees.map((employee) => (
                     <button
                       key={employee.id}

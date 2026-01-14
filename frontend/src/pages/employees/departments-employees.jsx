@@ -632,6 +632,7 @@ export default function DepartmentEmployees() {
           <div
             className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent
           >
             <div className="p-5">
               <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
@@ -701,6 +702,7 @@ export default function DepartmentEmployees() {
           <div
             className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
+            data-lenis-prevent
           >
             <div className="p-5">
               <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">

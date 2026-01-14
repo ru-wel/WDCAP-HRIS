@@ -326,10 +326,10 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     if (!isOpen || !employee) return null;
 
     return(
-        
+
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
 
-            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-180 md:w-140 w-80 lg:h-140 md:h-120 h-100 overflow-y-auto border border-gray-300">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-180 md:w-140 w-80 lg:h-140 md:h-120 h-100 overflow-y-auto border border-gray-300" data-lenis-prevent>
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
                     <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.employee_id} {data.last_name}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={() => {

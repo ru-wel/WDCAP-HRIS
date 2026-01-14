@@ -300,7 +300,7 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
             ✕
           </button>
         </div>
-        <div className="p-5 overflow-y-auto flex-1">
+        <div className="p-5 overflow-y-auto flex-1" data-lenis-prevent>
           <div className="flex items-start gap-3">
             <span className="gc-dot" style={{ background: data.dotColor || '#F59E0B' }} />
             <div>

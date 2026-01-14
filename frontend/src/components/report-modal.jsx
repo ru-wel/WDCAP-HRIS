@@ -27,7 +27,7 @@ function ModalShell({ open, title, onClose, children }) {
             ✕
           </button>
         </div>
-        <div className="px-4 sm:px-8 lg:px-10 pb-5 pt-2  overflow-y-auto">{children}</div>
+        <div className="px-4 sm:px-8 lg:px-10 pb-5 pt-2  overflow-y-auto" data-lenis-prevent>{children}</div>
       </div>
     </div>
   );

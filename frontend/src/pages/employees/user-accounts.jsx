@@ -107,7 +107,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
     return (
             <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
-             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-160 md:w-120 w-80  overflow-y-auto border border-gray-300">
+             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-160 md:w-120 w-80  overflow-y-auto border border-gray-300" data-lenis-prevent>
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" 
