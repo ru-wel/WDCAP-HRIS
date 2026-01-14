@@ -72,11 +72,31 @@ export default function ReportModal({
   onClose,
   onGenerate,
   enableDateRange = true,
+  fileTypes = ['XLSX', 'CSV'],
+  categoryOptions = null,
+  defaultCategory = '',
 }) {
   const [preset, setPreset] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [fileType, setFileType] = useState('XLSX');
+  const [category, setCategory] = useState('');
+
+  const normalizedFileTypes = useMemo(() => {
+    const incoming = Array.isArray(fileTypes) ? fileTypes : ['XLSX', 'CSV'];
+    const unique = Array.from(new Set(incoming.map((t) => String(t || '').toUpperCase()).filter(Boolean)));
+    return unique.length ? unique : ['XLSX', 'CSV'];
+  }, [fileTypes]);
+
+  const normalizedCategories = useMemo(() => {
+    if (!Array.isArray(categoryOptions) || categoryOptions.length === 0) return [];
+    return categoryOptions
+      .map((c) => ({
+        value: String(c?.value ?? ''),
+        label: String(c?.label ?? c?.value ?? ''),
+      }))
+      .filter((c) => c.value && c.label);
+  }, [categoryOptions]);
 
   const presets = useMemo(
     () => [
@@ -91,11 +111,19 @@ export default function ReportModal({
 
   useEffect(() => {
     if (!open) return;
-    setFileType('XLSX');
+    setFileType(normalizedFileTypes.includes('XLSX') ? 'XLSX' : normalizedFileTypes[0]);
     setPreset('all');
     setStartDate('');
     setEndDate('');
-  }, [open]);
+    if (normalizedCategories.length) {
+      const initial =
+        normalizedCategories.find((c) => c.value === defaultCategory)?.value ||
+        normalizedCategories[0].value;
+      setCategory(initial);
+    } else {
+      setCategory('');
+    }
+  }, [open, normalizedFileTypes, normalizedCategories, defaultCategory]);
 
   useEffect(() => {
     if (!open) return;
@@ -121,18 +149,54 @@ export default function ReportModal({
 
   const canGenerate = (!enableDateRange || preset === 'all' || (startDate && endDate));
 
+  const fileTypeLabel = (t) => {
+    const v = String(t || '').toUpperCase();
+    if (v === 'XLSX') return 'Excel (.xlsx)';
+    if (v === 'CSV') return 'CSV';
+    if (v === 'PDF') return 'PDF';
+    return v;
+  };
+
+  const downloadLabel = () => {
+    const v = String(fileType || '').toUpperCase();
+    if (v === 'XLSX') return 'Excel';
+    if (v === 'CSV') return 'CSV';
+    if (v === 'PDF') return 'PDF';
+    return v;
+  };
+
   return (
     <ModalShell open={open} title={title || 'Generate Report'} onClose={onClose}>
       <div className="space-y-5">
         <div className="grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
+          {normalizedCategories.length ? (
+            <>
+              <div className="text-right font-semibold">Report Category:</div>
+              <select
+                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 bg-white"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {normalizedCategories.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : null}
+
           <div className="text-right font-semibold">File Type:</div>
           <select
             className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 bg-white"
             value={fileType}
             onChange={(e) => setFileType(e.target.value)}
           >
-            <option value="XLSX">Excel (.xlsx)</option>
-            <option value="CSV">CSV</option>
+            {normalizedFileTypes.map((t) => (
+              <option key={t} value={t}>
+                {fileTypeLabel(t)}
+              </option>
+            ))}
           </select>
 
           <div className="text-right font-semibold">Range:</div>
@@ -195,9 +259,9 @@ export default function ReportModal({
             type="button"
             className="bg-[#990100] text-white text-xs px-5 py-2 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={!canGenerate}
-            onClick={() => onGenerate?.({ preset, startDate, endDate, fileType })}
+            onClick={() => onGenerate?.({ preset, startDate, endDate, fileType, category })}
           >
-            Download {fileType === 'XLSX' ? 'Excel' : 'CSV'}
+            Download {downloadLabel()}
           </button>
         </div>
       </div>

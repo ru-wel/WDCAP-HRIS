@@ -43,7 +43,50 @@ function yearsBetween(fromDate, toDate) {
     return years;
 }
 
-function StepOne({ data, setData, departments, positions }) {
+function PersonnelTypePickModal({ open, onClose, onPickStandard, onPickProjectBased }) {
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
+                <div className="px-5 py-3 bg-[#990100] flex items-center justify-between">
+                    <h2 className="text-white text-sm font-semibold">Select Personnel Category</h2>
+                    <button type="button" onClick={onClose} className="text-white/90 hover:text-white text-sm font-medium cursor-pointer">
+                        Close
+                    </button>
+                </div>
+
+                <div className="px-5 py-5">
+                    <p className="text-sm text-gray-700">Choose one to auto-fill the Personnel Type.</p>
+
+                    <div className="mt-4 grid grid-cols-1 gap-3">
+                        <button
+                            type="button"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 cursor-pointer"
+                            onClick={onPickStandard}
+                        >
+                            <div className="font-semibold text-[#111827]">Employee</div>
+                            <div className="text-xs text-gray-600">Regular / Probationary</div>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-left hover:bg-gray-50 cursor-pointer"
+                            onClick={onPickProjectBased}
+                        >
+                            <div className="font-semibold text-[#111827]">Project-Based</div>
+                            <div className="text-xs text-gray-600">No login/email step</div>
+                        </button>
+                    </div>
+
+                    <div className="mt-4 text-xs text-gray-600">You can change this later.</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function StepOne({ data, setData, departments, positions, personnelCategory, onOpenPersonnelCategory }) {
 
     const isNonEmpty = (v) => String(v || '').trim().length > 0;
     const isPhoneValid = (v) => isValidPhMobile(v);
@@ -145,12 +188,32 @@ function StepOne({ data, setData, departments, positions }) {
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
-                        <p className="text-sm pb-2"><b>Personnel Type:</b></p>
-                        <select className={`input-select${validFieldClass(isNonEmpty(data.personnelType))} cursor-pointer`} value={data.personnelType} onChange={(e) => setData({ ...data, personnelType: e.target.value })} required>
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm pb-2"><b>Personnel Type:</b></p>
+                            <button
+                                type="button"
+                                className="text-xs text-[#990100] hover:underline cursor-pointer"
+                                onClick={onOpenPersonnelCategory}
+                            >
+                                Change
+                            </button>
+                        </div>
+                        <select
+                            className={`input-select${validFieldClass(isNonEmpty(data.personnelType))} cursor-pointer`}
+                            value={data.personnelType}
+                            onChange={(e) => setData({ ...data, personnelType: e.target.value })}
+                            required
+                            disabled={personnelCategory === 'PROJECT_BASED'}
+                        >
                             <option value="">Select Type</option>
-                            <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
-                            <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
-                            <option value={PERSONNEL_TYPES.PROJECT_BASED}>{PERSONNEL_TYPES.PROJECT_BASED}</option>
+                            {personnelCategory === 'PROJECT_BASED' ? (
+                                <option value={PERSONNEL_TYPES.PROJECT_BASED}>{PERSONNEL_TYPES.PROJECT_BASED}</option>
+                            ) : (
+                                <>
+                                    <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
+                                    <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
+                                </>
+                            )}
                         </select>
                     </div>
 
@@ -204,10 +267,12 @@ function StepTwo({ data, setData }) {
     const validFieldClass = (isValid) =>
         isValid ? ' !border-green-600 ring-2 ring-green-200 focus:!outline-green-600' : '';
 
+    const isProjectBased = String(data?.personnelType || '') === String(PERSONNEL_TYPES.PROJECT_BASED || '');
+
   return (
     <div>
 
-        <div className="rounded-lg bg-[#990100] items-center lg:py-[10px] py-[6px] md:px-4 px-3 mb-3">
+        <div className="rounded-lg bg-[#990100] items-center lg:py-2.5 py-1.5 md:px-4 px-3 mb-3">
             <h1 className='text-white font-medium lg:text-lg text-medium'>Create New Account</h1>
         </div>
 
@@ -226,12 +291,23 @@ function StepTwo({ data, setData }) {
                 
             </div>
 
-            <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
-                <div className="">
-                    <p className='text-sm pb-2'><b>Email:</b></p>
-                    <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))} w-[250px]`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
+            {isProjectBased ? (
+                <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
+                    <div className="w-full max-w-sm">
+                        <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
+                            <b>Project-Based employees do not receive a system account.</b>
+                            <div className="mt-1">Email is not required. HR will upload their 201 files.</div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
+                    <div className="">
+                        <p className='text-sm pb-2'><b>Email:</b></p>
+                        <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))} w-[250px]`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
+                    </div>
+                </div>
+            )}
 
             <div className="flex justify-center items-center text-left lg:pt-5 pt-3">
                 <div className="w-full max-w-sm">
@@ -272,6 +348,46 @@ function Onboarding(){
     });
 
     const [steps, setSteps] = useState(1);
+        const isProjectBased = String(formData.personnelType || '') === String(PERSONNEL_TYPES.PROJECT_BASED || '');
+
+        const [personnelPickOpen, setPersonnelPickOpen] = useState(() => !String(formData.personnelType || '').trim());
+        const [personnelCategory, setPersonnelCategory] = useState('');
+
+        useEffect(() => {
+            if (!personnelCategory) return;
+
+            setFormData((prev) => {
+                if (personnelCategory === 'PROJECT_BASED') {
+                    return { ...prev, personnelType: PERSONNEL_TYPES.PROJECT_BASED };
+                }
+
+                // STANDARD: default to Regular for user-friendliness (still editable to Probationary).
+                const current = String(prev.personnelType || '');
+                const isAlreadyStandard =
+                    current === String(PERSONNEL_TYPES.REGULAR || '') ||
+                    current === String(PERSONNEL_TYPES.PROBATIONARY || '');
+
+                return {
+                    ...prev,
+                    personnelType: isAlreadyStandard ? prev.personnelType : PERSONNEL_TYPES.REGULAR,
+                };
+            });
+        }, [personnelCategory]);
+
+        // If user switches to Project-Based, remove account step inputs and keep the user on Step 1.
+        useEffect(() => {
+            if (!isProjectBased) return;
+            setFormData((prev) => ({
+                ...prev,
+                email: '',
+                role: ROLES.EMPLOYEE,
+                password: '',
+                rePassword: ''
+            }));
+            setSteps(1);
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [isProjectBased]);
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -446,6 +562,7 @@ function Onboarding(){
 
     // validation of step 2 fields
     const validateStep2 = () => {
+        if (isProjectBased) return true;
         if (!formData.email || !formData.role) {
             setError("Please fill out all fields");
             return false;
@@ -473,8 +590,8 @@ function Onboarding(){
 
             const response = await post('/onboarding/complete', {
                 // account info
-                email: formData.email,
-                role: formData.role,
+                email: isProjectBased ? null : formData.email,
+                role: isProjectBased ? ROLES.EMPLOYEE : formData.role,
                 // employee info
                 first_name: formData.fname,
                 last_name: formData.lname,
@@ -520,7 +637,13 @@ function Onboarding(){
 
     const handleNext = () => {
         setError("");
-        if (validateStep1()) setSteps(2);
+        if (!validateStep1()) return;
+        if (isProjectBased) {
+            // No account details for Project-Based, go straight to save.
+            handleSubmit();
+            return;
+        }
+        setSteps(2);
     };
 
     if (loadingData) {
@@ -534,7 +657,19 @@ function Onboarding(){
     return(
 
         <div className="">
-            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
+            <PersonnelTypePickModal
+                open={personnelPickOpen}
+                onClose={() => setPersonnelPickOpen(false)}
+                onPickStandard={() => {
+                    setPersonnelCategory('STANDARD');
+                    setPersonnelPickOpen(false);
+                }}
+                onPickProjectBased={() => {
+                    setPersonnelCategory('PROJECT_BASED');
+                    setPersonnelPickOpen(false);
+                }}
+            />
+            <div className="p-7 lg:mx-18 md:mx-10">
                 <div className="mb-10">
                     <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold'>Onboarding</h1>
                 </div>
@@ -557,17 +692,20 @@ function Onboarding(){
 
                                                     <button
                                                         type="button"
-                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer ${
-                                                            steps === 2
-                                                                ? "bg-[#990100] text-white border-[#990100]"
-                                                                : "bg-white text-[#990100] border-[#990100]"
+                                                        className={`flex-1 border rounded-lg px-4 py-2 text-sm font-medium transition ${
+                                                            (loading || isProjectBased)
+                                                                ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70'
+                                                                : steps === 2
+                                                                    ? 'bg-[#990100] text-white border-[#990100] cursor-pointer'
+                                                                    : 'bg-white text-[#990100] border-[#990100] cursor-pointer'
                                                         }`}
                                                         onClick={() => {
                                                             setError("");
                                                             if (steps === 2) return;
+                                                            if (isProjectBased) return;
                                                             if (validateStep1()) setSteps(2);
                                                         }}
-                                                        disabled={loading}
+                                                        disabled={loading || isProjectBased}
                                                     >
                                                         Step 2: Account Details
                                                     </button>
@@ -579,8 +717,17 @@ function Onboarding(){
                                 {error}
                             </div>
                         )}
-                        {steps === 1 && (<StepOne data={formData} setData={setFormData} departments={departments} positions={positions}/> )}
-                        {steps === 2 && (<StepTwo data={formData} setData={setFormData} /> )}
+                        {steps === 1 && (
+                            <StepOne
+                                data={formData}
+                                setData={setFormData}
+                                departments={departments}
+                                positions={positions}
+                                personnelCategory={personnelCategory}
+                                onOpenPersonnelCategory={() => setPersonnelPickOpen(true)}
+                            />
+                        )}
+                        {steps === 2 && !isProjectBased && (<StepTwo data={formData} setData={setFormData} /> )}
 
                         <div className="flex justify-end mt-6 gap-3">
                         {steps > 1 && (

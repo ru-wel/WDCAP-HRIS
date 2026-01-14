@@ -1,5 +1,14 @@
 #!/usr/bin/env node
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getOAuth2ClientForSetup } from '../src/config/googleDriveOAuth.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure backend/.env is loaded when running via `npm run drive:oauth:*`.
+dotenv.config({ path: path.resolve(__dirname, '../.env'), quiet: true });
 
 const action = process.argv[2];
 

@@ -27,6 +27,13 @@ router.get('/me/checklist', authorizeRoles(ROLES.EMPLOYEE), onboardingController
 // get checklist for a specific employee
 router.get('/employee/:employeeId/checklist', verifyEmployeeOwnership, onboardingController.getEmployeeChecklist);
 
+// send reminder email to employee for missing / rejected required documents
+router.post(
+	'/employee/:employeeId/remind-missing',
+	authorizeRoles(ROLES.ADMIN, ROLES.HR),
+	onboardingController.sendMissingDocumentsReminder
+);
+
 // get a single checklist per ID
 router.get('/checklist/:id', verifyChecklistOwnership, onboardingController.getChecklistItemById);
 

@@ -18,7 +18,9 @@ export const uploadDocumentSchema = Joi.object({
   document_name: Joi.alternatives()
     .try(
       Joi.string().valid(...validDocumentTypes),
-      Joi.string().pattern(evaluationDocumentNamePattern).max(150)
+      Joi.string().pattern(evaluationDocumentNamePattern).max(150),
+      // Allow dynamic onboarding item names (admin-configurable), while keeping a reasonable limit.
+      Joi.string().trim().min(2).max(150)
     )
     .required()
     .messages({

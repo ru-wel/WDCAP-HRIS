@@ -5,6 +5,11 @@ import { InternalServerError } from '../utils/errors.js';
 
 const getParentFolderId = () => process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID || null;
 
+const PERSONNEL_ROOT_FOLDERS = {
+  EMPLOYEES: 'Employees',
+  CONTRACTORS: 'Contractors'
+};
+
 const folderCache = new Map();
 
 const sanitizeFolderName = (value) => {
@@ -19,6 +24,26 @@ const escapeDriveQueryString = (value) => String(value || '').replace(/'/g, "\\'
 const normalizeEmail = (value) => {
   const e = String(value || '').trim().toLowerCase();
   return e || '';
+};
+
+const normalizePersonnelType = (value) => String(value || '').trim().toLowerCase();
+
+const isProjectBasedPersonnel = (personnelType) => {
+  const v = normalizePersonnelType(personnelType);
+  return v === 'project-based' || v.includes('project');
+};
+
+const getRootFolderNameForPersonnelType = (personnelType) => (
+  isProjectBasedPersonnel(personnelType)
+    ? PERSONNEL_ROOT_FOLDERS.CONTRACTORS
+    : PERSONNEL_ROOT_FOLDERS.EMPLOYEES
+);
+
+const getOrCreatePersonnelRootFolder = async (personnelType) => {
+  const parentId = getParentFolderId();
+  const rootName = getRootFolderNameForPersonnelType(personnelType);
+  // If no parent folder is configured, we fall back to the Drive root.
+  return getOrCreateFolder({ name: rootName, parentId });
 };
 
 export const ensureDriveUserAccess = async ({ fileId, email, role = 'reader' }) => {
@@ -125,8 +150,9 @@ export const getOrCreateFolder = async ({ name, parentId = null }) => {
   }
 };
 
-export const getOrCreateEmployeeFolder = async ({ employeeCode, firstName, lastName }) => {
-  const parentId = getParentFolderId();
+export const getOrCreateEmployeeFolder = async ({ employeeCode, firstName, lastName, personnelType = null }) => {
+  const root = await getOrCreatePersonnelRootFolder(personnelType);
+  const parentId = root?.folderId || getParentFolderId();
   const safeEmp = String(employeeCode || '').trim() || 'employee';
   const safeName = `${String(firstName || '').trim()} ${String(lastName || '').trim()}`.trim();
   const folderName = safeName ? `${safeEmp} - ${safeName}` : safeEmp;

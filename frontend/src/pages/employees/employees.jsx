@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import Navbar from '../../components/navbar';
 import DropDownFilter from '../../components/dropdownfilter';
 import { get, put, del, post } from '../../services/api.js';
@@ -10,6 +10,7 @@ import { exportRowsToCsv } from '../../utils/csv.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { exportEmployeeDetailsToPdf, exportReportToPdf } from '../../utils/pdf.js';
 
 
 function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, departments, positions}){
@@ -27,6 +28,10 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     });
 
     const [confirmBusy, setConfirmBusy] = useState(false);
+
+    const detailsRef = useRef(null);
+    const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
+    const [photoLoading, setPhotoLoading] = useState(false);
 
     const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
         setConfirmState({
@@ -108,6 +113,99 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
         setInitialData(employee);
         setEditData(false);
     }, [isOpen, employee]);
+
+    useEffect(() => {
+        if (!isOpen || !employee?.id) return;
+
+        let cancelled = false;
+        let objectUrl = '';
+        const run = async () => {
+            try {
+                setPhotoLoading(true);
+                setPhotoPreviewUrl('');
+
+                const res = await get(`/documents/${employee.id}`);
+                const docs = Array.isArray(res?.data) ? res.data : [];
+                const photoDoc = docs.find((d) => String(d?.document_name || '') === 'Employee Photo') || null;
+                if (!photoDoc?.id) return;
+                if (cancelled) return;
+
+                // Fetch bytes via authenticated download, then create a local object URL for <img>.
+                // This works for both Supabase signed URLs and Google Drive streaming.
+                const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+                const apiBase = base.endsWith('/api') ? base : `${base}/api`;
+                const token = localStorage.getItem('access_token');
+                const downloadUrl = `${apiBase}/documents/${photoDoc.id}/download?disposition=inline`;
+
+                const fileRes = await fetch(downloadUrl, {
+                    method: 'GET',
+                    headers: token ? { Authorization: `Bearer ${token}` } : {},
+                });
+
+                if (!fileRes.ok) {
+                    const msg = await fileRes.text();
+                    throw new Error(msg || 'Failed to load photo');
+                }
+
+                const ct = String(fileRes.headers.get('content-type') || '').toLowerCase();
+                let blob;
+                if (ct.includes('application/json')) {
+                    const json = await fileRes.json();
+                    const signedUrl = json?.data?.signedUrl;
+                    if (!signedUrl) throw new Error('Failed to load photo');
+                    const signedRes = await fetch(signedUrl);
+                    if (!signedRes.ok) throw new Error('Failed to load photo');
+                    blob = await signedRes.blob();
+                } else {
+                    blob = await fileRes.blob();
+                }
+
+                objectUrl = URL.createObjectURL(blob);
+                if (cancelled) return;
+                setPhotoPreviewUrl(objectUrl);
+            } catch {
+                // Photo is best-effort.
+            } finally {
+                if (!cancelled) setPhotoLoading(false);
+            }
+        };
+
+        run();
+        return () => {
+            cancelled = true;
+            if (objectUrl) {
+                try {
+                    URL.revokeObjectURL(objectUrl);
+                } catch {
+                    // ignore
+                }
+            }
+        };
+    }, [isOpen, employee?.id]);
+
+    const handleExportPdf = async () => {
+        try {
+            const today = new Date();
+            const stamp = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+            const lastName = String(data?.last_name || 'LastName').replace(/\s+/g, ' ').trim().replace(/[^a-zA-Z0-9_-]+/g, '_');
+            const firstName = String(data?.first_name || 'FirstName').replace(/\s+/g, ' ').trim().replace(/[^a-zA-Z0-9_-]+/g, '_');
+            const filename = `${stamp}_${lastName}_${firstName}_EmployeeDetails.pdf`;
+
+            await exportEmployeeDetailsToPdf({
+                filename,
+                employee: data,
+                photoUrl: photoPreviewUrl,
+            });
+        } catch (e) {
+            openConfirm({
+                title: 'Export failed',
+                message: e?.message || 'Failed to export PDF.',
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+        }
+    };
 
     {/* WHEN EDITING THE VALUE */}
     const handleChange = (a) => {
@@ -247,10 +345,24 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                     }} disabled={loading}> ✕ </button>
                 </div>
 
-                <div className="px-3">
+                <div className="px-3" ref={detailsRef}>
                     <div className="md:grid md:grid-cols-2 gap-4 items-center lg:pt-5 pt-3 text-left">
                         <div className="pr-2 md:pb-0 pb-3">
-                            <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.employee_id}</p>
+                            <div className="flex items-start gap-3">
+                                <div className="w-16 h-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                                    {photoLoading ? (
+                                        <div className="text-[10px] text-gray-500">Loading…</div>
+                                    ) : photoPreviewUrl ? (
+                                        <img src={photoPreviewUrl} alt="Employee Photo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="text-[10px] text-gray-500 text-center px-1">No Photo</div>
+                                    )}
+                                </div>
+                                <div>
+                                    <p className='lg:text-sm text-xs'><b>Employee ID:</b> {data.employee_id}</p>
+                                    <p className='lg:text-sm text-xs'><b>Name:</b> {data.first_name} {data.last_name}</p>
+                                </div>
+                            </div>
                         </div>
                         
                         <div className=" items-center">
@@ -311,7 +423,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                             <select name="personnel_type" className='modal-employees-field cursor-pointer disabled:cursor-default' value = {data.personnel_type} disabled = {!editData || loading} onChange={handleChange}>
                                 <option value={PERSONNEL_TYPES.PROBATIONARY}>{PERSONNEL_TYPES.PROBATIONARY}</option>
                                 <option value={PERSONNEL_TYPES.REGULAR}>{PERSONNEL_TYPES.REGULAR}</option>
-                                <option value={PERSONNEL_TYPES.PROJECT_BASED}>Project-{PERSONNEL_TYPES.PROJECT_BASED}</option>
+                                <option value={PERSONNEL_TYPES.PROJECT_BASED}>{PERSONNEL_TYPES.PROJECT_BASED}</option>
                             </select>
                         </div>
                         
@@ -362,6 +474,14 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
                         {!editData ? (
                             <div className="flex justify-end gap-4">
+                                <button
+                                    type="button"
+                                    onClick={handleExportPdf}
+                                    disabled={loading}
+                                    className='bg-[#0f4c81] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#2a6aa1] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'
+                                >
+                                    Export to PDF
+                                </button>
                                 <button onClick = {() => setEditData(true)} disabled={loading} className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>Update Record</button>
                                 <button onClick={handleDelete} disabled={loading} className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer'>{loading ? 'Archiving ...' : 'Archive Employee'}</button>
                             </div>
@@ -416,19 +536,58 @@ function Employees(){
     const [viewEmployee, setViewEmployee] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState(() => ({}));
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('name_az');
     const [reportOpen, setReportOpen] = useState(false);
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL'); // ALL | STANDARD | PROJECT_BASED
+
+    const formatYearsOfService = useCallback((hireDateValue) => {
+        const raw = String(hireDateValue || '').trim();
+        if (!raw) return '—';
+        const d = new Date(raw);
+        if (Number.isNaN(d.getTime())) return '—';
+
+        const now = new Date();
+        if (d.getTime() > now.getTime()) return '0 years, 0 months';
+
+        let years = now.getFullYear() - d.getFullYear();
+        let months = now.getMonth() - d.getMonth();
+
+        // If the current day is before the hire day, treat the month as not yet completed.
+        if (now.getDate() < d.getDate()) months -= 1;
+        if (months < 0) {
+            years -= 1;
+            months += 12;
+        }
+
+        const yLabel = years === 1 ? 'year' : 'years';
+        const mLabel = months === 1 ? 'month' : 'months';
+        return `${Math.max(0, years)} ${yLabel}, ${Math.max(0, months)} ${mLabel}`;
+    }, []);
 
     const [departments, setDepartments] = useState([]);
     const [positions, setPositions] = useState([]);
 
     const filteredEmployees = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
+        const filteredByType = (() => {
+            if (personnelTypeFilter === 'PROJECT_BASED') {
+                return employees.filter((e) => String(e?.personnel_type || '').toLowerCase() === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase());
+            }
+            if (personnelTypeFilter === 'STANDARD') {
+                return employees.filter((e) => {
+                    const t = String(e?.personnel_type || '').toLowerCase();
+                    return t === String(PERSONNEL_TYPES.REGULAR || '').toLowerCase() || t === String(PERSONNEL_TYPES.PROBATIONARY || '').toLowerCase();
+                });
+            }
+            return employees;
+        })();
+
         const filtered = !q
-            ? employees
-            : employees.filter((e) => {
+            ? filteredByType
+            : filteredByType.filter((e) => {
                 const fullName = `${e.first_name || ''} ${e.last_name || ''}`.toLowerCase();
                 return (
                     String(e.employee_id || '').toLowerCase().includes(q) ||
@@ -444,6 +603,8 @@ function Employees(){
             const bName = `${b?.first_name || ''} ${b?.last_name || ''}`.trim();
 
             const tieBreakByEmployeeId = () => compareText(a?.employee_id, b?.employee_id);
+            const aProject = String(a?.personnel_type || '').toLowerCase() === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase();
+            const bProject = String(b?.personnel_type || '').toLowerCase() === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase();
 
             switch (sortOrder) {
                 case 'employee_id_asc':
@@ -466,13 +627,19 @@ function Employees(){
                     return compareText(a?.personnel_type, b?.personnel_type) || tieBreakByEmployeeId();
                 case 'personnel_type_za':
                     return compareText(b?.personnel_type, a?.personnel_type) || tieBreakByEmployeeId();
+                case 'personnel_type_employee_first':
+                    if (aProject === bProject) return compareText(aName, bName) || tieBreakByEmployeeId();
+                    return aProject ? 1 : -1;
+                case 'personnel_type_project_first':
+                    if (aProject === bProject) return compareText(aName, bName) || tieBreakByEmployeeId();
+                    return aProject ? -1 : 1;
                 default:
                     return compareText(aName, bName) || tieBreakByEmployeeId();
             }
         });
 
         return sorted;
-    }, [employees, searchTerm, sortOrder]);
+    }, [employees, searchTerm, sortOrder, personnelTypeFilter]);
 
     //REACT-PAGINATE
 
@@ -491,7 +658,7 @@ function Employees(){
 
     useEffect(() => {
         setItemOffset(0);
-    }, [searchTerm, sortOrder, employees.length]);
+    }, [searchTerm, sortOrder, personnelTypeFilter, employees.length]);
     
 
     const fetchEmployees = useCallback(async () => {
@@ -542,6 +709,42 @@ function Employees(){
     };
 
     const handleClose = () => setModalOpen(false);
+    const toggleRowSelected = (empId) => {
+        if (!empId) return;
+        setSelectedEmployeeIds((prev) => {
+            const next = { ...prev };
+            if (next[empId]) delete next[empId];
+            else next[empId] = true;
+            return next;
+        });
+    };
+
+    const setPageSelected = (rows, selected) => {
+        setSelectedEmployeeIds((prev) => {
+            const next = { ...prev };
+            for (const r of rows || []) {
+                if (!r?.id) continue;
+                if (selected) next[r.id] = true;
+                else delete next[r.id];
+            }
+            return next;
+        });
+    };
+
+    const selectedCount = useMemo(() => Object.keys(selectedEmployeeIds).length, [selectedEmployeeIds]);
+
+    const StatusBadge = ({ value }) => {
+        const v = String(value || '').toLowerCase();
+        const isActive = v === String(EMPLOYMENT_STATUSES.ACTIVE || 'active').toLowerCase();
+        const classes = isActive
+            ? 'text-[#198C19] bg-[#198C19]/20'
+            : 'text-[#C60000] bg-[#C60000]/20';
+        return (
+            <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${classes}`}>
+                {value || 'N/A'}
+            </span>
+        );
+    };
 
     const updateEmployeeData = (updated) => {
         setEmployees(prev =>
@@ -589,14 +792,35 @@ function Employees(){
         );
     }
 
-    const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-        const rowsForExport = (startDate || endDate)
-            ? filterRowsByDateRange(filteredEmployees, (r) => r?.hire_date, startDate, endDate)
+    const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+        const selectedOnly = selectedCount > 0;
+        const inputRows = selectedOnly
+            ? filteredEmployees.filter((r) => !!selectedEmployeeIds[r?.id])
             : filteredEmployees;
 
+        const base = (startDate || endDate)
+            ? filterRowsByDateRange(inputRows, (r) => r?.hire_date, startDate, endDate)
+            : inputRows;
+
+        const cat = category || 'all';
+        const rowsForExport = base.filter((r) => {
+            const status = String(r?.employment_status || '');
+            const p = String(r?.personnel_type || '');
+
+            if (cat === 'selected') return true;
+            if (cat === 'active') return status === EMPLOYMENT_STATUSES.ACTIVE;
+            if (cat === 'inactive') return status === EMPLOYMENT_STATUSES.INACTIVE;
+            if (cat === 'project_based') return p === PERSONNEL_TYPES.PROJECT_BASED;
+            if (cat === 'standard') return p === PERSONNEL_TYPES.REGULAR || p === PERSONNEL_TYPES.PROBATIONARY;
+            return true;
+        });
+
         const stamp = new Date().toISOString().slice(0, 10);
-        const isCsv = fileType === 'CSV';
-        const filename = `employees-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+        const upperType = String(fileType || 'XLSX').toUpperCase();
+        const isCsv = upperType === 'CSV';
+        const isPdf = upperType === 'PDF';
+        const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+        const filename = `employees-report-${cat}-${stamp}.${ext}`;
 
         // Export first to keep it a direct user gesture (avoids browser download blocking).
         // Audit logging is best-effort and should not block the download.
@@ -614,12 +838,35 @@ function Employees(){
         const columns = [
             { header: 'Employee ID', value: (r) => r.employee_id },
             { header: 'Name', value: (r) => `${r.first_name || ''} ${r.last_name || ''}`.trim() },
+            { header: 'Department', value: (r) => r.department_name || 'N/A' },
             { header: 'Position', value: (r) => r.position_title },
             { header: 'Hire Date', value: (r) => r.hire_date },
             { header: 'Personnel Type', value: (r) => r.personnel_type },
+            { header: 'Employment Status', value: (r) => r.employment_status },
         ];
 
-        if (isCsv) {
+        if (isPdf) {
+            const activeCount = rowsForExport.filter((r) => r.employment_status === EMPLOYMENT_STATUSES.ACTIVE).length;
+            const inactiveCount = rowsForExport.filter((r) => r.employment_status === EMPLOYMENT_STATUSES.INACTIVE).length;
+            const projectBasedCount = rowsForExport.filter((r) => r.personnel_type === PERSONNEL_TYPES.PROJECT_BASED).length;
+            const standardCount = rowsForExport.length - projectBasedCount;
+
+            exportReportToPdf({
+                filename,
+                title: 'Employees Report',
+                summaryLines: [
+                    `Category: ${cat}`,
+                    startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+                    selectedOnly ? `Scope: Selected employees (${selectedCount})` : 'Scope: All filtered employees',
+                    `Active: ${activeCount} | Inactive: ${inactiveCount}`,
+                    `Standard: ${standardCount} | Project-Based: ${projectBasedCount}`,
+                ],
+                columns,
+                rows: rowsForExport,
+            }).catch(() => {
+                // best-effort only
+            });
+        } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
             exportRowsToXlsx({ filename, sheetName: 'Employees', columns, rows: rowsForExport });
@@ -632,7 +879,7 @@ function Employees(){
         <div className="">
             <Navbar />
 
-            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
+            <div className="p-7 lg:mx-18 md:mx-10">
 
                 {/* HEADER */}
                 <div className="md:flex justify-between items-center w-full">
@@ -642,6 +889,19 @@ function Employees(){
                     </div>
                     
                     <div className="flex items-center justify-end md:gap-4 gap-3"> 
+
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-[#990100] hidden md:inline">Personnel Type</span>
+                            <select
+                                className="bg-white lg:h-10 md:h-9 h-8 px-2 rounded-lg text-sm border border-[#990100] focus:outline-none cursor-pointer"
+                                value={personnelTypeFilter}
+                                onChange={(e) => setPersonnelTypeFilter(e.target.value)}
+                            >
+                                <option value="ALL">All</option>
+                                <option value="STANDARD">Standard Employees (Regular/Probationary)</option>
+                                <option value="PROJECT_BASED">Project-Based</option>
+                            </select>
+                        </div>
 
                         <DropDownFilter
                             value={sortOrder}
@@ -657,6 +917,8 @@ function Employees(){
                                 { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
                                 { value: 'personnel_type_az', label: 'Personnel Type: A - Z' },
                                 { value: 'personnel_type_za', label: 'Personnel Type: Z - A' },
+                                { value: 'personnel_type_employee_first', label: 'Personnel Type: Employee First' },
+                                { value: 'personnel_type_project_first', label: 'Personnel Type: Project-Based First' },
                             ]}
                         />
 
@@ -677,10 +939,29 @@ function Employees(){
                     </div> 
                 </div>
                 <hr className='text-[#990100] mt-6 '/>
+                {selectedCount ? (
+                    <div className="mt-4 text-sm text-gray-700">
+                        Selected: <b>{selectedCount}</b>
+                        <button
+                            type="button"
+                            className="ml-3 text-[#990100] hover:underline"
+                            onClick={() => setSelectedEmployeeIds({})}
+                        >
+                            Clear
+                        </button>
+                    </div>
+                ) : null}
 
-                {/*<div className="flex justify-end mt-5">
-                    <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>
-                </div>*/}
+                <div className="flex justify-end mt-5">
+                    <button
+                        className='generate-report-button'
+                        onClick={() => setReportOpen(true)}
+                        disabled={filteredEmployees.length === 0}
+                        title={selectedCount ? 'Generate report for selected employees' : 'Generate report'}
+                    >
+                        {selectedCount ? `Generate Report (Selected: ${selectedCount})` : 'Generate Report'}
+                    </button>
+                </div>
 
                 {/* TABLE */}
                 
@@ -689,29 +970,51 @@ function Employees(){
                     <table className="table-style">
                         <thead className="thead-style">
                             <tr>
-                                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                                <th className="th-style rounded-tl-lg rounded-bl-lg w-10">
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Select all on page"
+                                        checked={currentEmp.length > 0 && currentEmp.every((r) => !!selectedEmployeeIds[r.id])}
+                                        onChange={(e) => setPageSelected(currentEmp, e.target.checked)}
+                                    />
+                                </th>
+                                <th className="th-style">Employee ID</th>
                                 <th className="th-style">Name</th>
+                                <th className="th-style hidden lg:table-cell">Department</th>
                                 <th className="th-style">Position</th>
                                 <th className="th-style hidden sm:table-cell">Hire Date</th>
+                                <th className="th-style hidden md:table-cell">Years of Service</th>
                                 <th className="th-style hidden sm:table-cell">Personnel Type</th>
+                                <th className="th-style hidden md:table-cell">Status</th>
                                 <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>
                         <tbody className='tbody-style'>
                             {filteredEmployees.length === 0 ? (
                                 <tr>
-                                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                                    <td colSpan="10" className="px-6 py-8 text-center text-gray-500">
                                         No employees found
                                     </td>
                                 </tr>
                             ) : (
                                 currentEmp.map((row) => (
                                     <tr key={row.id} className="tr-style">
+                                        <td className="td-style">
+                                            <input
+                                                type="checkbox"
+                                                aria-label={`Select ${row.employee_id}`}
+                                                checked={!!selectedEmployeeIds[row.id]}
+                                                onChange={() => toggleRowSelected(row.id)}
+                                            />
+                                        </td>
                                         <td className="td-style font-medium">
                                             {row.employee_id}
                                         </td>
                                         <td className="td-style">
                                             {row.first_name} {row.last_name}
+                                        </td>
+                                        <td className="td-style hidden lg:table-cell">
+                                            {row.department_name || 'N/A'}
                                         </td>
                                         <td className="td-style">
                                             {row.position_title}
@@ -719,8 +1022,14 @@ function Employees(){
                                         <td className="td-style hidden sm:table-cell">
                                             {row.hire_date}
                                         </td>
+                                        <td className="td-style hidden md:table-cell">
+                                            {formatYearsOfService(row.hire_date)}
+                                        </td>
                                         <td className="td-style hidden sm:table-cell">
                                             {row.personnel_type}
+                                        </td>
+                                        <td className="td-style hidden md:table-cell">
+                                            <StatusBadge value={row.employment_status} />
                                         </td>
                                         <td className="td-style">
                                             <button
@@ -751,6 +1060,18 @@ function Employees(){
                         onClose={() => setReportOpen(false)}
                         onGenerate={handleGenerateReport}
                         enableDateRange={true}
+                        fileTypes={['XLSX', 'CSV', 'PDF']}
+                        categoryOptions={[
+                            ...(selectedCount
+                                ? [{ value: 'selected', label: `Selected Employees (${selectedCount})` }]
+                                : []),
+                            { value: 'all', label: 'All Employees' },
+                            { value: 'active', label: 'Active Employees' },
+                            { value: 'inactive', label: 'Inactive Employees' },
+                            { value: 'standard', label: 'Standard (Regular/Probationary)' },
+                            { value: 'project_based', label: 'Project-Based' },
+                        ]}
+                        defaultCategory={selectedCount ? 'selected' : 'all'}
                     />
                     <br />
 

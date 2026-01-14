@@ -69,7 +69,7 @@ export const uploadDocument = async (fileData, userId) => {
     // check if employee exists
     const { data: employee, error: empError } = await supabase
       .from('employees')
-      .select('id, employee_id, first_name, last_name')
+      .select('id, employee_id, first_name, last_name, personnel_type')
       .eq('id', employee_id)
       .single();
 
@@ -86,6 +86,11 @@ export const uploadDocument = async (fileData, userId) => {
     // validate file type
     if (!FILE_VALIDATION.ALLOWED_MIME_TYPES.includes(file_type)) {
       throw new BadRequestError(`File type ${file_type} is not allowed. Allowed types: ${FILE_VALIDATION.ALLOWED_EXTENSIONS.join(', ')}`);
+    }
+
+    // Special rule: Employee Photo must be JPEG only.
+    if (String(document_name || '').trim().toLowerCase() === 'employee photo' && String(file_type || '').toLowerCase() !== 'image/jpeg') {
+      throw new BadRequestError('Employee Photo must be a JPEG image (.jpg/.jpeg) only.');
     }
 
     // If this upload comes from an onboarding checklist item, prefer replacing its existing document.
@@ -109,7 +114,8 @@ export const uploadDocument = async (fileData, userId) => {
       const employeeFolder = await getOrCreateEmployeeFolder({
         employeeCode: employee.employee_id,
         firstName: employee.first_name,
-        lastName: employee.last_name
+        lastName: employee.last_name,
+        personnelType: employee.personnel_type
       });
 
       // Best-effort: share the employee folder + uploaded files to the employee's linked user email.

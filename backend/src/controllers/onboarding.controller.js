@@ -4,7 +4,7 @@ import { supabase } from '../config/supabase.js';
 
 export const createEmployeeWithAccount = async (req, res, next) => {
   try {
-    const result = await onboardingService.createEmployeeWithAccount(req.body);
+    const result = await onboardingService.createEmployeeWithAccount(req.body, req.user?.id);
     res.status(201).json({
       success: true,
       message: 'Employee onboarded successfully',
@@ -18,11 +18,13 @@ export const createEmployeeWithAccount = async (req, res, next) => {
 export const getEmployeeChecklist = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
-    let checklist = await onboardingService.getEmployeeChecklist(employeeId);
 
-    // If checklist was never created (e.g., older employees), create it on-demand.
+    // Reconcile checklist so older employees get newly added baseline items (e.g., Photo, Sumpaang Salaysay).
+    await onboardingService.ensureEmployeeChecklistUpToDate(employeeId, req.user?.id);
+
+    let checklist = await onboardingService.getEmployeeChecklist(employeeId);
     if (!checklist || checklist.length === 0) {
-      await onboardingService.createChecklistForEmployee(employeeId, req.user.id);
+      await onboardingService.createChecklistForEmployee(employeeId, req.user?.id);
       checklist = await onboardingService.getEmployeeChecklist(employeeId);
     }
     res.status(200).json({
@@ -52,7 +54,7 @@ export const getMyChecklist = async (req, res, next) => {
       if (isDriveEnabled() && req.user?.email) {
         const { data: emp } = await supabase
           .from('employees')
-          .select('employee_id, first_name, last_name')
+          .select('employee_id, first_name, last_name, personnel_type')
           .eq('id', employeeDbId)
           .maybeSingle();
 
@@ -60,7 +62,8 @@ export const getMyChecklist = async (req, res, next) => {
           const folder = await getOrCreateEmployeeFolder({
             employeeCode: emp.employee_id,
             firstName: emp.first_name,
-            lastName: emp.last_name
+            lastName: emp.last_name,
+            personnelType: emp.personnel_type
           });
           await ensureDriveUserAccess({ fileId: folder.folderId, email: req.user.email, role: 'reader' });
         }
@@ -75,6 +78,10 @@ export const getMyChecklist = async (req, res, next) => {
       checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
     }
 
+    // Also reconcile so the employee sees the latest required items.
+    await onboardingService.ensureEmployeeChecklistUpToDate(employeeDbId, req.user?.id);
+    checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
+
     res.status(200).json({
       success: true,
       message: 'My checklist retrieved successfully',
@@ -87,7 +94,7 @@ export const getMyChecklist = async (req, res, next) => {
 
 export const getAllChecklists = async (req, res, next) => {
   try {
-    const checklists = await onboardingService.getAllChecklists();
+    const checklists = await onboardingService.getAllChecklists(req.user?.id);
     res.status(200).json({
       success: true,
       message: 'All checklists retrieved successfully',
@@ -157,6 +164,20 @@ export const reviewSubmission = async (req, res, next) => {
       success: true,
       message: 'Submission reviewed successfully',
       data: updatedItem
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const sendMissingDocumentsReminder = async (req, res, next) => {
+  try {
+    const { employeeId } = req.params;
+    const result = await onboardingService.sendMissingDocumentsReminder(employeeId, req.user?.id);
+    res.status(200).json({
+      success: true,
+      message: 'Reminder processed',
+      data: result
     });
   } catch (error) {
     next(error);

@@ -11,24 +11,62 @@ import { exportRowsToCsv } from '../../utils/csv.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { exportReportToPdf } from '../../utils/pdf.js';
 
 const SECTION_BREAKS = new Set([DOCUMENT_TYPES.SSS, DOCUMENT_TYPES.PHILHEALTH, DOCUMENT_TYPES.PAG_IBIG]);
 
-const EMPLOYEE_VISIBLE_DOCS = new Set([
-    DOCUMENT_TYPES.OTHERS,
-    DOCUMENT_TYPES.EMPLOYEE_CONTRACT,
-    DOCUMENT_TYPES.APPLICATION_FOR_EMPLOYMENT,
-    DOCUMENT_TYPES.PERSONAL_DATA_SHEET,
-    DOCUMENT_TYPES.SSS,
-    DOCUMENT_TYPES.PHILHEALTH,
-    DOCUMENT_TYPES.PAG_IBIG,
-    DOCUMENT_TYPES.RESUME_CV,
-    DOCUMENT_TYPES.NDA,
-    DOCUMENT_TYPES.DIPLOMA,
-    DOCUMENT_TYPES.TOR,
-    DOCUMENT_TYPES.DRIVERS_LICENSE,
-    DOCUMENT_TYPES.PRC_ID,
-]);
+const isProjectBased = (personnelType) => normalizeDocName(personnelType) === normalizeDocName('Project-Based');
+
+const isOthersItem = (itemName) => normalizeDocName(itemName) === normalizeDocName(DOCUMENT_TYPES.OTHERS);
+
+const isVisibleChecklistItem = (item) => {
+    const name = String(item?.item_name || '').trim();
+    if (!name) return false;
+    if (isOthersItem(name)) return false;
+    return true;
+};
+
+const dedupeChecklistItems = (items = []) => {
+    const seen = new Set();
+    const out = [];
+
+    for (const it of items || []) {
+        if (!it) continue;
+        if (!isVisibleChecklistItem(it)) continue;
+        const key = normalizeDocName(getDocumentNameForUpload(it.item_name));
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(it);
+    }
+
+    return out;
+};
+
+// Business rule: everything listed is required (except "Others").
+const getRequiredChecklistItems = (items = []) => dedupeChecklistItems(items);
+
+const computeRowProgress = ({ checklistItems = [] } = {}) => {
+    const required = getRequiredChecklistItems(checklistItems);
+    const total = required.length;
+    const approved = required.filter((it) => String(it.status || '').toLowerCase() === 'approved').length;
+
+    const missing = required
+        .filter((it) => !it.document_id)
+        .map((it) => String(it.item_name || '').trim())
+        .filter(Boolean);
+
+    const needsReupload = required
+        .filter((it) => String(it.status || '').toLowerCase() === 'rejected')
+        .map((it) => String(it.item_name || '').trim())
+        .filter(Boolean);
+
+    const uploaded = required
+        .filter((it) => !!it.document_id && String(it.status || '').toLowerCase() !== 'rejected')
+        .length;
+
+    const completion = total > 0 && missing.length === 0 && needsReupload.length === 0 ? 'COMPLETE' : 'INCOMPLETE';
+    return { uploaded, total, approved, missing, needsReupload, completion };
+};
 
 const normalizeDocName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 
@@ -51,9 +89,26 @@ const allowedDocumentTypeByNormalized = new Map(
     Object.values(DOCUMENT_TYPES).map((value) => [normalizeDocName(value), value])
 );
 
+// Allow common wording variants coming from DB onboarding item names.
+const ITEM_NAME_ALIASES = new Map([
+    // Some DB rows use "Sinumpaang Salaysay" while the UI constant uses "Sumpaang Salaysay".
+    [normalizeDocName('Sinumpaang Salaysay'), DOCUMENT_TYPES.SUMPAANG_SALAYSAY],
+]);
+
 const mapItemNameToDocumentName = (itemName) => {
     const normalized = normalizeDocName(itemName);
+    const alias = ITEM_NAME_ALIASES.get(normalized);
+    if (alias) return alias;
     return allowedDocumentTypeByNormalized.get(normalized) || DOCUMENT_TYPES.OTHERS;
+};
+
+const getDocumentNameForUpload = (itemName) => {
+    const raw = String(itemName || '').trim();
+    if (!raw) return '';
+    const normalized = normalizeDocName(raw);
+    const alias = ITEM_NAME_ALIASES.get(normalized);
+    // Prefer canonical built-in document type when it matches, otherwise allow dynamic onboarding item names.
+    return alias || allowedDocumentTypeByNormalized.get(normalized) || raw;
 };
 
 const mapStatusToUi = (status) => {
@@ -66,6 +121,30 @@ const mapUiToApiStatus = (uiStatus) => {
     const v = String(uiStatus || '').toLowerCase();
     if (v === 'disapproved') return 'rejected';
     return v;
+};
+
+const isEmployeePhotoDocumentName = (documentName) => normalizeDocName(documentName) === normalizeDocName(DOCUMENT_TYPES.EMPLOYEE_PHOTO);
+
+const acceptForChecklistItem = (itemName) => {
+    const docName = getDocumentNameForUpload(itemName);
+    if (isEmployeePhotoDocumentName(docName)) return 'image/jpeg';
+    return 'application/pdf,image/*';
+};
+
+const validateSelectedFileForChecklistItem = ({ itemName, file, notify }) => {
+    if (!file) return { ok: false, message: 'No file selected.' };
+    const docName = getDocumentNameForUpload(itemName);
+
+    if (isEmployeePhotoDocumentName(docName)) {
+        const mime = String(file.type || '').toLowerCase();
+        if (mime !== 'image/jpeg') {
+            const msg = 'Employee Photo must be a JPEG image (.jpg/.jpeg) only.';
+            notify?.({ title: 'Invalid file type', message: msg });
+            return { ok: false, message: msg };
+        }
+    }
+
+    return { ok: true };
 };
 
 const previewDocument = async (documentId, fallbackName = 'document', notify, onPreview) => {
@@ -140,6 +219,89 @@ const previewDocument = async (documentId, fallbackName = 'document', notify, on
     }
 };
 
+const extractFileNameFromContentDisposition = (headerValue) => {
+    const raw = String(headerValue || '');
+    if (!raw) return '';
+
+    const matchStar = raw.match(/filename\*=([^;]+)/i);
+    if (matchStar?.[1]) {
+        const v = matchStar[1].trim();
+        const parts = v.split("''");
+        const encoded = parts.length > 1 ? parts.slice(1).join("''") : v;
+        try {
+            return decodeURIComponent(encoded.replace(/^UTF-8''/i, '').replace(/^"|"$/g, ''));
+        } catch {
+            return encoded.replace(/^UTF-8''/i, '').replace(/^"|"$/g, '');
+        }
+    }
+
+    const match = raw.match(/filename=([^;]+)/i);
+    if (!match?.[1]) return '';
+    return match[1].trim().replace(/^"|"$/g, '');
+};
+
+const triggerBlobDownload = (blob, fileName) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = String(fileName || 'document');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2500);
+};
+
+const downloadDocumentToDisk = async (documentId, fallbackName = 'document', notify) => {
+    try {
+        const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+        const url = base.endsWith('/api')
+            ? `${base}/documents/${documentId}/download?disposition=attachment`
+            : `${base}/api/documents/${documentId}/download?disposition=attachment`;
+
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(url, {
+            method: 'GET',
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+
+        if (!res.ok) {
+            let msg = 'Failed to download document.';
+            try {
+                const j = await res.json();
+                msg = j?.message || msg;
+            } catch {
+                // ignore
+            }
+            throw new Error(msg);
+        }
+
+        const ct = String(res.headers.get('content-type') || '').toLowerCase();
+        const cd = res.headers.get('content-disposition') || '';
+        const headerName = extractFileNameFromContentDisposition(cd);
+
+        // Supabase provider returns JSON with signed URL.
+        if (ct.includes('application/json')) {
+            const json = await res.json();
+            const signedUrl = json?.data?.url || '';
+            if (!signedUrl) throw new Error('Download URL missing from server response.');
+
+            const fileRes = await fetch(signedUrl);
+            if (!fileRes.ok) throw new Error('Failed to fetch the download file.');
+            const blob = await fileRes.blob();
+            triggerBlobDownload(blob, headerName || fallbackName);
+            return;
+        }
+
+        // Drive provider streams the file directly.
+        const blob = await res.blob();
+        triggerBlobDownload(blob, headerName || fallbackName);
+    } catch (e) {
+        notify?.({ title: 'Download failed', message: e?.message || 'Failed to download document.' });
+        throw e;
+    }
+};
+
 const LocalFilePreview = ({ file }) => {
     const [url, setUrl] = useState(null);
 
@@ -172,7 +334,7 @@ const LocalFilePreview = ({ file }) => {
     );
 };
 
-const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImageActions, onReplaceImage, onDeleteFile }) => {
+const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImageActions, onReplaceImage, onDeleteFile, onDownload }) => {
     useEffect(() => {
         if (!open) return;
         const onKeyDown = (e) => {
@@ -189,10 +351,12 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
     const isImg = type.startsWith('image/');
     const effectiveDownloadUrl = url;
     const canShowImageActions = !!allowImageActions && !loading && isImg;
+    const canShowDelete = !loading && typeof onDeleteFile === 'function';
+    const canShowDownload = !loading && typeof onDownload === 'function';
 
     return (
         <div
-            className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 px-4"
+            className="fixed inset-0 z-[9000] flex items-center justify-center bg-black/40 px-4"
             role="dialog"
             aria-modal="true"
             aria-label={title || 'Preview'}
@@ -215,11 +379,11 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                             <p className="text-gray-600">Loading…</p>
                         </div>
                     ) : isPdf ? (
-                        <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
-                            <iframe title="Document preview" src={url} className="w-full h-[70vh]" />
+                        <div className="border border-gray-200 rounded-md overflow-hidden bg-white relative z-0">
+                            <iframe title="Document preview" src={url} className="w-full h-[70vh] relative z-0" />
                         </div>
                     ) : isImg ? (
-                        <div className="border border-gray-200 rounded-md overflow-hidden bg-white flex items-center justify-center">
+                        <div className="border border-gray-200 rounded-md overflow-hidden bg-white flex items-center justify-center relative z-0">
                             <img src={url} alt="Preview" className="max-h-[70vh] w-full object-contain" />
                         </div>
                     ) : (
@@ -228,7 +392,7 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                         </div>
                     )}
 
-                    <div className="mt-5 flex items-center justify-end gap-3">
+                    <div className="mt-5 flex items-center justify-end gap-3 relative z-10">
                         {canShowImageActions ? (
                             <>
                                 <button
@@ -238,14 +402,27 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
                                 >
                                     Change Image
                                 </button>
-                                <button
-                                    type="button"
-                                    className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
-                                    onClick={() => onDeleteFile?.()}
-                                >
-                                    Delete
-                                </button>
                             </>
+                        ) : null}
+
+                        {canShowDelete ? (
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                                onClick={() => onDeleteFile?.()}
+                            >
+                                Delete
+                            </button>
+                        ) : null}
+
+                        {canShowDownload ? (
+                            <button
+                                type="button"
+                                className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                                onClick={() => onDownload?.()}
+                            >
+                                Download
+                            </button>
                         ) : null}
 
                         {!loading && effectiveDownloadUrl ? (
@@ -304,6 +481,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         checklistItemId: null,
         employeeDbId: null,
         documentName: null,
+        locked: false,
     });
 
     const [replacePickerKey, setReplacePickerKey] = useState(0);
@@ -423,12 +601,13 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 checklistItemId: null,
                 employeeDbId: null,
                 documentName: null,
+                locked: false,
             };
         });
     };
 
     const triggerReplaceFromPreview = () => {
-        if (!previewState?.documentId || !previewState?.checklistItemId) return;
+        if (!previewState?.documentId) return;
         setReplacePickerKey((k) => k + 1);
         const el = document.getElementById('preview-replace-file');
         el?.click?.();
@@ -436,6 +615,14 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
     const handleReplaceFromPreview = async (file) => {
         if (!file) return;
+
+        if (isEmployee && previewState?.locked) {
+            notify({ title: 'Not allowed', message: 'Approved files cannot be changed.' });
+            return;
+        }
+
+        const v = validateSelectedFileForChecklistItem({ itemName: previewState?.documentName || '', file, notify });
+        if (!v.ok) return;
 
         if (file.size > 10 * 1024 * 1024) {
             notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
@@ -452,7 +639,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 const docName = previewState.documentName;
                 const checklistItemId = previewState.checklistItemId;
 
-                if (!empDbId || !docName || !checklistItemId) {
+                if (!empDbId || !docName) {
                     throw new Error('Missing upload context for replace');
                 }
 
@@ -460,7 +647,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 fd.append('file', file);
                 fd.append('employee_id', empDbId);
                 fd.append('document_name', docName);
-                fd.append('checklist_item_id', checklistItemId);
+                if (checklistItemId) fd.append('checklist_item_id', checklistItemId);
                 await postFormWithProgress('/documents/upload', fd, () => {});
                 await refresh();
                 closePreview();
@@ -471,6 +658,11 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
     const handleDeleteFromPreview = () => {
         const documentId = previewState?.documentId;
         if (!documentId) return;
+
+        if (isEmployee && previewState?.locked) {
+            notify({ title: 'Not allowed', message: 'Approved files cannot be deleted.' });
+            return;
+        }
 
         openConfirm({
             title: 'Delete file',
@@ -485,7 +677,14 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         });
     };
 
-    const checklist = employeeFiles?.checklistItems || [];
+    const handleDownloadFromPreview = async () => {
+        const documentId = previewState?.documentId;
+        if (!documentId) return;
+        const fileName = previewState?.fileName || previewState?.title || 'document';
+        await downloadDocumentToDisk(documentId, fileName, notify);
+    };
+
+    const checklist = dedupeChecklistItems(employeeFiles?.checklistItems || []);
 
     const [checklistOffset, setChecklistOffset] = useState(0);
     const checklistItemsPerPage = 8;
@@ -503,6 +702,14 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
     const isInline = variant === 'inline';
 
+    const canHrEdit = !isEmployee && editData;
+
+    const shouldAppendChecklistItemId = (item) => {
+        if (!item) return false;
+        if (item.virtual) return false;
+        return item.id !== undefined && item.id !== null && String(item.id).trim() !== '';
+    };
+
     const renderSectionHeaderRow = (title) => (
         <tr key={`section-${title}`}>
             <td colSpan={4} className="px-3 pt-5 pb-2">
@@ -517,6 +724,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
     const saveReviewForItem = async (it) => {
         try {
             if (!it?.id) return;
+            if (it?.virtual) {
+                notify({ title: 'Not editable', message: 'This requirement has no checklist item to review.' });
+                return;
+            }
 
             const nextStatus = statusById[it.id];
             const prevStatus = mapStatusToUi(it.status);
@@ -559,7 +770,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
             className={
                 isInline
                     ? "mt-4"
-                    : "fixed inset-0 flex items-center justify-center z-[1000] bg-[#EDEDED]/50 px-3 py-4"
+                    : "fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 px-3 py-4"
             }
         >
             <div
@@ -571,7 +782,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 style={{ WebkitOverflowScrolling: 'touch' }}
             >
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 m-4">
-                    <h1 className="text-white text-lg font-medium lg:text-lg text-sm">201 Files of {employeeFiles.id}</h1>
+                    <h1 className="text-white font-medium lg:text-lg text-sm">201 Files of {employeeFiles.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={onClose}>
                         ✕
                     </button>
@@ -593,27 +804,16 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                 <React.Fragment key={it.id}>
                                     {SECTION_BREAKS.has(it.item_name) && renderSectionHeaderRow('BENEFITS')}
                                     <tr>
-                                        <td className="text-left font-semibold pb-5 px-3 lg:text-sm text-xs whitespace-normal break-words">{it.item_name}</td>
+                                        <td className="text-left font-semibold pb-5 px-3 lg:text-sm text-xs whitespace-normal wrap-break-word">{it.item_name}</td>
                                         <td className="pb-5 px-3">
                                             {it.document_id ? (
                                                 <div className="flex flex-col gap-2">
                                                     <button
                                                         type="button"
-                                                        disabled={!isEmployee && !editData}
-                                                        className={`border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer ${
-                                                            !isEmployee && !editData
-                                                                ? 'opacity-60 cursor-not-allowed'
-                                                                : 'cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline'
-                                                        }`}
+                                                        className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
                                                         onClick={() => {
-                                                            if (!isEmployee && !editData) {
-                                                                notify({
-                                                                    title: 'Preview locked',
-                                                                    message: 'Click “Update Record” first before previewing 201 files.'
-                                                                });
-                                                                return;
-                                                            }
-
+                                                            const isApproved = String(it.status || '').toLowerCase() === 'approved';
+                                                            const locked = !!isEmployee && isApproved;
                                                             setPreviewState({
                                                                 open: true,
                                                                 title: it.file_name || 'document',
@@ -624,9 +824,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                 revokeOnClose: false,
                                                                 loading: true,
                                                                 documentId: it.document_id,
-                                                                checklistItemId: it.id,
+                                                                checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
                                                                 employeeDbId: employeeFiles.employee_id,
-                                                                documentName: mapItemNameToDocumentName(it.item_name),
+                                                                documentName: getDocumentNameForUpload(it.item_name),
+                                                                locked,
                                                             });
 
                                                             previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
@@ -641,9 +842,9 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                     revokeOnClose: !!revokeUrlOnClose,
                                                                     loading: false,
                                                                     documentId: it.document_id,
-                                                                    checklistItemId: it.id,
+                                                                    checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
                                                                     employeeDbId: employeeFiles.employee_id,
-                                                                    documentName: mapItemNameToDocumentName(it.item_name),
+                                                                    documentName: getDocumentNameForUpload(it.item_name),
                                                                 }));
                                                             }).catch(() => {
                                                                 setPreviewState((prev) => ({ ...prev, loading: false }));
@@ -660,9 +861,16 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                 type="file"
                                                                 className="hidden"
                                                                 disabled={uploadingId === it.id}
+                                                                accept={acceptForChecklistItem(it.item_name)}
                                                                 onChange={async (e) => {
                                                                     const f = e.target.files?.[0];
                                                                     if (!f) return;
+
+                                                                    const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                                    if (!ok.ok) {
+                                                                        e.target.value = '';
+                                                                        return;
+                                                                    }
 
                                                                     setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
                                                                     setSelectedFileById((p) => ({ ...p, [it.id]: f }));
@@ -686,8 +894,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                                 const fd = new FormData();
                                                                                 fd.append('file', f);
                                                                                 fd.append('employee_id', employeeFiles.employee_id);
-                                                                                fd.append('document_name', mapItemNameToDocumentName(it.item_name));
-                                                                                fd.append('checklist_item_id', it.id);
+                                                                                fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                                if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
                                                                                 await postFormWithProgress(
                                                                                     '/documents/upload',
                                                                                     fd,
@@ -711,7 +919,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                             <div className="flex items-center gap-2 w-full justify-center">
                                                                 <label
                                                                     htmlFor={`file-${it.id}`}
-                                                                    className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-[6px] rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                                    className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
                                                                         uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
                                                                     }`}
                                                                 >
@@ -735,9 +943,16 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                         type="file"
                                                         className="hidden"
                                                         disabled={uploadingId === it.id}
+                                                        accept={acceptForChecklistItem(it.item_name)}
                                                         onChange={async (e) => {
                                                             const f = e.target.files?.[0];
                                                             if (!f) return;
+
+                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                            if (!ok.ok) {
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
 
                                                             setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
                                                             setSelectedFileById((p) => ({ ...p, [it.id]: f }));
@@ -761,8 +976,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                                         const fd = new FormData();
                                                                         fd.append('file', f);
                                                                         fd.append('employee_id', employeeFiles.employee_id);
-                                                                        fd.append('document_name', mapItemNameToDocumentName(it.item_name));
-                                                                        fd.append('checklist_item_id', it.id);
+                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
                                                                         await postFormWithProgress(
                                                                             '/documents/upload',
                                                                             fd,
@@ -786,7 +1001,83 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                     <div className="flex items-center gap-2 w-full justify-center">
                                                         <label
                                                             htmlFor={`file-${it.id}`}
-                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-[6px] rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                                uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
+                                                            }`}
+                                                        >
+                                                            {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
+                                                        </label>
+                                                        <span className="text-xs text-gray-600 truncate max-w-44">
+                                                            {selectedFileNameById[it.id] || 'No file selected'}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="w-full max-w-xs">
+                                                        <LocalFilePreview file={selectedFileById[it.id]} />
+                                                    </div>
+                                                </div>
+                                            ) : canHrEdit ? (
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <input
+                                                        id={`file-hr-${it.id}`}
+                                                        type="file"
+                                                        className="hidden"
+                                                        disabled={uploadingId === it.id}
+                                                        accept={acceptForChecklistItem(it.item_name)}
+                                                        onChange={async (e) => {
+                                                            const f = e.target.files?.[0];
+                                                            if (!f) return;
+
+                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                            if (!ok.ok) {
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+
+                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
+                                                            setSelectedFileById((p) => ({ ...p, [it.id]: f }));
+
+                                                            if (f.size > 10 * 1024 * 1024) {
+                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
+                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                e.target.value = '';
+                                                                return;
+                                                            }
+
+                                                            openConfirm({
+                                                                title: 'Confirm upload',
+                                                                message: 'Upload this file?',
+                                                                confirmText: 'OK',
+                                                                cancelText: 'Cancel',
+                                                                onConfirm: async () => {
+                                                                    try {
+                                                                        setUploadingId(it.id);
+                                                                        const fd = new FormData();
+                                                                        fd.append('file', f);
+                                                                        fd.append('employee_id', employeeFiles.employee_id);
+                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
+                                                                        await postFormWithProgress('/documents/upload', fd, () => {});
+                                                                        await refresh();
+                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                        e.target.value = '';
+                                                                    } catch (err) {
+                                                                        console.error('Upload failed:', err);
+                                                                        notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
+                                                                    } finally {
+                                                                        setUploadingId(null);
+                                                                    }
+                                                                },
+                                                            });
+                                                        }}
+                                                    />
+
+                                                    <div className="flex items-center gap-2 w-full justify-center">
+                                                        <label
+                                                            htmlFor={`file-hr-${it.id}`}
+                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
                                                                 uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
                                                             }`}
                                                         >
@@ -806,7 +1097,11 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                             )}
                                         </td>
                                         <td className="pb-5 px-3">
-                                            {(!editData || isEmployee) ? (
+                                            {it.virtual ? (
+                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
+                                                    {(it.status || 'pending').replace(/^./, (c) => c.toUpperCase())}
+                                                </span>
+                                            ) : (!editData || isEmployee) ? (
                                                 <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
                                                     {(statusById[it.id] || 'pending').replace(/^./, (c) => c.toUpperCase())}
                                                 </span>
@@ -825,8 +1120,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                 </select>
                                             )}
                                         </td>
-                                        <td className="pb-5 px-3 whitespace-normal break-words">
-                                            {mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
+                                        <td className="pb-5 px-3 whitespace-normal wrap-break-word">
+                                            {it.virtual ? (
+                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{it.remarks || ''}</p>
+                                            ) : mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
                                                 <textarea
                                                     value={remarksById[it.id] || ''}
                                                     onChange={(e) => setRemarksById((p) => ({ ...p, [it.id]: e.target.value }))}
@@ -835,10 +1132,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                                                     maxLength={200}
                                                 />
                                             ) : (
-                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal break-words">{remarksById[it.id] || it.remarks || ''}</p>
+                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{remarksById[it.id] || it.remarks || ''}</p>
                                             )}
 
-                                            {!isEmployee && editData && (
+                                            {!isEmployee && editData && !it.virtual && (
                                                 <div className="mt-2 flex justify-end">
                                                     <button
                                                         type="button"
@@ -967,16 +1264,17 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         confirmDisabled={confirmBusy}
                     />
 
-                        <PreviewModal
+                    <PreviewModal
                         open={previewState.open}
                         title={previewState.title}
                         url={previewState.url}
                         mimeType={previewState.mimeType}
                         loading={previewState.loading}
                         onClose={closePreview}
-                        allowImageActions
-                        onReplaceImage={triggerReplaceFromPreview}
-                        onDeleteFile={handleDeleteFromPreview}
+                        allowImageActions={!isEmployee || !previewState.locked}
+                        onReplaceImage={!isEmployee || !previewState.locked ? triggerReplaceFromPreview : undefined}
+                        onDeleteFile={!isEmployee || !previewState.locked ? handleDeleteFromPreview : undefined}
+                        onDownload={handleDownloadFromPreview}
                     />
 
                     <input
@@ -984,7 +1282,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         id="preview-replace-file"
                         type="file"
                         className="hidden"
-                        accept="image/*"
+                        accept={isEmployeePhotoDocumentName(previewState?.documentName) ? 'image/jpeg' : 'application/pdf,image/*'}
                         onChange={(e) => {
                             const f = e.target.files?.[0];
                             e.target.value = '';
@@ -1005,11 +1303,97 @@ export default function OnboardingFiles() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('name_az');
     const [rows, setRows] = useState([]);
+    const [statusFilter, setStatusFilter] = useState('all'); // all | incomplete | complete
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('all'); // all | standard | project_based
 
     const [reportOpen, setReportOpen] = useState(false);
 
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployeeFiles, setViewEmployeeFiles] = useState(null);
+
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        title: 'Confirmation',
+        message: '',
+        confirmText: 'OK',
+        cancelText: 'Cancel',
+        onConfirm: null,
+    });
+    const [confirmBusy, setConfirmBusy] = useState(false);
+    const [reminderBusyByEmployeeId, setReminderBusyByEmployeeId] = useState({});
+
+    const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+        setConfirmState({
+            open: true,
+            title: title || 'Confirmation',
+            message: message || '',
+            confirmText: confirmText || 'OK',
+            cancelText: cancelText ?? 'Cancel',
+            onConfirm: onConfirm || null,
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null }));
+    };
+
+    const handleConfirm = async () => {
+        const fn = confirmState.onConfirm;
+        if (!fn) {
+            closeConfirm();
+            return;
+        }
+
+        const snapshot = {
+            title: confirmState.title,
+            message: confirmState.message,
+            confirmText: confirmState.confirmText,
+            cancelText: confirmState.cancelText,
+            onConfirm: confirmState.onConfirm,
+        };
+
+        try {
+            setConfirmBusy(true);
+            await fn?.();
+
+            setConfirmState((prev) => {
+                const isSameDialog =
+                    prev.open &&
+                    prev.onConfirm === snapshot.onConfirm &&
+                    prev.title === snapshot.title &&
+                    prev.message === snapshot.message &&
+                    prev.confirmText === snapshot.confirmText &&
+                    prev.cancelText === snapshot.cancelText;
+
+                if (!isSameDialog) return prev;
+
+                const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+                if (!wasConfirmation) {
+                    return { ...prev, open: false, onConfirm: null };
+                }
+
+                return {
+                    open: true,
+                    title: 'Success',
+                    message: 'Action completed successfully.',
+                    confirmText: 'OK',
+                    cancelText: null,
+                    onConfirm: null,
+                };
+            });
+        } catch (e) {
+            setConfirmState({
+                open: true,
+                title: 'Error',
+                message: e?.message || 'Action failed.',
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+        } finally {
+            setConfirmBusy(false);
+        }
+    };
 
     const handleOpen = (row) => {
         setViewEmployeeFiles(row);
@@ -1029,15 +1413,20 @@ export default function OnboardingFiles() {
 
             if (isEmployee) {
                 const employeeDbId = data?.[0]?.employee_id || null;
-                const checklistItems = data.map((it) => ({
-                    id: it.id,
-                    employee_id: employeeDbId,
-                    item_name: it.onboarding_items?.item_name || '',
-                    status: it.status,
-                    remarks: it.remarks,
-                    document_id: it.documents?.id || it.document_id,
-                    file_name: it.documents?.file_name || ''
-                })).filter((it) => EMPLOYEE_VISIBLE_DOCS.has(mapItemNameToDocumentName(it.item_name)));
+                const checklistItems = dedupeChecklistItems(
+                    data.map((it) => ({
+                        id: it.id,
+                        employee_id: employeeDbId,
+                        is_required: it.is_required,
+                        item_name: it.onboarding_items?.item_name || '',
+                        status: it.status,
+                        remarks: it.remarks,
+                        document_id: it.documents?.id || it.document_id,
+                        file_name: it.documents?.file_name || ''
+                    }))
+                );
+
+                const progress = computeRowProgress({ checklistItems });
 
                 nextRows = [
                     {
@@ -1047,7 +1436,8 @@ export default function OnboardingFiles() {
                         personnelType: '',
                         hireDate: '',
                         checklistItems,
-                        remarks: checklistItems.every((i) => String(i.status).toLowerCase() === 'approved') ? 'COMPLETE' : 'INCOMPLETE'
+                        progress,
+                        remarks: progress.completion
                     }
 
                 ];
@@ -1067,13 +1457,15 @@ export default function OnboardingFiles() {
             const byEmployee = new Map();
             for (const it of data) {
                 const emp = it.employees;
-                const employeeId = emp?.employee_id || it.employee_id;
-                if (!employeeId) continue;
+                const employeeCode = emp?.employee_id || it.employee_id;
+                const employeeDbId = emp?.id || null;
+                if (!employeeCode) continue;
 
-                if (!byEmployee.has(employeeId)) {
-                    byEmployee.set(employeeId, {
-                        id: employeeId,
-                        employee_id: employeeId,
+                if (!byEmployee.has(employeeCode)) {
+                    byEmployee.set(employeeCode, {
+                        id: employeeCode,
+                        employee_id: employeeDbId,
+                        employee_code: employeeCode,
                         name: `${emp?.first_name || ''} ${emp?.last_name || ''}`.trim(),
                         personnelType: emp?.personnel_type || '',
                         hireDate: emp?.hire_date || '',
@@ -1081,23 +1473,27 @@ export default function OnboardingFiles() {
                     });
                 }
 
-                byEmployee.get(employeeId).checklistItems.push({
+                const candidate = {
                     id: it.id,
-                    employee_id: employeeId,
+                    employee_id: employeeDbId,
+                    is_required: it.is_required,
                     item_name: it.onboarding_items?.item_name || '',
                     status: it.status,
                     remarks: it.remarks,
                     document_id: it.documents?.id || it.document_id,
                     file_name: it.documents?.file_name || ''
-                });
+                };
+
+                if (!isVisibleChecklistItem(candidate)) continue;
+
+                byEmployee.get(employeeCode).checklistItems.push(candidate);
             }
 
-            const out = Array.from(byEmployee.values()).map((row) => {
-                const complete = row.checklistItems.every((i) => String(i.status).toLowerCase() === 'approved');
-                return { ...row, remarks: complete ? 'COMPLETE' : 'INCOMPLETE' };
+            nextRows = Array.from(byEmployee.values()).map((row) => {
+                const checklistItems = dedupeChecklistItems(row.checklistItems);
+                const progress = computeRowProgress({ checklistItems });
+                return { ...row, checklistItems, progress, remarks: progress.completion };
             });
-
-            nextRows = out;
             setRows(nextRows);
             setViewEmployeeFiles((prev) => {
                 if (!prev) return prev;
@@ -1123,8 +1519,29 @@ export default function OnboardingFiles() {
         return rows.filter((r) => `${r.id} ${r.name}`.toLowerCase().includes(q));
     }, [rows, searchTerm]);
 
+    const filteredRowsWithStatus = useMemo(() => {
+        if (isEmployee) return filteredRows;
+        const f = String(statusFilter || 'all');
+
+        if (f === 'complete') {
+            return filteredRows.filter((r) => String(r?.progress?.completion || r?.remarks || 'INCOMPLETE') === 'COMPLETE');
+        }
+        if (f === 'incomplete') {
+            return filteredRows.filter((r) => String(r?.progress?.completion || r?.remarks || 'INCOMPLETE') !== 'COMPLETE');
+        }
+        return filteredRows;
+    }, [filteredRows, isEmployee, statusFilter]);
+
+    const filteredRowsWithPersonnelType = useMemo(() => {
+        if (isEmployee) return filteredRowsWithStatus;
+        const f = String(personnelTypeFilter || 'all');
+        if (f === 'project_based') return filteredRowsWithStatus.filter((r) => isProjectBased(r?.personnelType));
+        if (f === 'standard') return filteredRowsWithStatus.filter((r) => !isProjectBased(r?.personnelType));
+        return filteredRowsWithStatus;
+    }, [filteredRowsWithStatus, isEmployee, personnelTypeFilter]);
+
     const visibleRows = useMemo(() => {
-        const sorted = [...filteredRows].sort((a, b) => {
+        const sorted = [...filteredRowsWithPersonnelType].sort((a, b) => {
             switch (sortOrder) {
                 case 'employee_id_asc':
                     return compareText(a?.id, b?.id);
@@ -1134,24 +1551,40 @@ export default function OnboardingFiles() {
                     return compareText(a?.name, b?.name);
                 case 'name_za':
                     return compareText(b?.name, a?.name);
-                case 'personnel_type_az':
-                    return compareText(a?.personnelType, b?.personnelType);
-                case 'personnel_type_za':
-                    return compareText(b?.personnelType, a?.personnelType);
+                case 'personnel_type_employee_first': {
+                    const aProject = isProjectBased(a?.personnelType);
+                    const bProject = isProjectBased(b?.personnelType);
+                    if (aProject === bProject) return compareText(a?.name, b?.name) || compareText(a?.id, b?.id);
+                    return aProject ? 1 : -1;
+                }
+                case 'personnel_type_project_first': {
+                    const aProject = isProjectBased(a?.personnelType);
+                    const bProject = isProjectBased(b?.personnelType);
+                    if (aProject === bProject) return compareText(a?.name, b?.name) || compareText(a?.id, b?.id);
+                    return aProject ? -1 : 1;
+                }
                 case 'hire_date_newest':
                     return compareDate(b?.hireDate, a?.hireDate);
                 case 'hire_date_oldest':
                     return compareDate(a?.hireDate, b?.hireDate);
-                case 'remarks_az':
-                    return compareText(a?.remarks, b?.remarks);
-                case 'remarks_za':
-                    return compareText(b?.remarks, a?.remarks);
+                case 'completion_complete_first': {
+                    const ac = String(a?.progress?.completion || a?.remarks || 'INCOMPLETE');
+                    const bc = String(b?.progress?.completion || b?.remarks || 'INCOMPLETE');
+                    if (ac === bc) return compareText(a?.name, b?.name) || compareText(a?.id, b?.id);
+                    return ac === 'COMPLETE' ? -1 : 1;
+                }
+                case 'completion_incomplete_first': {
+                    const ac = String(a?.progress?.completion || a?.remarks || 'INCOMPLETE');
+                    const bc = String(b?.progress?.completion || b?.remarks || 'INCOMPLETE');
+                    if (ac === bc) return compareText(a?.name, b?.name) || compareText(a?.id, b?.id);
+                    return ac === 'COMPLETE' ? 1 : -1;
+                }
                 default:
                     return compareText(a?.name, b?.name);
             }
         });
         return sorted;
-    }, [filteredRows, sortOrder]);
+    }, [filteredRowsWithPersonnelType, sortOrder]);
 
     const [itemOffset, setItemOffset] = useState(0);
     const itemsPerPage = 10;
@@ -1162,20 +1595,97 @@ export default function OnboardingFiles() {
 
     useEffect(() => {
         setItemOffset(0);
-    }, [searchTerm, sortOrder, rows.length]);
+    }, [searchTerm, sortOrder, statusFilter, personnelTypeFilter, rows.length]);
 
     const handlePageClick = (event) => {
         setItemOffset(event.selected * itemsPerPage);
     };
 
-    const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-        const rowsForExport = (startDate || endDate)
+    const handleSendReminder = (row) => {
+        const employeeDbId = row?.employee_id;
+        if (!employeeDbId) {
+            openConfirm({
+                title: 'Cannot send reminder',
+                message: 'Missing employee record id.',
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+            return;
+        }
+
+        const progress = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
+        const missing = progress.missing || [];
+        const needsReupload = progress.needsReupload || [];
+        const lineParts = [];
+        if (missing.length) lineParts.push(`Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? '…' : ''}`);
+        if (needsReupload.length) lineParts.push(`Needs re-upload: ${needsReupload.slice(0, 8).join(', ')}${needsReupload.length > 8 ? '…' : ''}`);
+
+        openConfirm({
+            title: 'Send Reminder',
+            message: [
+                `Send a reminder email to ${row?.name || 'this employee'}?`,
+                lineParts.length ? lineParts.join('\n') : 'No missing documents detected based on current checklist.',
+            ].join('\n'),
+            confirmText: 'Send',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                setReminderBusyByEmployeeId((p) => ({ ...p, [employeeDbId]: true }));
+                try {
+                    const res = await post(`/onboarding/employee/${employeeDbId}/remind-missing`);
+                    const emailStatus = (() => {
+                        const e = res?.data?.email;
+                        if (!e) return null;
+                        if (e.skipped) return `Email: skipped (${e.reason || 'SMTP not configured'})`;
+                        if (e.error) return `Email: failed (${e.error})`;
+                        return 'Email: sent';
+                    })();
+
+                    openConfirm({
+                        title: 'Reminder processed',
+                        message: [
+                            `Employee: ${row?.name || ''}`.trim(),
+                            emailStatus,
+                            res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
+                            res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,
+                        ].filter(Boolean).join('\n'),
+                        confirmText: 'OK',
+                        cancelText: null,
+                        onConfirm: null,
+                    });
+                } finally {
+                    setReminderBusyByEmployeeId((p) => {
+                        const next = { ...p };
+                        delete next[employeeDbId];
+                        return next;
+                    });
+                }
+            },
+        });
+    };
+
+    const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+        const base = (startDate || endDate)
             ? filterRowsByDateRange(visibleRows, (r) => r?.hireDate, startDate, endDate)
             : visibleRows;
 
+        const cat = category || 'all';
+        const rowsForExport = base.filter((r) => {
+            const completion = String(r?.progress?.completion || r?.remarks || 'INCOMPLETE');
+            const p = String(r?.personnelType || '');
+            if (cat === 'complete') return completion === 'COMPLETE';
+            if (cat === 'incomplete') return completion !== 'COMPLETE';
+            if (cat === 'project_based') return isProjectBased(p);
+            if (cat === 'standard') return !isProjectBased(p);
+            return true;
+        });
+
         const stamp = new Date().toISOString().slice(0, 10);
-        const isCsv = fileType === 'CSV';
-        const filename = `201-files-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+        const upperType = String(fileType || 'XLSX').toUpperCase();
+        const isCsv = upperType === 'CSV';
+        const isPdf = upperType === 'PDF';
+        const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+        const filename = `201-files-report-${cat}-${stamp}.${ext}`;
 
         post('/audit-logs/reports', {
             report_name: '201 Files Report',
@@ -1193,10 +1703,43 @@ export default function OnboardingFiles() {
             { header: 'Name', value: (r) => r.name },
             { header: 'Personnel Type', value: (r) => r.personnelType },
             { header: 'Hire Date', value: (r) => r.hireDate },
-            { header: 'Remarks', value: (r) => r.remarks || 'INCOMPLETE' },
+            {
+                header: 'Progress',
+                value: (r) => {
+                    const p = r?.progress || computeRowProgress({ checklistItems: r?.checklistItems || [] });
+                    return `${p.uploaded}/${p.total}`;
+                }
+            },
+            {
+                header: 'Missing',
+                value: (r) => {
+                    const p = r?.progress || computeRowProgress({ checklistItems: r?.checklistItems || [] });
+                    return (p.missing || []).join(', ');
+                }
+            },
         ];
 
-        if (isCsv) {
+        if (isPdf) {
+            const completeCount = rowsForExport.filter((r) => String(r?.progress?.completion || r?.remarks || 'INCOMPLETE') === 'COMPLETE').length;
+            const incompleteCount = rowsForExport.length - completeCount;
+            const projectBasedCount = rowsForExport.filter((r) => isProjectBased(r?.personnelType)).length;
+            const standardCount = rowsForExport.length - projectBasedCount;
+
+            exportReportToPdf({
+                filename,
+                title: '201 Files Report',
+                summaryLines: [
+                    `Category: ${cat}`,
+                    startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+                    `Complete: ${completeCount} | Incomplete: ${incompleteCount}`,
+                    `Standard: ${standardCount} | Project-Based: ${projectBasedCount}`,
+                ],
+                columns,
+                rows: rowsForExport,
+            }).catch(() => {
+                // best-effort only
+            });
+        } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
             exportRowsToXlsx({ filename, sheetName: '201 Files', columns, rows: rowsForExport });
@@ -1209,13 +1752,43 @@ export default function OnboardingFiles() {
         <div>
             <Navbar />
 
-            <div className="p-7 lg:mx-[4.5rem] md:mx-10">
+            <div className="p-7 lg:mx-18 md:mx-10">
                 <div className="md:flex justify-between items-center w-full">
                     <div>
                         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">201 Files</h1>
                     </div>
 
                     <div className="flex items-center justify-end md:gap-4 gap-3">
+                        {!isEmployee ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-[#990100] hidden md:inline">Filter Status</span>
+                                <select
+                                    className="bg-white lg:h-10 md:h-9 h-8 px-2 rounded-lg text-sm border border-[#990100] focus:outline-none cursor-pointer"
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <option value="all">Show All</option>
+                                    <option value="incomplete">Show Incomplete Only</option>
+                                    <option value="complete">Show Complete Only</option>
+                                </select>
+                            </div>
+                        ) : null}
+
+                        {!isEmployee ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-[#990100] hidden md:inline">Personnel Type</span>
+                                <select
+                                    className="bg-white lg:h-10 md:h-9 h-8 px-2 rounded-lg text-sm border border-[#990100] focus:outline-none cursor-pointer"
+                                    value={personnelTypeFilter}
+                                    onChange={(e) => setPersonnelTypeFilter(e.target.value)}
+                                >
+                                    <option value="all">All</option>
+                                    <option value="standard">Employees</option>
+                                    <option value="project_based">Project-Based</option>
+                                </select>
+                            </div>
+                        ) : null}
+
                         <DropDownFilter
                             value={sortOrder}
                             onChange={setSortOrder}
@@ -1224,12 +1797,12 @@ export default function OnboardingFiles() {
                                 { value: 'employee_id_desc', label: 'Employee ID: Descending' },
                                 { value: 'name_az', label: 'Name: A - Z' },
                                 { value: 'name_za', label: 'Name: Z - A' },
-                                { value: 'personnel_type_az', label: 'Personnel Type: A - Z' },
-                                { value: 'personnel_type_za', label: 'Personnel Type: Z - A' },
+                                { value: 'personnel_type_employee_first', label: 'Personnel Type: Employee First' },
+                                { value: 'personnel_type_project_first', label: 'Personnel Type: Project-Based First' },
                                 { value: 'hire_date_newest', label: 'Hire Date: Newest' },
                                 { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
-                                { value: 'remarks_az', label: 'Remarks: A - Z' },
-                                { value: 'remarks_za', label: 'Remarks: Z - A' },
+                                { value: 'completion_complete_first', label: 'Completion: Complete First' },
+                                { value: 'completion_incomplete_first', label: 'Completion: Incomplete First' },
                             ]}
                         />
 
@@ -1289,9 +1862,11 @@ export default function OnboardingFiles() {
                     </div>
                 ) : (
                     <>
-                        {/*<div className="flex justify-end mt-5">
-                            <button className="generate-report-button" onClick={() => setReportOpen(true)}>Generate Report</button>
-                        </div>*/}
+                        <div className="flex justify-end mt-5">
+                            <button className="generate-report-button" onClick={() => setReportOpen(true)}>
+                                Generate Report
+                            </button>
+                        </div>
 
                         <ReportModal
                             open={reportOpen}
@@ -1299,10 +1874,18 @@ export default function OnboardingFiles() {
                             onClose={() => setReportOpen(false)}
                             onGenerate={handleGenerateReport}
                             enableDateRange={true}
+                            fileTypes={['XLSX', 'CSV', 'PDF']}
+                            categoryOptions={[
+                                { value: 'all', label: 'All' },
+                                { value: 'complete', label: 'Complete Only' },
+                                { value: 'incomplete', label: 'Incomplete Only' },
+                                { value: 'standard', label: 'Standard Only' },
+                                { value: 'project_based', label: 'Project-Based Only' },
+                            ]}
+                            defaultCategory="all"
                         />
 
                         <div className="div-table">
-                            {/*{loading && <div className="text-sm text-gray-600 mb-3">Loading 201 Files…</div>}*/}
                             <table className="table-style">
                                 <thead className="thead-style">
                                     <tr>
@@ -1310,12 +1893,12 @@ export default function OnboardingFiles() {
                                         <th className="th-style">Name</th>
                                         <th className="th-style">Personnel Type</th>
                                         <th className="th-style">Hire Date</th>
-                                        <th className="th-style">Remarks</th>
+                                        <th className="th-style">Progress</th>
                                         <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="tbody-style">
-                                    {filteredRows.length === 0 ? (
+                                    {visibleRows.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                                                 No employees found
@@ -1323,7 +1906,13 @@ export default function OnboardingFiles() {
                                         </tr>
                                     ) : (
                                         currentRows.map((row) => {
-                                            const remarks = row.remarks || 'INCOMPLETE';
+                                            const p = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
+                                            const percent = p.total ? Math.round((p.uploaded / p.total) * 100) : 0;
+                                            const isComplete = String(p.completion) === 'COMPLETE';
+                                            const tooltipLines = [
+                                                p.missing?.length ? `Missing: ${p.missing.join(', ')}` : null,
+                                                p.needsReupload?.length ? `Needs re-upload: ${p.needsReupload.join(', ')}` : null,
+                                            ].filter(Boolean);
 
                                             return (
                                                 <tr key={row.id} className="tr-style">
@@ -1332,24 +1921,57 @@ export default function OnboardingFiles() {
                                                     <td className="td-style">{row.personnelType}</td>
                                                     <td className="td-style">{row.hireDate}</td>
                                                     <td className="td-style">
-                                                        <span
-                                                            className={`inline-flex max-w-full items-center justify-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-                                                                remarks === 'COMPLETE'
-                                                                    ? 'text-[#198C19] bg-[#198C19]/25'
-                                                                    : 'text-[#C60000] bg-[#C60000]/25'
-                                                            }`}
-                                                        >
-                                                            <span className="truncate">{remarks}</span>
-                                                        </span>
+                                                        <div className="relative inline-flex flex-col gap-1 group">
+                                                            <div className={`text-xs font-semibold ${isComplete ? 'text-[#198C19]' : 'text-[#990100]'}`}>
+                                                                {p.uploaded}/{p.total} Files
+                                                            </div>
+                                                            <div className="w-28 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className={`h-full ${isComplete ? 'bg-[#198C19]' : 'bg-[#F59E0B]'}`}
+                                                                    style={{ width: `${percent}%` }}
+                                                                />
+                                                            </div>
+
+                                                            {tooltipLines.length ? (
+                                                                <div className="absolute left-0 top-0 -translate-y-[110%] z-50 hidden group-hover:block">
+                                                                    <div className="max-w-xs rounded-lg border border-gray-200 bg-white shadow-lg px-3 py-2 text-[11px] text-gray-800">
+                                                                        {tooltipLines.map((line, idx) => (
+                                                                            <div key={idx} className="whitespace-normal wrap-break-word">
+                                                                                {line}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ) : null}
+                                                        </div>
                                                     </td>
                                                     <td className="td-style">
-                                                        <button
-                                                            type="button"
-                                                            className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
-                                                            onClick={() => handleOpen(row)}
-                                                        >
-                                                            View Details
-                                                        </button>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
+                                                                onClick={() => handleOpen(row)}
+                                                            >
+                                                                View Details
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-[#990100] text-[#990100] hover:bg-[#990100] hover:text-white transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                title="Send reminder email"
+                                                                aria-label="Send reminder"
+                                                                disabled={!!reminderBusyByEmployeeId[row?.employee_id]}
+                                                                onClick={() => handleSendReminder(row)}
+                                                            >
+                                                                {reminderBusyByEmployeeId[row?.employee_id] ? (
+                                                                    <span className="text-xs">…</span>
+                                                                ) : (
+                                                                    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                                                                        <path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5-6.7V3a2 2 0 1 0-4 0v1.3A7 7 0 0 0 5 11v5l-2 2v1h20v-1l-2-2Z" />
+                                                                    </svg>
+                                                                )}
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -1400,6 +2022,17 @@ export default function OnboardingFiles() {
                     </>
                 )}
             </div>
+
+            <ConfirmModal
+                open={confirmState.open}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+                cancelText={confirmState.cancelText}
+                onConfirm={handleConfirm}
+                onCancel={confirmBusy ? undefined : closeConfirm}
+                confirmDisabled={confirmBusy}
+            />
         </div>
     );
 }

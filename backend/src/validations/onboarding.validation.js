@@ -42,10 +42,18 @@ const personNameSchema = (label) => Joi.string()
 
 export const createEmployeeWithAccountSchema = Joi.object({
   // account info
-  email: Joi.string().email().required().messages({
-    'string.email': 'Please provide a valid email address',
-    'any.required': 'Email is required'
-  }),
+  email: Joi.string()
+    .email()
+    .when('personnel_type', {
+      is: PERSONNEL_TYPES.PROJECT_BASED,
+      then: Joi.string().email().allow('', null).optional().messages({
+        'string.email': 'Please provide a valid email address'
+      }),
+      otherwise: Joi.string().email().required().messages({
+        'string.email': 'Please provide a valid email address',
+        'any.required': 'Email is required'
+      })
+    }),
   // Password is auto-assigned by the system after employee_id is generated.
   // We accept it for backward compatibility but do not require it.
   password: Joi.string().trim().allow('', null).optional(),

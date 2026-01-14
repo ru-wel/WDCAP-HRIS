@@ -8,6 +8,7 @@ import { exportRowsToCsv } from '../../utils/csv.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { exportReportToPdf } from '../../utils/pdf.js';
 
 function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
@@ -543,14 +544,30 @@ function UserAccounts (){
             setItemOffset(0);
         }, [searchTerm, sortOrder, employeesAcc.length]);
 
-    const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-        const rowsForExport = (startDate || endDate)
+    const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+        const base = (startDate || endDate)
             ? filterRowsByDateRange(filteredEmployeesAcc, (r) => r?.createdAtRaw || r?.createdAt, startDate, endDate)
             : filteredEmployeesAcc;
 
+        const cat = category || 'all';
+        const rowsForExport = base.filter((r) => {
+            const role = String(r?.role || '').toLowerCase();
+            const status = String(r?.status || '').toLowerCase();
+
+            if (cat === 'admins') return role === 'admin';
+            if (cat === 'hr') return role === 'hr';
+            if (cat === 'employees') return role === 'employee';
+            if (cat === 'active') return status === 'active';
+            if (cat === 'inactive') return status === 'inactive';
+            return true;
+        });
+
         const stamp = new Date().toISOString().slice(0, 10);
-        const isCsv = fileType === 'CSV';
-        const filename = `user-accounts-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+        const upperType = String(fileType || 'XLSX').toUpperCase();
+        const isCsv = upperType === 'CSV';
+        const isPdf = upperType === 'PDF';
+        const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+        const filename = `user-accounts-report-${cat}-${stamp}.${ext}`;
 
         post('/audit-logs/reports', {
             report_name: 'User Accounts Report',
@@ -571,7 +588,20 @@ function UserAccounts (){
             { header: 'Status', value: (r) => r.status },
         ];
 
-        if (isCsv) {
+        if (isPdf) {
+            exportReportToPdf({
+                filename,
+                title: 'User Accounts Report',
+                summaryLines: [
+                    `Category: ${cat}`,
+                    startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+                ],
+                columns,
+                rows: rowsForExport,
+            }).catch(() => {
+                // best-effort only
+            });
+        } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
             exportRowsToXlsx({ filename, sheetName: 'User Accounts', columns, rows: rowsForExport });
@@ -643,6 +673,16 @@ function UserAccounts (){
                     onClose={() => setReportOpen(false)}
                     onGenerate={handleGenerateReport}
                     enableDateRange={true}
+                    fileTypes={['XLSX', 'CSV', 'PDF']}
+                    categoryOptions={[
+                        { value: 'all', label: 'All Accounts' },
+                        { value: 'admins', label: 'Admins' },
+                        { value: 'hr', label: 'HR' },
+                        { value: 'employees', label: 'Employees' },
+                        { value: 'active', label: 'Active' },
+                        { value: 'inactive', label: 'Inactive' },
+                    ]}
+                    defaultCategory="all"
                 />
 
                 <div className="div-table">

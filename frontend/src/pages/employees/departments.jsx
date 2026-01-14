@@ -10,6 +10,7 @@ import ReportModal from '../../components/report-modal.jsx';
 import { exportRowsToCsv } from '../../utils/csv.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { exportReportToPdf } from '../../utils/pdf.js';
 
 function DepartmentCard({
   id,
@@ -326,14 +327,25 @@ export default function Departments() {
     return sorted;
   }, [departments, searchTerm, sortOrder]);
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport = (startDate || endDate)
+  const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+    const base = (startDate || endDate)
       ? filterRowsByDateRange(filteredDepartments, (r) => r?.created_at, startDate, endDate)
       : filteredDepartments;
 
+    const cat = category || 'all';
+    const rowsForExport = base.filter((r) => {
+      const count = Number(r?.employees ?? 0);
+      if (cat === 'empty') return count <= 0;
+      if (cat === 'with_employees') return count > 0;
+      return true;
+    });
+
     const stamp = new Date().toISOString().slice(0, 10);
-    const isCsv = fileType === 'CSV';
-    const filename = `departments-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+    const upperType = String(fileType || 'XLSX').toUpperCase();
+    const isCsv = upperType === 'CSV';
+    const isPdf = upperType === 'PDF';
+    const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+    const filename = `departments-report-${cat}-${stamp}.${ext}`;
 
     post('/audit-logs/reports', {
       report_name: 'Departments Report',
@@ -353,7 +365,22 @@ export default function Departments() {
       { header: 'Created At', value: (r) => (r?.created_at ? new Date(r.created_at).toLocaleString() : '') },
     ];
 
-    if (isCsv) {
+    if (isPdf) {
+      const emptyCount = rowsForExport.filter((r) => Number(r?.employees ?? 0) <= 0).length;
+      exportReportToPdf({
+        filename,
+        title: 'Departments Report',
+        summaryLines: [
+          `Category: ${cat}`,
+          startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+          `Departments: ${rowsForExport.length} | Empty: ${emptyCount}`,
+        ],
+        columns,
+        rows: rowsForExport,
+      }).catch(() => {
+        // best-effort only
+      });
+    } else if (isCsv) {
       exportRowsToCsv({ filename, columns, rows: rowsForExport });
     } else {
       exportRowsToXlsx({ filename, sheetName: 'Departments', columns, rows: rowsForExport });
@@ -785,6 +812,13 @@ export default function Departments() {
         onClose={() => setReportOpen(false)}
         onGenerate={handleGenerateReport}
         enableDateRange={true}
+        fileTypes={['XLSX', 'CSV', 'PDF']}
+        categoryOptions={[
+          { value: 'all', label: 'All Departments' },
+          { value: 'with_employees', label: 'With Employees' },
+          { value: 'empty', label: 'Empty (0 employees)' },
+        ]}
+        defaultCategory="all"
       />
 
       <ConfirmModal

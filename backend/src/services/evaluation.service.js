@@ -265,7 +265,8 @@ const ensureEvaluationFolder = async (employee) => {
   const employeeFolder = await getOrCreateEmployeeFolder({
     employeeCode: employee.employee_id,
     firstName: employee.first_name,
-    lastName: employee.last_name
+    lastName: employee.last_name,
+    personnelType: employee.personnel_type
   });
 
   const evaluationFolder = await getOrCreateFolder({

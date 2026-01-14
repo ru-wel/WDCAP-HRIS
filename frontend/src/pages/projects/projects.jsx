@@ -11,6 +11,7 @@ import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { exportReportToPdf } from '../../utils/pdf.js';
 
 function ViewProjectCard({ project, index, onClick }) {
   // format dates for display
@@ -704,14 +705,27 @@ function Projects() {
     setMode("view");
   };
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport = (startDate || endDate)
+  const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+    const base = (startDate || endDate)
       ? filterRowsByDateRange(filteredProjects, (p) => p?.start_date, startDate, endDate)
       : filteredProjects;
 
+    const cat = category || 'all';
+    const rowsForExport = base.filter((p) => {
+      const s = String(p?.status || '');
+      if (cat === 'active') return s === PROJECT_STATUSES.ACTIVE;
+      if (cat === 'completed') return s === PROJECT_STATUSES.COMPLETED;
+      if (cat === 'on_hold') return s === PROJECT_STATUSES.ON_HOLD;
+      if (cat === 'cancelled') return s === PROJECT_STATUSES.CANCELLED;
+      return true;
+    });
+
     const stamp = new Date().toISOString().slice(0, 10);
-    const isCsv = fileType === 'CSV';
-    const filename = `projects-report-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+    const upperType = String(fileType || 'XLSX').toUpperCase();
+    const isCsv = upperType === 'CSV';
+    const isPdf = upperType === 'PDF';
+    const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+    const filename = `projects-report-${cat}-${stamp}.${ext}`;
 
     post('/audit-logs/reports', {
       report_name: 'Projects Report',
@@ -732,7 +746,28 @@ function Projects() {
       { header: 'Status', value: (p) => p.status },
     ];
 
-    if (isCsv) {
+    if (isPdf) {
+      const counts = {
+        [PROJECT_STATUSES.ACTIVE]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.ACTIVE).length,
+        [PROJECT_STATUSES.COMPLETED]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.COMPLETED).length,
+        [PROJECT_STATUSES.ON_HOLD]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.ON_HOLD).length,
+        [PROJECT_STATUSES.CANCELLED]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.CANCELLED).length,
+      };
+
+      exportReportToPdf({
+        filename,
+        title: 'Projects Report',
+        summaryLines: [
+          `Category: ${cat}`,
+          startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+          `Active: ${counts[PROJECT_STATUSES.ACTIVE]} | Completed: ${counts[PROJECT_STATUSES.COMPLETED]} | On Hold: ${counts[PROJECT_STATUSES.ON_HOLD]} | Cancelled: ${counts[PROJECT_STATUSES.CANCELLED]}`,
+        ],
+        columns,
+        rows: rowsForExport,
+      }).catch(() => {
+        // best-effort only
+      });
+    } else if (isCsv) {
       exportRowsToCsv({ filename, columns, rows: rowsForExport });
     } else {
       exportRowsToXlsx({ filename, sheetName: 'Projects', columns, rows: rowsForExport });
@@ -837,6 +872,15 @@ function Projects() {
                 onClose={() => setReportOpen(false)}
                 onGenerate={handleGenerateReport}
                 enableDateRange={true}
+                fileTypes={['XLSX', 'CSV', 'PDF']}
+                categoryOptions={[
+                  { value: 'all', label: 'All Projects' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'completed', label: 'Completed' },
+                  { value: 'on_hold', label: 'On Hold' },
+                  { value: 'cancelled', label: 'Cancelled' },
+                ]}
+                defaultCategory="all"
               />
 
               {!showUpdateActions ? (

@@ -1,5 +1,6 @@
 import * as documentsService from '../services/document.service.js';
-import { ROLES } from '../config/constants.js';
+import { ONBOARDING_STATUSES, ROLES } from '../config/constants.js';
+import { supabase } from '../config/supabase.js';
 import { ForbiddenError } from '../utils/errors.js';
 
 // upload document controller
@@ -15,6 +16,22 @@ export const uploadDocument = async (req, res, next) => {
     // employee can only upload their own documents
     if (userRole == ROLES.EMPLOYEE && String(userEmployeeDbId ?? '') !== String(employee_id ?? '')) {
       throw new ForbiddenError('You can only upload documents for yourself');
+    }
+
+    // Once a checklist item is approved, employees must not replace it.
+    if (userRole === ROLES.EMPLOYEE && checklistItemId) {
+      const { data: checklistRow, error: checklistErr } = await supabase
+        .from('onboarding_checklists')
+        .select('id, status')
+        .eq('id', checklistItemId)
+        .eq('employee_id', employee_id)
+        .maybeSingle();
+
+      if (checklistErr) throw new Error(checklistErr.message);
+
+      if (checklistRow && String(checklistRow.status || '').toLowerCase() === ONBOARDING_STATUSES.APPROVED) {
+        throw new ForbiddenError('This document is already approved and cannot be changed.');
+      }
     }
 
     // prepare file data
@@ -149,6 +166,19 @@ export const deleteDocument = async (req, res, next) => {
       const meta = await documentsService.getDocumentById(document_id);
       if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
         throw new ForbiddenError('You can only delete your own documents');
+      }
+
+      // If the document is linked to an approved onboarding checklist, employees cannot delete it.
+      const { data: linkedChecklist, error: linkErr } = await supabase
+        .from('onboarding_checklists')
+        .select('id, status')
+        .eq('employee_id', userEmployeeDbId)
+        .eq('document_id', document_id)
+        .maybeSingle();
+      if (linkErr) throw new Error(linkErr.message);
+
+      if (linkedChecklist && String(linkedChecklist.status || '').toLowerCase() === ONBOARDING_STATUSES.APPROVED) {
+        throw new ForbiddenError('Approved documents cannot be deleted.');
       }
     }
 
