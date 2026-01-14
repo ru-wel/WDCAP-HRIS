@@ -18,6 +18,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     const [editData, setEditData] = useState(false);
     const [initialData, setInitialData] = useState(employee || {});
     const [loading, setLoading] = useState(false);
+    
     const [confirmState, setConfirmState] = useState({
         open: false,
         title: 'Confirmation',
