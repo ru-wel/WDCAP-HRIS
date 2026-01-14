@@ -15,19 +15,19 @@ function ModalShell({ open, title, onClose, children }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden max-h-[95vh] flex flex-col">
-        <div className="bg-[#990100] text-white px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0">
+      <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden max-h-[95vh] flex flex-col">
+        <div className="bg-[#990100] text-white px-4 sm:px-6 py-3 sm:py-4 m-4 rounded-xl flex items-center justify-between flex-shrink-0">
           <h2 className="text-base sm:text-lg font-semibold">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-white text-2xl leading-none hover:opacity-80"
+            className="text-white text-2xl leading-none hover:scale-110 transition"
             aria-label="Close"
           >
-            ×
+            ✕
           </button>
         </div>
-        <div className="px-4 sm:px-8 lg:px-10 py-6 sm:py-8 overflow-y-auto">{children}</div>
+        <div className="px-4 sm:px-8 lg:px-10 pb-5 pt-2  overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -100,7 +100,8 @@ export default function ReportModal({
 
   const presets = useMemo(
     () => [
-      { value: 'all', label: 'All Time' },
+      { value: '', label: 'Select Range' },
+      { value: 'all', label: 'All' },
       { value: 'today', label: 'Today' },
       { value: 'week', label: 'This Week' },
       { value: 'month', label: 'This Month' },
@@ -112,7 +113,7 @@ export default function ReportModal({
   useEffect(() => {
     if (!open) return;
     setFileType(normalizedFileTypes.includes('XLSX') ? 'XLSX' : normalizedFileTypes[0]);
-    setPreset('all');
+    setPreset('');
     setStartDate('');
     setEndDate('');
     if (normalizedCategories.length) {
@@ -165,15 +166,21 @@ export default function ReportModal({
     return v;
   };
 
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  const maxDate = `${yyyy}-${mm}-${dd}`;
+
   return (
     <ModalShell open={open} title={title || 'Generate Report'} onClose={onClose}>
-      <div className="space-y-5">
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
+      <div className="space-y-5 flex justify-center">
+        <div className="items-center gap-4 lg:text-sm text-xs">
           {normalizedCategories.length ? (
             <>
-              <div className="text-right font-semibold">Report Category:</div>
+              <div className="font-semibold pb-1.5 ">Report Category:</div>
               <select
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 bg-white"
+                className="modal-employees-field cursor-pointer"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
@@ -186,9 +193,9 @@ export default function ReportModal({
             </>
           ) : null}
 
-          <div className="text-right font-semibold">File Type:</div>
+          <div className="font-semibold pt-2 pb-1.5">File Type:</div>
           <select
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 bg-white"
+            className="modal-employees-field cursor-pointer"
             value={fileType}
             onChange={(e) => setFileType(e.target.value)}
           >
@@ -199,9 +206,9 @@ export default function ReportModal({
             ))}
           </select>
 
-          <div className="text-right font-semibold">Range:</div>
+          <div className="pt-2 pb-1.5 font-semibold">Range:</div>
           <select
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48 bg-white"
+            className="modal-employees-field cursor-pointer"
             value={preset}
             onChange={(e) => setPreset(e.target.value)}
             disabled={!enableDateRange}
@@ -215,22 +222,24 @@ export default function ReportModal({
 
           {enableDateRange && (
             <>
-              <div className="text-right font-semibold">Starting Date:</div>
+              <div className="pt-2 pb-1.5 font-semibold">Starting Date:</div>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48"
+                className="modal-employees-field cursor-pointer"
                 value={startDate}
+                max = {maxDate}
                 onChange={(e) => {
                   setPreset('custom');
                   setStartDate(e.target.value);
                 }}
               />
 
-              <div className="text-right font-semibold">End Date:</div>
+              <div className="pt-2 pb-1.5 font-semibold">End Date:</div>
               <input
                 type="date"
-                className="border border-gray-300 rounded-md px-3 py-1 text-sm w-48"
+                className="modal-employees-field cursor-pointer"
                 value={endDate}
+                max = {maxDate}
                 onChange={(e) => {
                   setPreset('custom');
                   setEndDate(e.target.value);
@@ -246,25 +255,26 @@ export default function ReportModal({
             Date modifiers are not available for this report.
           </div>
         )}
+      </div>
 
-        <div className="flex justify-end pt-2 gap-3">
+      <div className="flex justify-end lg:pt-7 pt-5  gap-3">
           <button
             type="button"
-            className="bg-[#EDEDED] text-[#990100] text-xs px-5 py-2 rounded-md hover:bg-gray-200 transition duration-300 ease-in-out"
+            className="bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
             onClick={onClose}
           >
             Cancel
           </button>
           <button
             type="button"
-            className="bg-[#990100] text-white text-xs px-5 py-2 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
             disabled={!canGenerate}
             onClick={() => onGenerate?.({ preset, startDate, endDate, fileType, category })}
           >
             Download {downloadLabel()}
           </button>
-        </div>
       </div>
+
     </ModalShell>
   );
 }

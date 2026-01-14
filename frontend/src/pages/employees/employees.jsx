@@ -330,7 +330,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-180 md:w-140 w-80 lg:h-140 md:h-120 h-100 overflow-y-auto border border-gray-300">
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
-                    <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.first_name} {data.last_name}</h1>
+                    <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.employee_id} {data.last_name}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={() => {
                         if (unsavedChanges){
                             openConfirm({
@@ -970,22 +970,22 @@ function Employees(){
                     <table className="table-style">
                         <thead className="thead-style">
                             <tr>
-                                <th className="th-style rounded-tl-lg rounded-bl-lg w-10">
+                                {/*<th className="th-style rounded-tl-lg rounded-bl-lg w-10">
                                     <input
                                         type="checkbox"
                                         aria-label="Select all on page"
                                         checked={currentEmp.length > 0 && currentEmp.every((r) => !!selectedEmployeeIds[r.id])}
                                         onChange={(e) => setPageSelected(currentEmp, e.target.checked)}
                                     />
-                                </th>
-                                <th className="th-style">Employee ID</th>
+                                </th>*/}
+                                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                                 <th className="th-style">Name</th>
-                                <th className="th-style hidden lg:table-cell">Department</th>
+                                {/*<th className="th-style">Department</th>*/}
                                 <th className="th-style">Position</th>
-                                <th className="th-style hidden sm:table-cell">Hire Date</th>
-                                <th className="th-style hidden md:table-cell">Years of Service</th>
-                                <th className="th-style hidden sm:table-cell">Personnel Type</th>
-                                <th className="th-style hidden md:table-cell">Status</th>
+                                <th className="th-style">Hire Date</th>
+                                <th className="th-style">Years of Service</th>
+                                <th className="th-style">Personnel Type</th>
+                                {/*<th className="th-style hidden md:table-cell">Status</th>*/}
                                 <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>
@@ -998,39 +998,39 @@ function Employees(){
                                 </tr>
                             ) : (
                                 currentEmp.map((row) => (
-                                    <tr key={row.id} className="tr-style">
-                                        <td className="td-style">
+                                   <tr key={row.id} className="tr-style">
+                                        {/*<td className="td-style">
                                             <input
                                                 type="checkbox"
                                                 aria-label={`Select ${row.employee_id}`}
                                                 checked={!!selectedEmployeeIds[row.id]}
                                                 onChange={() => toggleRowSelected(row.id)}
                                             />
-                                        </td>
+                                        </td>*/}
                                         <td className="td-style font-medium">
                                             {row.employee_id}
                                         </td>
                                         <td className="td-style">
                                             {row.first_name} {row.last_name}
                                         </td>
-                                        <td className="td-style hidden lg:table-cell">
+                                        {/*<td className="td-style">
                                             {row.department_name || 'N/A'}
-                                        </td>
+                                        </td>*/}
                                         <td className="td-style">
                                             {row.position_title}
                                         </td>
-                                        <td className="td-style hidden sm:table-cell">
+                                        <td className="td-style">
                                             {row.hire_date}
                                         </td>
-                                        <td className="td-style hidden md:table-cell">
+                                        <td className="td-style">
                                             {formatYearsOfService(row.hire_date)}
                                         </td>
-                                        <td className="td-style hidden sm:table-cell">
+                                        <td className="td-style">
                                             {row.personnel_type}
                                         </td>
-                                        <td className="td-style hidden md:table-cell">
+                                        {/*<td className="td-style">
                                             <StatusBadge value={row.employment_status} />
-                                        </td>
+                                        </td>*/}
                                         <td className="td-style">
                                             <button
                                                 className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
