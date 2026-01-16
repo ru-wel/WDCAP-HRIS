@@ -449,6 +449,74 @@ const PreviewModal = ({ open, title, url, mimeType, loading, onClose, allowImage
     );
 };
 
+function SendReminderModal({ open, title, message, onClose, onSend, sending }) {
+    useEffect(() => {
+        if (!open) return;
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') onClose?.();
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-[9500] flex items-center justify-center bg-black/40 px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={title || 'Send Reminder'}
+        >
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl border border-gray-200">
+                <div className="p-4 sm:p-6">
+                    <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
+                        <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
+                            {title || 'Send Reminder'}
+                        </h1>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
+                            aria-label="Close"
+                            disabled={sending}
+                        >
+                            ✕
+                        </button>
+                    </div>
+
+                    <div className="pt-4">
+                        <p className="text-sm text-gray-700 whitespace-pre-line">
+                            {message || ''}
+                        </p>
+
+                        <div className="mt-6 flex items-center justify-end gap-3">
+                            <button
+                                type="button"
+                                className="px-5 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                onClick={onClose}
+                                disabled={sending}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                className="px-5 py-2 rounded-full text-sm text-white bg-[#990100] hover:bg-[#ad3332] transition cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                                onClick={onSend}
+                                disabled={sending}
+                            >
+                                {sending ? 'Sending…' : 'Send'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, variant = 'modal' }) {
     const [editData, setEditData] = useState(false);
     const [remarksById, setRemarksById] = useState({});
@@ -1322,7 +1390,14 @@ export default function OnboardingFiles() {
     const [confirmBusy, setConfirmBusy] = useState(false);
     const [reminderBusyByEmployeeId, setReminderBusyByEmployeeId] = useState({});
 
-    const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+    
+    const [sendReminderState, setSendReminderState] = useState({
+        open: false,
+        title: 'Send Reminder',
+        message: '',
+        row: null,
+    });
+const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
         setConfirmState({
             open: true,
             title: title || 'Confirmation',
@@ -1601,68 +1676,38 @@ export default function OnboardingFiles() {
         setItemOffset(event.selected * itemsPerPage);
     };
 
-    const handleSendReminder = (row) => {
-        const employeeDbId = row?.employee_id;
-        if (!employeeDbId) {
-            openConfirm({
-                title: 'Cannot send reminder',
-                message: 'Missing employee record id.',
-                confirmText: 'OK',
-                cancelText: null,
-                onConfirm: null,
-            });
-            return;
-        }
+const handleSendReminder = (row) => {
+    const employeeDbId = row?.employee_id;
 
-        const progress = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
-        const missing = progress.missing || [];
-        const needsReupload = progress.needsReupload || [];
-        const lineParts = [];
-        if (missing.length) lineParts.push(`Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? '…' : ''}`);
-        if (needsReupload.length) lineParts.push(`Needs re-upload: ${needsReupload.slice(0, 8).join(', ')}${needsReupload.length > 8 ? '…' : ''}`);
-
+    if (!employeeDbId) {
         openConfirm({
-            title: 'Send Reminder',
-            message: [
-                `Send a reminder email to ${row?.name || 'this employee'}?`,
-                lineParts.length ? lineParts.join('\n') : 'No missing documents detected based on current checklist.',
-            ].join('\n'),
-            confirmText: 'Send',
-            cancelText: 'Cancel',
-            onConfirm: async () => {
-                setReminderBusyByEmployeeId((p) => ({ ...p, [employeeDbId]: true }));
-                try {
-                    const res = await post(`/onboarding/employee/${employeeDbId}/remind-missing`);
-                    const emailStatus = (() => {
-                        const e = res?.data?.email;
-                        if (!e) return null;
-                        if (e.skipped) return `Email: skipped (${e.reason || 'SMTP not configured'})`;
-                        if (e.error) return `Email: failed (${e.error})`;
-                        return 'Email: sent';
-                    })();
-
-                    openConfirm({
-                        title: 'Reminder processed',
-                        message: [
-                            `Employee: ${row?.name || ''}`.trim(),
-                            emailStatus,
-                            res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
-                            res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,
-                        ].filter(Boolean).join('\n'),
-                        confirmText: 'OK',
-                        cancelText: null,
-                        onConfirm: null,
-                    });
-                } finally {
-                    setReminderBusyByEmployeeId((p) => {
-                        const next = { ...p };
-                        delete next[employeeDbId];
-                        return next;
-                    });
-                }
-            },
+            title: 'Cannot send reminder',
+            message: 'Missing employee record id.',
+            confirmText: 'OK',
+            cancelText: null,
+            onConfirm: null,
         });
-    };
+        return;
+    }
+
+    const progress = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
+    const missing = progress.missing || [];
+    const needsReupload = progress.needsReupload || [];
+
+    const lineParts = [];
+    if (missing.length) lineParts.push(`Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? '…' : ''}`);
+    if (needsReupload.length) lineParts.push(`Needs re-upload: ${needsReupload.slice(0, 8).join(', ')}${needsReupload.length > 8 ? '…' : ''}`);
+
+    setSendReminderState({
+        open: true,
+        title: 'Send Reminder',
+        message: [
+            `Send a reminder email to ${row?.name || 'this employee'}?`,
+            lineParts.length ? lineParts.join('') : 'No missing documents detected based on current checklist.',
+        ].join(''),
+        row,
+    });
+};
 
     const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
         const base = (startDate || endDate)
@@ -2022,6 +2067,54 @@ export default function OnboardingFiles() {
                     </>
                 )}
             </div>
+
+
+<SendReminderModal
+    open={sendReminderState.open}
+    title={sendReminderState.title}
+    message={sendReminderState.message}
+    sending={!!reminderBusyByEmployeeId[sendReminderState?.row?.employee_id]}
+    onClose={() => setSendReminderState((p) => ({ ...p, open: false, row: null }))}
+    onSend={async () => {
+        const row = sendReminderState.row;
+        const employeeDbId = row?.employee_id;
+        if (!employeeDbId) return;
+
+        setReminderBusyByEmployeeId((p) => ({ ...p, [employeeDbId]: true }));
+        try {
+            const res = await post(`/onboarding/employee/${employeeDbId}/remind-missing`);
+
+            const emailStatus = (() => {
+                const e = res?.data?.email;
+                if (!e) return null;
+                if (e.skipped) return `Email: skipped (${e.reason || 'SMTP not configured'})`;
+                if (e.error) return `Email: failed (${e.error})`;
+                return 'Email: sent';
+            })();
+
+            setSendReminderState((p) => ({ ...p, open: false, row: null }));
+
+            openConfirm({
+                title: 'Reminder processed',
+                message: [
+                    `Employee: ${row?.name || ''}`.trim(),
+                    emailStatus,
+                    res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
+                    res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,
+                ].filter(Boolean).join('\n'),
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+        } finally {
+            setReminderBusyByEmployeeId((p) => {
+                const next = { ...p };
+                delete next[employeeDbId];
+                return next;
+            });
+        }
+    }}
+/>
 
             <ConfirmModal
                 open={confirmState.open}
