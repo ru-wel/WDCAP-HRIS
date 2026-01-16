@@ -9,6 +9,7 @@ import { compareNumber, compareText } from '../../utils/sort.js';
 import { exportRowsToCsv } from '../../utils/csv.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 
+/** ✅ UPDATED: header matches your boxed red header design */
 function ModalShell({ open, title, onClose, children }) {
   useEffect(() => {
     if (!open) return;
@@ -28,19 +29,30 @@ function ModalShell({ open, title, onClose, children }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden">
-        <div className="bg-[#990100] text-white px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white text-2xl leading-none hover:opacity-80"
-            aria-label="Close"
-          >
-            ×
-          </button>
+
+      {/* MODAL CONTAINER */}
+      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+        {/* IMPORTANT: padding wrapper so header is NOT full-bleed */}
+        <div className="p-4 sm:p-6">
+          {/* HEADER (boxed like Employees) */}
+          <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
+            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
+              {title}
+            </h1>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* CONTENT */}
+          <div className="pt-6">{children}</div>
         </div>
-        <div className="px-10 py-8">{children}</div>
       </div>
     </div>
   );
