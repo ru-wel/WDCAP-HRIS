@@ -35,7 +35,7 @@ export const DOCUMENT_TYPES = {
   APPLICATION_FOR_EMPLOYMENT: 'Application for Employment',
   PERSONAL_DATA_SHEET: 'Personal Data Sheet',
   EMPLOYEE_PHOTO: 'Employee Photo',
-  SUMPAANG_SALAYSAY: 'Sumpaang Salaysay',
+  SINUMPAANG_SALAYSAY: 'Sinumpaang Salaysay',
   WAIVER_OF_MEDICAL_EXAMINATION: 'Waiver of Medical Examination',
   NDA: 'NDA',
   DIPLOMA: 'Diploma',

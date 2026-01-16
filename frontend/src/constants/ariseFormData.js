@@ -22,8 +22,8 @@ export const ARISE_FORM_ITEMS = {
   sections: [
     {
       id: 1,
-      title: "I. Trabalong Ginagampanan",
-      tagalog: "I. Trabalong Ginagampanan",
+      title: "I. Trabahong Ginagampanan",
+      tagalog: "I. Trabahong Ginagampanan",
       items: [
         {
           number: 1,
@@ -49,8 +49,8 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       id: 2,
-      title: "II. Komunikasyon at Pakikisama/ pakikisalamuha",
-      tagalog: "II. Komunikasyon at Pakikisama/ pakikisalamuha",
+      title: "II. Komunikasyon at Pakikisama / Pakikisalamuha",
+      tagalog: "II. Komunikasyon at Pakikisama / Pakikisalamuha",
       items: [
         {
           number: 6,
@@ -72,8 +72,8 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       id: 3,
-      title: "III. Paggamit ng Materiyales / Equipments/Tools",
-      tagalog: "III. Paggamit ng Materiyales / Equipments/Tools",
+      title: "III. Paggamit ng Materyales / Equipments / Tools",
+      tagalog: "III. Paggamit ng Materyales / Equipments / Tools",
       items: [
         {
           number: 10,
@@ -96,7 +96,7 @@ export const ARISE_FORM_ITEMS = {
       items: [
         {
           number: 13,
-          text: "Record Keeping: -Maintaining accurate records of all maintenance and repairs performed. -Documenting service repairs and updating vehicle service records."
+          text: "Record Keeping: - Maintaining accurate records of all maintenance and repairs performed. -Documenting service repairs and updating vehicle service records."
         },
         {
           number: 14,
@@ -160,7 +160,7 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       range: "45-60",
-      tagalog: "Lubos na minumungkahing ipagpatuloy ang employment at irerekomendang tanggapin sa mga susunod na proyekto sa hinaharap",
+      tagalog: "Lubos na minumungkahing ipagpatuloy ang employment at nirerekomendang tanggapin sa mga susunod na proyekto sa hinaharap",
       english: "Recommended - Satisfactory Performance"
     }
   ]

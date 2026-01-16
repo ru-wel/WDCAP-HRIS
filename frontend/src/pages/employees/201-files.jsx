@@ -91,8 +91,8 @@ const allowedDocumentTypeByNormalized = new Map(
 
 // Allow common wording variants coming from DB onboarding item names.
 const ITEM_NAME_ALIASES = new Map([
-    // Some DB rows use "Sinumpaang Salaysay" while the UI constant uses "Sumpaang Salaysay".
-    [normalizeDocName('Sinumpaang Salaysay'), DOCUMENT_TYPES.SUMPAANG_SALAYSAY],
+    // Some DB rows use "Sinumpaang Salaysay" while the UI constant uses "Sinumpaang Salaysay".
+    [normalizeDocName('Sinumpaang Salaysay'), DOCUMENT_TYPES.SINUMPAANG_SALAYSAY],
 ]);
 
 const mapItemNameToDocumentName = (itemName) => {

@@ -3,9 +3,9 @@ export const ARISE_FORM_ITEMS = {
   sections: [
     {
       id: 1,
-      title: 'I. Trabalong Ginagampanan',
+      title: 'I. Trabahong Ginagampanan',
       items: [
-        { number: 1, text: 'Sumusunod sa nakatakdang iskeidyul at mabilis na natatapos ang trabaho ng maayos' },
+        { number: 1, text: 'Sumusunod sa nakatakdang skedyul at mabilis na natatapos ang trabaho ng maayos' },
         { number: 2, text: 'Madaling nakakasunod sa instruksyon o utos' },
         { number: 3, text: 'May kusa at hindi kailangang utusan' },
         { number: 4, text: 'Maparaan, nakapagbibigay ng ideya o input' },
@@ -24,7 +24,7 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       id: 3,
-      title: 'III. Paggamit ng Materiyales / Equipments/Tools',
+      title: 'III. Paggamit ng Materyales / Equipments / Tools',
       items: [
         {
           number: 10,
@@ -43,7 +43,7 @@ export const ARISE_FORM_ITEMS = {
       items: [
         {
           number: 13,
-          text: 'Record Keeping: -Maintaining accurate records of all maintenance and repairs performed. -Documenting service repairs and updating vehicle service records.'
+          text: 'Record Keeping: - Maintaining accurate records of all maintenance and repairs performed. - Documenting service repairs and updating vehicle service records.'
         },
         {
           number: 14,
@@ -59,7 +59,7 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       id: 5,
-      title: 'V. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuno )',
+      title: 'V. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuna )',
       items: [
         { number: 18, text: 'Sumusunod sa oras ng pagpasok (Hindi lumiliko at nahuhuli sa trabaho)' },
         {

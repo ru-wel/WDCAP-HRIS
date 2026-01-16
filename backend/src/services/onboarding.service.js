@@ -787,8 +787,8 @@ const normalizeItemKey = (value) => String(value || '').toLowerCase().replace(/[
 
 // Map common DB variants to the canonical key used by DOCUMENT_TYPES.
 const ITEM_KEY_ALIASES = new Map([
-  // Some DB rows use "Sinumpaang Salaysay" while the canonical type is "Sumpaang Salaysay".
-  [normalizeItemKey('Sinumpaang Salaysay'), normalizeItemKey(DOCUMENT_TYPES.SUMPAANG_SALAYSAY)],
+  // Some DB rows use "Sinumpaang Salaysay" while the canonical type is "Sinumpaang Salaysay".
+  [normalizeItemKey('Sinumpaang Salaysay'), normalizeItemKey(DOCUMENT_TYPES.SINUMPAANG_SALAYSAY)],
 ]);
 
 const canonicalizeItemKey = (value) => ITEM_KEY_ALIASES.get(normalizeItemKey(value)) || normalizeItemKey(value);
@@ -800,7 +800,7 @@ const DEFAULT_201_ONBOARDING_ITEMS = [
   { name: DOCUMENT_TYPES.APPLICATION_FOR_EMPLOYMENT, requiredByDefault: true },
   { name: DOCUMENT_TYPES.PERSONAL_DATA_SHEET, requiredByDefault: true },
   { name: DOCUMENT_TYPES.EMPLOYEE_PHOTO, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.SUMPAANG_SALAYSAY, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.SINUMPAANG_SALAYSAY, requiredByDefault: true },
   { name: DOCUMENT_TYPES.WAIVER_OF_MEDICAL_EXAMINATION, requiredByDefault: true },
   { name: DOCUMENT_TYPES.SSS, requiredByDefault: true },
   { name: DOCUMENT_TYPES.PHILHEALTH, requiredByDefault: true },
