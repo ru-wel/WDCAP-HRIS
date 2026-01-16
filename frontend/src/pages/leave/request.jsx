@@ -39,6 +39,7 @@ const formatRange = (startIso, endIso, mode) => {
   return `${start} to ${end}`;
 };
 
+/** ✅ UPDATED: header matches your sample design */
 function ModalShell({ open, title, onClose, children }) {
   useEffect(() => {
     if (!open) return;
@@ -58,19 +59,26 @@ function ModalShell({ open, title, onClose, children }) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden">
-        <div className="bg-[#990100] text-white px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-white text-2xl leading-none hover:opacity-80"
-            aria-label="Close"
-          >
-            ×
-          </button>
+
+      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+        <div className="p-4 sm:p-6">
+          <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
+            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
+              {title}
+            </h1>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="pt-6">{children}</div>
         </div>
-        <div className="px-10 py-8">{children}</div>
       </div>
     </div>
   );
@@ -777,72 +785,76 @@ function LeaveRequest() {
                   </td>
                 </tr>
               ) : (
-              currentRows.map((row) => (
-                <tr
-                  key={row.leave_request_id || row.id}
-                  className= "tr-style"
-                >
-                  <td className="td-style font-medium">
-                    {row.id}
-                  </td>
-                  <td className="td-style">
-                    {row.name}
-                  </td>
-                  <td className="td-style">
-                    {row.type}
-                  </td>
-                  <td className="td-style">
-                    {row.date}
-                  </td>
-                  <td className="td-style">
-                    <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="td-style">
-                    <button
-                      type="button"
-                      className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-                      onClick={() => {
-                        setSelectedRow(row);
-                        setDetailsOpen(true);
-                      }}
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))) }
+                currentRows.map((row) => (
+                  <tr
+                    key={row.leave_request_id || row.id}
+                    className="tr-style"
+                  >
+                    <td className="td-style font-medium">
+                      {row.id}
+                    </td>
+                    <td className="td-style">
+                      {row.name}
+                    </td>
+                    <td className="td-style">
+                      {row.type}
+                    </td>
+                    <td className="td-style">
+                      {row.date}
+                    </td>
+                    <td className="td-style">
+                      <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="td-style">
+                      <button
+                        type="button"
+                        className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                        onClick={() => {
+                          setSelectedRow(row);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
           <br />
-                    <div className="lg:flex items-center lg:justify-between">
-                      <p className='lg:text-md text-sm'>Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> request{visibleRows.length !== 1 ? 's' : ''}{pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}</p>
-                        
-                        {pageCount > 0 && (
-                          <ReactPaginate
-                            breakLabel="..."
-                            nextLabel=">"
-                            onPageChange={handlePageClick}
-                            pageRangeDisplayed={2}
-                            pageCount={pageCount}
-                            forcePage={Math.floor(itemOffset / itemsPerPage)}
-                            previousLabel="<"
-                            renderOnZeroPageCount={null}
-                            marginPagesDisplayed={2}
-                            pageClassName=""
-                            pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                            previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
-                            previousLinkClassName="page-link"
-                            nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
-                            nextLinkClassName="page-link"
-                            breakClassName="page-item"
-                            breakLinkClassName="page-link"
-                            containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
-                            activeClassName="underline font-medium"
-                          />
-                        )}                      
-                    </div>
+          <div className="lg:flex items-center lg:justify-between">
+            <p className='lg:text-md text-sm'>
+              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> request{visibleRows.length !== 1 ? 's' : ''}
+              {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
+            </p>
+
+            {pageCount > 0 && (
+              <ReactPaginate
+                breakLabel="..."
+                nextLabel=">"
+                onPageChange={handlePageClick}
+                pageRangeDisplayed={2}
+                pageCount={pageCount}
+                forcePage={Math.floor(itemOffset / itemsPerPage)}
+                previousLabel="<"
+                renderOnZeroPageCount={null}
+                marginPagesDisplayed={2}
+                pageClassName=""
+                pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                previousLinkClassName="page-link"
+                nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                nextLinkClassName="page-link"
+                breakClassName="page-item"
+                breakLinkClassName="page-link"
+                containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                activeClassName="underline font-medium"
+              />
+            )}
+          </div>
         </div>
       </div>
 
