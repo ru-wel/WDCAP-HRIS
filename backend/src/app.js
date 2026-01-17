@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import routes from './routes/index.js';
 import errorHandler from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
+import { generalLimiter } from './middleware/rateLimiter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +26,7 @@ app.use(cors({
   origin: '*', // change later
   credentials: true
 }));
+app.use(generalLimiter); // rate limiting for all routes
 
 // logging middleware
 if (process.env.NODE_ENV === 'development'){
