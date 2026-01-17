@@ -109,7 +109,7 @@ export default function Profile() {
     : '';
 
   return (
-    <div>
+    <div className=''>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <div>
@@ -120,91 +120,114 @@ export default function Profile() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 mt-6 max-w-3xl">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-5 mt-6 max-w-3xl mx-auto">
           <h2 className="text-[#990100] font-bold text-lg mb-4">User Details</h2>
 
+          <div className="flex justify-center items-center gap-5 pb-6">
+              <div className="w-22 h-22 rounded-md border border-gray-300 bg-gray-50 overflow-hidden flex items-center justify-center">
+                  <img src = "/tab-logo.png"/>                   
+              </div>
+
+              <div className="">
+                <p className='text-md text-[#483D3D] pb-1'><span className='font-bold'>EMPLOYEE ID:</span> {employeeDetails?.employee_id || profile?.employee_id || '—'}</p>
+                <p className='text-md text-[#483D3D] pb-1'><span className='font-bold'>NAME:</span> {empName || displayName || '—'}</p>
+              </div>
+          </div>
+
           <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
+              
+            {/*<div>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">USER PHOTO:</p>
+              <div className="flex justify-center">
+                <div className="w-16 h-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                  <div className="text-[10px] text-gray-500 text-center px-1">No Photo</div>
+                  <img src = "/tab-logo.png"/>                   
+                </div>
+              </div>
+              
+            </div>*/}
+            
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMPLOYEE ID</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">EMPLOYEE ID:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.employee_id || profile?.employee_id || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">NAME</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">NAME:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {empName || displayName || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMAIL</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">EMAIL:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {profile?.email || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">ROLE</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">ROLE:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {profile?.role || '—'}
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">DEPARTMENT</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">DEPARTMENT:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.departments?.department_name || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">POSITION</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">POSITION:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.positions?.position_title || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">HIRE DATE</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">HIRE DATE:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {formatShortDate(employeeDetails?.hire_date)}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">BIRTH DATE</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">BIRTH DATE:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {formatShortDate(employeeDetails?.birth_date)}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">PHONE NUMBER</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">PHONE NUMBER:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.phone_number || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMPLOYMENT STATUS</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">EMPLOYMENT STATUS:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.employment_status || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">PERSONNEL TYPE</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">PERSONNEL TYPE:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.personnel_type || '—'}
               </div>
             </div>
             <div className="md:col-span-2">
-              <p className="text-xs font-bold text-[#483D3D] pb-1">ADDRESS</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">ADDRESS:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 min-h-11 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.address || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMERGENCY CONTACT NAME</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">EMERGENCY CONTACT NAME:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.emergency_contact_name || '—'}
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMERGENCY CONTACT NUMBER</p>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">EMERGENCY CONTACT NUMBER:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {employeeDetails?.emergency_contact_number || '—'}
               </div>
@@ -225,10 +248,10 @@ export default function Profile() {
           <form onSubmit={handleChangePassword}>
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div>
-                <p className="text-xs font-bold text-[#483D3D] pb-1">CURRENT PASSWORD</p>
+                <p className="text-xs font-bold text-[#483D3D] pb-1">CURRENT PASSWORD:</p>
                 <input
                   type="password"
-                  className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
+                  className="bg-[#ffffff] rounded-lg border border-[#990100] focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={saving}
@@ -236,10 +259,10 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#483D3D] pb-1">NEW PASSWORD</p>
+                <p className="text-xs font-bold text-[#483D3D] pb-1">NEW PASSWORD:</p>
                 <input
                   type="password"
-                  className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
+                  className="bg-[#ffffff] rounded-lg border border-[#990100] focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={saving}
@@ -247,10 +270,10 @@ export default function Profile() {
                 />
               </div>
               <div>
-                <p className="text-xs font-bold text-[#483D3D] pb-1">CONFIRM NEW PASSWORD</p>
+                <p className="text-xs font-bold text-[#483D3D] pb-1">CONFIRM NEW PASSWORD:</p>
                 <input
                   type="password"
-                  className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
+                  className="bg-[#ffffff] rounded-lg border border-[#990100] focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={saving}
@@ -259,13 +282,13 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="pt-6">
+            <div className="pt-6 flex justify-end">
               <button
                 type="submit"
                 disabled={saving}
-                className="text-white lg:text-sm text-xs bg-[#990100] border-0 py-[8px] px-6 focus:outline-none hover:bg-[#ad3332] rounded-3xl font-bold cursor-pointer disabled:opacity-60"
+                className="text-white lg:text-sm text-xs bg-[#990100] border-0 py-[8px] px-5 focus:outline-none hover:bg-[#ad3332] rounded-lg font-semibold cursor-pointer disabled:opacity-60 hover:scale-110 transition"
               >
-                {saving ? 'UPDATING…' : 'UPDATE PASSWORD'}
+                {saving ? 'Updating…' : 'Change Password'}
               </button>
             </div>
           </form>
