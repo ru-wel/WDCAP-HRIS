@@ -465,13 +465,13 @@ function Dashboard() {
             </p>
           </div>
 
-          <button
+          {/*<button
             type="button"
             onClick={() => setIsCalendarOpen(true)}
             className="self-start md:self-auto text-xs md:text-sm bg-[#990100] hover:bg-[#ad3332] text-white px-4 py-2 rounded-full font-medium shadow-sm transition duration-200 ease-in-out cursor-pointer"
           >
             View Calendar
-          </button>
+          </button>*/}
         </header>
 
         {error ? (
@@ -580,7 +580,7 @@ function Dashboard() {
                 title="Leave Requests"
                 icon="icons/red-leave.png"
                 value={loading ? '…' : statValues.pendingLeaves}
-                onClick={() => navigate("/leave")}
+                onClick={() => navigate("/leave/request")}
               />
               <StatCard
                 title="Total Departments"
@@ -653,7 +653,7 @@ function Dashboard() {
               </p>
             </div>
 
-            {canSeeAuditDashboard ? (
+            {/*{canSeeAuditDashboard ? (
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-4">
                   Audit Logs
@@ -701,7 +701,43 @@ function Dashboard() {
                   Recent account activities for monitoring and compliance.
                 </p>
               </div>
-            ) : null}
+            ) : null}*/}
+
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <h2 className="text-lg md:text-xl font-semibold text-[#990100] ">
+                  Events for the Week
+              </h2>
+
+              {/* DESIGN 1 */}
+
+              <div className="px-2">
+                <div className="border-b border-[#f0dede] py-3">
+                  <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">Jan 12 | Monday</p>
+
+                  <div className="px-4 md:grid md:grid-cols-2 ">
+                    <p className="pb-1.5 text-sm">- Birthday of Reuel Christian Sundiam!</p>
+                    <p className="pb-1.5 text-sm">- Evaluation of Carl Paldeng</p>
+                    <p className="pb-1.5 text-sm">- Meeting of the Executives with a Client</p>
+                  </div>
+                </div>
+
+                {/* DESIGN 2 */}
+
+                <div className="flex items-center border-b border-[#f0dede] py-3 gap-4">
+                  <p className="font-bold lg:text-lg md:text-md text-sm">MON</p>
+
+                  <div className="md:text-sm text-xs">
+                    <p className="pb-1.5">Birthday of Reuel Christian Sundiam!</p>
+                    
+                    <p className="pb-1.5">Meeting of the Executives with HAU</p>
+                  </div>
+                </div>
+              </div>
+
+              
+
+
+            </div>
           </section>
           </>
         )}
