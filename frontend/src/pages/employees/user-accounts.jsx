@@ -415,26 +415,11 @@ function UserAccounts (){
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
-<<<<<<< Updated upstream
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [sortOrder, setSortOrder] = useState('email_az');
     const [roleFilter, setRoleFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
 
-=======
-    // Fixed default sort: Name A - Z. Removed interactive sort selector per request.
-    const [sortOrder, setSortOrder] = useState('email_az');
-    const sortOptions = [
-        { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-        { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-        { value: 'email_az', label: 'Email: A - Z' },
-        { value: 'email_za', label: 'Email: Z - A' },
-        { value: 'created_at_newest', label: 'Hire Date: Newest' },
-        { value: 'created_at_oldest', label: 'Hire Date: Oldest' },
-    ];
-    // Personnel type filter: default to showing regular employees (hide project-based)
-    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('employees'); // all | employees | project_based
->>>>>>> Stashed changes
     const [reportOpen, setReportOpen] = useState(false);
 
     const sortOptions = useMemo(() => ([
@@ -578,30 +563,12 @@ function UserAccounts (){
     const filteredEmployeesAcc = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
 
-<<<<<<< Updated upstream
-        const filtered = employeesAcc
-          .filter((row) => {
-            if (!q) return true;
-            const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
-            return haystack.includes(q);
-          })
-          .filter((row) => {
-            const role = String(row?.role || '').trim().toLowerCase();
-            const status = String(row?.status || '').trim().toLowerCase();
-
-            if (roleFilter !== 'all' && role !== roleFilter) return false;
-            if (statusFilter !== 'all' && status !== statusFilter) return false;
-
-            return true;
-          });
-=======
         const filtered = !q
             ? (employeesAcc || []).slice()
             : (employeesAcc || []).slice().filter((row) => {
                 const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
                 return haystack.includes(q);
             });
->>>>>>> Stashed changes
 
         // Apply personnel type filter
         const afterPersonnelFilter = filtered.filter((r) => {
@@ -721,15 +688,7 @@ function UserAccounts (){
         setReportOpen(false);
     };
 
-<<<<<<< Updated upstream
-    const clearFilters = () => {
-      setSortOrder('email_az');
-      setRoleFilter('all');
-      setStatusFilter('all');
-    };
-=======
     const colCount = 6; // Employee ID, Email, Role, Created At, Status, Actions
->>>>>>> Stashed changes
 
     return(
         <div className="">
@@ -741,117 +700,6 @@ function UserAccounts (){
                         <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5'>User Accounts</h1>
                     </div>
 
-<<<<<<< Updated upstream
-                    <div className="flex items-center justify-end md:gap-4 gap-3">
-                        <div className="relative" data-filters-root="true">
-                            <button
-                                type="button"
-                                onClick={() => setFiltersOpen((p) => !p)}
-                                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
-                                aria-haspopup="dialog"
-                                aria-expanded={filtersOpen}
-                            >
-                                <span className="font-medium">Filters</span>
-                                {activeFilterCount ? (
-                                    <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
-                                        {activeFilterCount}
-                                    </span>
-                                ) : null}
-                                <span className="text-xs">▾</span>
-                            </button>
-
-                          {filtersOpen ? (
-                            <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-semibold text-[#111827]">Filters</p>
-                                <button
-                                  type="button"
-                                  onClick={() => setFiltersOpen(false)}
-                                  className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
-                                >
-                                  Close
-                                </button>
-                              </div>
-
-                              <div className="space-y-4">
-                                {/* SORT */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {sortOptions.map((opt) => (
-                                      <ChipButton
-                                        key={opt.value}
-                                        active={sortOrder === opt.value}
-                                        onClick={() => setSortOrder(opt.value)}
-                                        title={opt.label}
-                                      >
-                                        {opt.label}
-                                      </ChipButton>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* ROLE */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Role</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <ChipButton active={roleFilter === 'all'} onClick={() => setRoleFilter('all')}>All</ChipButton>
-                                    <ChipButton active={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')}>Admin</ChipButton>
-                                    <ChipButton active={roleFilter === 'hr'} onClick={() => setRoleFilter('hr')}>HR</ChipButton>
-                                    <ChipButton active={roleFilter === 'employee'} onClick={() => setRoleFilter('employee')}>Employee</ChipButton>
-                                  </div>
-                                </div>
-
-                                {/* STATUS */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <ChipButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</ChipButton>
-                                    <ChipButton active={statusFilter === 'active'} onClick={() => setStatusFilter('active')}>Active</ChipButton>
-                                    <ChipButton active={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')}>Inactive</ChipButton>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2">
-                                  <button
-                                    type="button"
-                                    onClick={clearFilters}
-                                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                                  >
-                                    Clear all
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => setFiltersOpen(false)}
-                                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                                  >
-                                    Apply
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {/* SEARCH */}
-                        <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
-                            <input
-                                type="search"
-                                name="search"
-                                placeholder="Search"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
-                            />
-                            <button
-                                type="submit"
-                                className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
-                            >
-                                <img
-                                src="/icons/red-search.png"
-                                className="lg:w-5 lg:h-5 w-4 h-4 items-center"
-                                alt="search"
-=======
                     <div className="flex items-center justify-end md:gap-4 gap-3"> 
                         <div className="flex items-center gap-3">
                                     <DropDownFilter
@@ -880,7 +728,6 @@ function UserAccounts (){
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
->>>>>>> Stashed changes
                                 />
                                 <button
                                     type="submit"
