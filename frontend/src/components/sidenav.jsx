@@ -92,6 +92,8 @@ export default function Sidenav({
     const pathMappings = {
       "/dashboard": { main: "Dashboard", sub: null },
 
+      "/calendar": { main: "Calendar", sub: null },
+
       "/employees": { main: "Employees", sub: null },
       "/employees/onboarding": { main: "Employees", sub: "Onboarding" },
       "/employees/user-accounts": { main: "Employees", sub: "User Accounts" },
@@ -99,6 +101,8 @@ export default function Sidenav({
       "/employees/departments": { main: "Employees", sub: "Departments" },
 
       "/projects": { main: "Projects", sub: null },
+
+
 
       "/leave": { main: "Leave", sub: null },
       "/leave/request": { main: "Leave", sub: "Leave Request" },
@@ -164,6 +168,9 @@ export default function Sidenav({
 
   const items = [
     { label: "Dashboard", icon: "dashboard", type: "item", path: "/dashboard" },
+
+    { label: "Calendar", icon: "leave", type: "item", path: "/calendar" },
+
     {
       label: "Employees",
       icon: "employees",
@@ -293,7 +300,7 @@ export default function Sidenav({
 
       <aside
         className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px]
-        transition-all duration-300 ease-in-out w-64 md:[zoom:0.9] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        transition-all duration-300 ease-in-out w-64 md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
         onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
       >

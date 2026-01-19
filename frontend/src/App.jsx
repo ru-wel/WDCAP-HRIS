@@ -35,6 +35,7 @@ import EvaluationUpload from './pages/evaluation/upload.jsx';
 import Evaluation from './pages/evaluation/evaluation.jsx';
 import EmployeeProjects from './pages/employees/self/employee-projects.jsx';
 import EmployeeProjectMembers from './pages/employees/self/employee-project-members.jsx';
+import CalendarPage from './pages/calendar/calendar.jsx';
 
 function TitleManager() {
   const location = useLocation();
@@ -43,7 +44,6 @@ function TitleManager() {
     const path = location.pathname || '';
 
     const titleForPath = (pathname) => {
-      // Exact routes
       const exact = {
         '/login': 'ARISE | LOGIN',
         '/reset-password': 'ARISE | RESET PASSWORD',
@@ -77,11 +77,12 @@ function TitleManager() {
         '/audit/leave': 'ARISE | AUDIT | LEAVE',
         '/audit/evaluation': 'ARISE | AUDIT | EVALUATION',
         '/audit/reports': 'ARISE | AUDIT | REPORTS',
+
+        '/calendar': 'ARISE | CALENDAR',
       };
 
       if (exact[pathname]) return exact[pathname];
 
-      // Dynamic routes
       if (pathname.startsWith('/employees/departments/')) return 'ARISE | DEPARTMENT DETAILS';
       if (pathname.startsWith('/projects/') && pathname !== '/projects') return 'ARISE | PROJECT DETAILS';
 
@@ -123,18 +124,21 @@ function App() {
     <BrowserRouter>
       <TitleManager />
       <Routes>
-        {/* public route (no auth needeed) */}
         <Route path="/login" element={<Login />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* protected routes */}
         <Route element={<ProtectedLayoutWithSidebar />}>
-          {/* Default redirect */}
           <Route index element={<Navigate to="/dashboard" replace />} />
 
-          {/* Main routes */}
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
+
+          <Route path="/calendar" element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+                <CalendarPage />
+              </ProtectedRoute>
+            }/>
+
           <Route
             path="/departments"
             element={
@@ -143,6 +147,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/evaluation"
             element={
@@ -168,7 +173,6 @@ function App() {
             }
           />
 
-          {/* START - EMPLOYEES */}
           <Route
             path="/employees"
             element={
@@ -217,7 +221,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* END - EMPLOYEES */}
 
           <Route
             path="/projects"
@@ -250,7 +253,6 @@ function App() {
             }
           />
 
-          {/* START -  FOR AUDIT LOGS */}
           <Route
             path="/audit/user-accounts"
             element={
@@ -307,25 +309,22 @@ function App() {
               </ProtectedRoute>
             }
           />
-          {/* END -  FOR AUDIT LOGS */}
-
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
+
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
 function ProtectedLayoutWithSidebar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
-    <ProtectedRoute>
-      {/* ✅ PASS THESE PROPS DOWN */}
-      <NavSide mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}>
+    <div className="flex min-h-screen">
+      <NavSide />
+      <div className="flex-1 min-w-0">
         <Outlet />
-      </NavSide>
-    </ProtectedRoute>
+      </div>
+    </div>
   );
 }
 
