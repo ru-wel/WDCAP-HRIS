@@ -191,16 +191,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
             const firstName = String(data?.first_name || 'FirstName').replace(/\s+/g, ' ').trim().replace(/[^a-zA-Z0-9_-]+/g, '_');
             const filename = `${stamp}_${lastName}_${firstName}_EmployeeDetails.pdf`;
 
-            // record audit log for export (best-effort)
-            post('/audit-logs/reports', {
-                report_name: 'Employee Details',
-                filename,
-                start_date: null,
-                end_date: null,
-                row_count: 1,
-                source: 'employee-details',
-            }).catch(() => {});
-
             await exportEmployeeDetailsToPdf({
                 filename,
                 employee: data,
@@ -550,14 +540,97 @@ function Employees(){
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('name_az');
     const [reportOpen, setReportOpen] = useState(false);
-    // Default to showing regular employees (hide Project-Based rows by default)
-    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('employees'); // all | employees | project_based
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL');
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const filtersWrapRef = useRef(null);
 
-    const personnelOptions = [
-        { value: 'all', label: 'All' },
-        { value: 'employees', label: 'Employees' },
-        { value: 'project_based', label: 'Project-Based' },
-    ];
+    useEffect(() => {
+        const onDocMouseDown = (e) => {
+            if (!filtersOpen) return;
+            const el = filtersWrapRef.current;
+            if (!el) return;
+            if (el.contains(e.target)) return;
+            setFiltersOpen(false);
+        };
+        document.addEventListener('mousedown', onDocMouseDown);
+        return () => document.removeEventListener('mousedown', onDocMouseDown);
+    }, [filtersOpen]);
+
+    const resetFilters = () => {
+        setPersonnelTypeFilter('ALL');
+        setSortOrder('name_az');
+    };
+
+    const sortOptions = useMemo(
+        () => [
+            { value: 'employee_id_asc', label: 'Employee ID: Asc' },
+            { value: 'employee_id_desc', label: 'Employee ID: Desc' },
+            { value: 'name_az', label: 'Name: A–Z' },
+            { value: 'name_za', label: 'Name: Z–A' },
+            { value: 'position_az', label: 'Position: A–Z' },
+            { value: 'position_za', label: 'Position: Z–A' },
+            { value: 'hire_date_newest', label: 'Hire Date: Newest' },
+            { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
+            { value: 'personnel_type_az', label: 'Personnel Type: A–Z' },
+            { value: 'personnel_type_za', label: 'Personnel Type: Z–A' },
+            /*{ value: 'personnel_type_employee_first', label: 'Personnel: Employee First' },
+            { value: 'personnel_type_project_first', label: 'Personnel: Project-Based First' },*/
+        ],
+        []
+    );
+
+    const personnelTypeOptions = useMemo(
+        () => [
+            { value: 'ALL', label: 'All' },
+            { value: 'STANDARD', label: 'Standard' },
+            { value: 'PROJECT_BASED', label: 'Project-Based' },
+        ],
+        []
+    );
+
+    const activeFilterChips = useMemo(() => {
+        const chips = [];
+
+        if (personnelTypeFilter !== 'ALL') {
+            const label = personnelTypeOptions.find((o) => o.value === personnelTypeFilter)?.label || personnelTypeFilter;
+            chips.push({
+                key: 'personnel_type',
+                label: `Personnel: ${label}`,
+                onClear: () => setPersonnelTypeFilter('ALL'),
+            });
+        }
+
+        if (sortOrder !== 'name_az') {
+            const label = sortOptions.find((o) => o.value === sortOrder)?.label || sortOrder;
+            chips.push({
+                key: 'sort',
+                label: `Sort: ${label}`,
+                onClear: () => setSortOrder('name_az'),
+            });
+        }
+
+        return chips;
+    }, [personnelTypeFilter, sortOrder, personnelTypeOptions, sortOptions]);
+
+    const activeFilterCount = activeFilterChips.length;
+
+    const Chip = ({ selected, children, onClick, title }) => (
+        <button
+            type="button"
+            title={title}
+            onClick={onClick}
+            className={
+                selected
+                    ? 'bg-[#990100] text-white border border-[#990100]'
+                    : 'bg-white text-[#990100] border border-[#990100] hover:bg-[#990100]/10'
+            }
+            style={{ borderRadius: 9999 }}
+        >
+            <span className="px-3 py-1.5 text-xs sm:text-sm font-medium inline-flex items-center">
+                {children}
+            </span>
+        </button>
+    );
 
     const formatYearsOfService = useCallback((hireDateValue) => {
         const raw = String(hireDateValue || '').trim();
@@ -589,18 +662,15 @@ function Employees(){
     const filteredEmployees = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
         const filteredByType = (() => {
-            const f = String(personnelTypeFilter || '').toLowerCase();
-            if (f === 'project_based' || f === 'project' || f === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase()) {
+            if (personnelTypeFilter === 'PROJECT_BASED') {
                 return employees.filter((e) => String(e?.personnel_type || '').toLowerCase() === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase());
             }
-
-            if (f === 'employees' || f === 'standard' || f === String(PERSONNEL_TYPES.REGULAR || '').toLowerCase()) {
+            if (personnelTypeFilter === 'STANDARD') {
                 return employees.filter((e) => {
                     const t = String(e?.personnel_type || '').toLowerCase();
                     return t === String(PERSONNEL_TYPES.REGULAR || '').toLowerCase() || t === String(PERSONNEL_TYPES.PROBATIONARY || '').toLowerCase();
                 });
             }
-
             return employees;
         })();
 
@@ -909,32 +979,104 @@ function Employees(){
                     
                     <div className="flex items-center justify-end md:gap-4 gap-3">
 
-                        <DropDownFilter
-                            label="Sort By"
-                            value={sortOrder}
-                            onChange={setSortOrder}
-                            options={[
-                                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                                { value: 'name_az', label: 'Name: A - Z' },
-                                { value: 'name_za', label: 'Name: Z - A' },
-                                { value: 'position_az', label: 'Position: A - Z' },
-                                { value: 'position_za', label: 'Position: Z - A' },
-                                { value: 'hire_date_newest', label: 'Hire Date: Newest' },
-                                { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
-                                { value: 'personnel_type_az', label: 'Personnel Type: A - Z' },
-                                { value: 'personnel_type_za', label: 'Personnel Type: Z - A' },
-                                { value: 'personnel_type_employee_first', label: 'Personnel Type: Employee First' },
-                                { value: 'personnel_type_project_first', label: 'Personnel Type: Project-Based First' },
-                            ]}
-                        />
+                        <div className="relative" ref={filtersWrapRef}>
+                            <button
+                                type="button"
+                                onClick={() => setFiltersOpen((p) => !p)}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                                aria-haspopup="dialog"
+                                aria-expanded={filtersOpen}
+                            >
+                                <span className="font-medium">Filters</span>
+                                {activeFilterCount ? (
+                                    <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                                        {activeFilterCount}
+                                    </span>
+                                ) : null}
+                                <span className="text-xs">▾</span>
+                            </button>
 
-                        <DropDownFilter
-                            label="Personnel Type"
-                            value={personnelTypeFilter}
-                            onChange={setPersonnelTypeFilter}
-                            options={personnelOptions}
-                        />
+                            {filtersOpen ? (
+                                <div className="absolute right-0 mt-2 w-[min(92vw,520px)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p className="text-sm font-semibold text-[#990100]">Filters</p>
+                                            <p className="text-xs text-gray-500">Tap chips to apply.</p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={resetFilters}
+                                                className="text-xs font-medium text-[#990100] hover:underline"
+                                            >
+                                                Reset
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFiltersOpen(false)}
+                                                className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                                                aria-label="Close filters"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+
+
+                                    <div className="mt-4">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {personnelTypeOptions.map((opt) => (
+                                                <Chip
+                                                    key={opt.value}
+                                                    selected={personnelTypeFilter === opt.value}
+                                                    onClick={() => setPersonnelTypeFilter(opt.value)}
+                                                    title={opt.label}
+                                                >
+                                                    {opt.label}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <p className="text-xs font-semibold text-gray-700 mb-2">Sort By</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {sortOptions.map((opt) => (
+                                                <Chip
+                                                    key={opt.value}
+                                                    selected={sortOrder === opt.value}
+                                                    onClick={() => setSortOrder(opt.value)}
+                                                    title={opt.label}
+                                                >
+                                                    {opt.label}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {activeFilterChips.length ? (
+                                        <div className="mt-4 pt-4 border-t border-gray-200">
+                                            <p className="text-xs font-semibold text-gray-700 mb-2">Active</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {activeFilterChips.map((c) => (
+                                                    <button
+                                                        key={c.key}
+                                                        type="button"
+                                                        onClick={c.onClear}
+                                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#990100]/10 text-[#990100] text-xs font-medium border border-[#990100]/30 hover:bg-[#990100]/15"
+                                                        title="Click to clear"
+                                                    >
+                                                        {c.label}
+                                                        <span className="text-sm leading-none">×</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : null}
+                        </div>
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
                             <input
