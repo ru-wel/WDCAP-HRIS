@@ -97,7 +97,7 @@ function CalendarSidebar({ selectedDate, onPickDate }) {
   const myCalendars = useMemo(
     () => [
       { id: "birthdays", label: "Birthdays", checked: true, color: "#0B8043" },
-      { id: "events", label: "Family", checked: true, color: "#A142F4" },
+      { id: "events", label: "Events", checked: true, color: "#A142F4" },
       { id: "tasks", label: "Tasks", checked: true, color: "#F29900" },
     ],
     []
