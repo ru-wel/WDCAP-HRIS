@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import DropDownFilter from "../../components/dropdownfilter";
 import { del, get, put, post } from "../../services/api.js";
 import ReactPaginate from 'react-paginate';
 import ConfirmModal from "../../components/confirm-modal.jsx";
@@ -9,6 +8,24 @@ import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
 import { exportReportToPdf } from '../../utils/pdf.js';
+
+function ChipButton({ active, children, onClick, title }) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={[
+        "px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
 
 function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
@@ -52,8 +69,6 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
         }
 
         try {
-            // Close the current dialog first to prevent "sticky" modals and
-            // avoid racing state updates when the action opens its own dialog.
             closeConfirm();
             setConfirmBusy(true);
             await fn?.();
@@ -71,7 +86,6 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
         }
     };
 
-    // WHEN EDITING THE VALUE
     const handleChange = (a) => {
         const { name, value } = a.target;
         setData(prev => ({...(prev ?? employeeAcc ?? {}), [name]:value}));
@@ -81,7 +95,6 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
 
     useEffect(() => {
         if (!isOpen || !employeeAcc) return;
-        // Always start in view mode when the modal opens.
         setData(employeeAcc);
         setInitialData(employeeAcc);
         setEditData(false);
@@ -110,7 +123,7 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
              <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-160 md:w-120 w-80  overflow-y-auto border border-gray-300" data-lenis-prevent>
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
                     <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>Account of {currentData.id}</h1>
-                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" 
+                    <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
                     onClick={() => {
                         if (unsavedChanges){
                             openConfirm({
@@ -138,7 +151,6 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                         </select>
                     </div>
 
-                    {/* CAN THE USER UPDATE THIS OR NO? I DISABLED IT MUNA*/}
                     <div className="lg:pt-3 pt-2">
                         <p className='lg:text-sm text-xs pb-2 font-semibold'>Email:</p>
                         <input type="email" name="email" className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs disabled:cursor-default" value={currentData.email || ""} disabled />
@@ -152,8 +164,6 @@ function ModalAccounts ({isOpen, onClose, employeeAcc, onSave, onDelete}){
                             <option value="INACTIVE">INACTIVE</option>
                         </select>
                     </div>
-
-
                 </div>
 
                  <div className="pt-7">
@@ -392,8 +402,45 @@ function UserAccounts (){
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [filtersOpen, setFiltersOpen] = useState(false);
     const [sortOrder, setSortOrder] = useState('email_az');
+    const [roleFilter, setRoleFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
+
     const [reportOpen, setReportOpen] = useState(false);
+
+    const sortOptions = useMemo(() => ([
+      { value: 'employee_id_asc', label: 'Employee ID: Asc' },
+      { value: 'employee_id_desc', label: 'Employee ID: Desc' },
+      { value: 'email_az', label: 'Email: A–Z' },
+      { value: 'email_za', label: 'Email: Z–A' },
+      { value: 'role_az', label: 'Role: A–Z' },
+      { value: 'role_za', label: 'Role: Z–A' },
+      { value: 'created_at_newest', label: 'Created: Newest' },
+      { value: 'created_at_oldest', label: 'Created: Oldest' },
+      { value: 'status_az', label: 'Status: A–Z' },
+      { value: 'status_za', label: 'Status: Z–A' },
+    ]), []);
+
+    const activeFilterCount = useMemo(() => {
+      let n = 0;
+      if (roleFilter !== 'all') n += 1;
+      if (statusFilter !== 'all') n += 1;
+      if (sortOrder !== 'email_az') n += 1;
+      return n;
+    }, [roleFilter, statusFilter, sortOrder]);
+
+    useEffect(() => {
+      if (!filtersOpen) return;
+      const onDown = (e) => {
+        const t = e.target;
+        if (!(t instanceof HTMLElement)) return;
+        if (t.closest?.('[data-filters-root="true"]')) return;
+        setFiltersOpen(false);
+      };
+      window.addEventListener('mousedown', onDown);
+      return () => window.removeEventListener('mousedown', onDown);
+    }, [filtersOpen]);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -440,7 +487,6 @@ function UserAccounts (){
     const handleClose = () => setModalOpen(false);
 
     const updateEmployeeAcc = async (updated) => {
-        // optimistic UI
         setEmployeesAcc(prev => prev.map(emp => emp.id === updated.id ? updated : emp));
         try {
             const res = await put(`/users/${updated.id}`, {
@@ -476,7 +522,6 @@ function UserAccounts (){
         if (target?.status && String(target.status).toUpperCase() !== 'INACTIVE') {
             throw new Error('Archive the employee first (Employees page), then delete the user account.');
         }
-        // optimistic UI
         setEmployeesAcc(prev => prev.filter(emp => emp.id !== employeeId));
         try {
             await del(`/users/${employeeId}`);
@@ -488,12 +533,22 @@ function UserAccounts (){
 
     const filteredEmployeesAcc = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
-        const filtered = !q
-            ? employeesAcc
-            : employeesAcc.filter((row) => {
-                const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
-                return haystack.includes(q);
-            });
+
+        const filtered = employeesAcc
+          .filter((row) => {
+            if (!q) return true;
+            const haystack = `${row.id} ${row.email} ${row.role} ${row.createdAt} ${row.status}`.toLowerCase();
+            return haystack.includes(q);
+          })
+          .filter((row) => {
+            const role = String(row?.role || '').trim().toLowerCase();
+            const status = String(row?.status || '').trim().toLowerCase();
+
+            if (roleFilter !== 'all' && role !== roleFilter) return false;
+            if (statusFilter !== 'all' && status !== statusFilter) return false;
+
+            return true;
+          });
 
         const sorted = [...filtered].sort((a, b) => {
             switch (sortOrder) {
@@ -523,26 +578,25 @@ function UserAccounts (){
         });
 
         return sorted;
-    }, [employeesAcc, searchTerm, sortOrder]);
+    }, [employeesAcc, searchTerm, sortOrder, roleFilter, statusFilter]);
 
     //REACT-PAGINATE
-    
-        const [itemOffset, setItemOffset] = useState(0);
-        const itemsPerPage = 15;
-        const endOffset = itemOffset + itemsPerPage;
-        const currentUserAcc = filteredEmployeesAcc.slice(itemOffset, endOffset);
-        const pageCount = Math.ceil(filteredEmployeesAcc.length / itemsPerPage);
-        const multiPages = pageCount > 1;
-        const currentPage = pageCount ? Math.floor(itemOffset / itemsPerPage) + 1 : 0;
-    
-        const handlePageClick = (event) => {
-            const newOffset = (event.selected * itemsPerPage);
-            setItemOffset(newOffset);
-        };
+    const [itemOffset, setItemOffset] = useState(0);
+    const itemsPerPage = 15;
+    const endOffset = itemOffset + itemsPerPage;
+    const currentUserAcc = filteredEmployeesAcc.slice(itemOffset, endOffset);
+    const pageCount = Math.ceil(filteredEmployeesAcc.length / itemsPerPage);
+    const multiPages = pageCount > 1;
+    const currentPage = pageCount ? Math.floor(itemOffset / itemsPerPage) + 1 : 0;
 
-        useEffect(() => {
-            setItemOffset(0);
-        }, [searchTerm, sortOrder, employeesAcc.length]);
+    const handlePageClick = (event) => {
+        const newOffset = (event.selected * itemsPerPage);
+        setItemOffset(newOffset);
+    };
+
+    useEffect(() => {
+        setItemOffset(0);
+    }, [searchTerm, sortOrder, roleFilter, statusFilter, employeesAcc.length]);
 
     const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
         const base = (startDate || endDate)
@@ -576,9 +630,7 @@ function UserAccounts (){
             end_date: endDate || null,
             row_count: rowsForExport.length,
             source: 'user-accounts',
-        }).catch(() => {
-            // best-effort only
-        });
+        }).catch(() => {});
 
         const columns = [
             { header: 'Employee ID', value: (r) => r.id },
@@ -598,9 +650,7 @@ function UserAccounts (){
                 ],
                 columns,
                 rows: rowsForExport,
-            }).catch(() => {
-                // best-effort only
-            });
+            }).catch(() => {});
         } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
@@ -608,6 +658,12 @@ function UserAccounts (){
         }
 
         setReportOpen(false);
+    };
+
+    const clearFilters = () => {
+      setSortOrder('email_az');
+      setRoleFilter('all');
+      setStatusFilter('all');
     };
 
     return(
@@ -620,24 +676,98 @@ function UserAccounts (){
                         <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5'>User Accounts</h1>
                     </div>
 
-                    <div className="flex items-center justify-end md:gap-4 gap-3"> 
-                        <DropDownFilter
-                            value={sortOrder}
-                            onChange={setSortOrder}
-                            options={[
-                                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                                { value: 'email_az', label: 'Email: A - Z' },
-                                { value: 'email_za', label: 'Email: Z - A' },
-                                { value: 'role_az', label: 'Role: A - Z' },
-                                { value: 'role_za', label: 'Role: Z - A' },
-                                { value: 'created_at_newest', label: 'Created At: Newest' },
-                                { value: 'created_at_oldest', label: 'Created At: Oldest' },
-                                { value: 'status_az', label: 'Status: A - Z' },
-                                { value: 'status_za', label: 'Status: Z - A' },
-                            ]}
-                        />
+                    <div className="flex items-center justify-end md:gap-4 gap-3">
+                        <div className="relative" data-filters-root="true">
+                            <button
+                                type="button"
+                                onClick={() => setFiltersOpen((p) => !p)}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                                aria-haspopup="dialog"
+                                aria-expanded={filtersOpen}
+                            >
+                                <span className="font-medium">Filters</span>
+                                {activeFilterCount ? (
+                                    <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                                        {activeFilterCount}
+                                    </span>
+                                ) : null}
+                                <span className="text-xs">▾</span>
+                            </button>
 
+                          {filtersOpen ? (
+                            <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-sm font-semibold text-[#111827]">Filters</p>
+                                <button
+                                  type="button"
+                                  onClick={() => setFiltersOpen(false)}
+                                  className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
+                                >
+                                  Close
+                                </button>
+                              </div>
+
+                              <div className="space-y-4">
+                                {/* SORT */}
+                                <div>
+                                  <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {sortOptions.map((opt) => (
+                                      <ChipButton
+                                        key={opt.value}
+                                        active={sortOrder === opt.value}
+                                        onClick={() => setSortOrder(opt.value)}
+                                        title={opt.label}
+                                      >
+                                        {opt.label}
+                                      </ChipButton>
+                                    ))}
+                                  </div>
+                                </div>
+
+                                {/* ROLE */}
+                                <div>
+                                  <p className="text-xs font-semibold text-gray-700 mb-2">Role</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <ChipButton active={roleFilter === 'all'} onClick={() => setRoleFilter('all')}>All</ChipButton>
+                                    <ChipButton active={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')}>Admin</ChipButton>
+                                    <ChipButton active={roleFilter === 'hr'} onClick={() => setRoleFilter('hr')}>HR</ChipButton>
+                                    <ChipButton active={roleFilter === 'employee'} onClick={() => setRoleFilter('employee')}>Employee</ChipButton>
+                                  </div>
+                                </div>
+
+                                {/* STATUS */}
+                                <div>
+                                  <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <ChipButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</ChipButton>
+                                    <ChipButton active={statusFilter === 'active'} onClick={() => setStatusFilter('active')}>Active</ChipButton>
+                                    <ChipButton active={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')}>Inactive</ChipButton>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-2">
+                                  <button
+                                    type="button"
+                                    onClick={clearFilters}
+                                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                                  >
+                                    Clear all
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setFiltersOpen(false)}
+                                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                                  >
+                                    Apply
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {/* SEARCH */}
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
                             <input
                                 type="search"
@@ -658,14 +788,10 @@ function UserAccounts (){
                                 />
                             </button>
                         </div>
-                    </div> 
+                    </div>
                 </div>
 
                 <hr className='text-[#990100] mt-6 '/>
-
-                {/*<div className="flex justify-end mt-5">
-                    <button className='generate-report-button' onClick={() => setReportOpen(true)}>Generate Report</button>
-                </div>*/}
 
                 <ReportModal
                     open={reportOpen}
@@ -765,7 +891,7 @@ function UserAccounts (){
                             )}
                         </tbody>
                     </table>
-                    {/* CONNECT WITH THE FUNCTION */}
+
                     <ModalAccounts
                         isOpen={isModalOpen}
                         onClose={handleClose}

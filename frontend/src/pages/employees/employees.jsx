@@ -405,7 +405,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                                 <option value="">Select Position</option>
                                     {positions
                                         .filter((pos) => {
-                                            // always include current position, or positions matching selected department
                                             return pos.id === employee.position_id || pos.departments?.id === data.department_id;
                                         })
                                         .map((pos) => (
@@ -541,9 +540,7 @@ function Employees(){
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('name_az');
     const [reportOpen, setReportOpen] = useState(false);
-    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL'); // ALL | STANDARD | PROJECT_BASED
-
-    // Filter popover (single button)
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL');
     const [filtersOpen, setFiltersOpen] = useState(false);
     const filtersWrapRef = useRef(null);
 
@@ -982,7 +979,6 @@ function Employees(){
                     
                     <div className="flex items-center justify-end md:gap-4 gap-3">
 
-                        {/* Filters (single button + chips) */}
                         <div className="relative" ref={filtersWrapRef}>
                             <button
                                 type="button"
