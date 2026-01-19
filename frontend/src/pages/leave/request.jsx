@@ -272,7 +272,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
         start_date: startDate,
         end_date: endDate,
         reason: reason || null,
-      });
+      }, true, 60000);
 
       onCreated?.();
       onClose?.();
@@ -622,10 +622,25 @@ function LeaveRequest() {
 
   const handleUpdate = (row, nextStatus) => {
     if (!row?.leave_request_id) return;
+    const computeDaysAndPoints = (r) => {
+      try {
+        const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
+        const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
+        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return { days: null, points: null };
+        const diffMs = e.setHours(0,0,0,0) - s.setHours(0,0,0,0);
+        const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+        const points = days; // default: 1 point per day
+        return { days, points };
+      } catch (err) {
+        return { days: null, points: null };
+      }
+    };
+
+    const meta = computeDaysAndPoints(row);
 
     openConfirm({
       title: 'Confirm update',
-      message: `Update leave request status to ${String(nextStatus || '').toUpperCase()}?`,
+      message: `Update leave request status to ${String(nextStatus || '').toUpperCase()}?${meta.days ? `\n\nThis request is for ${meta.days} day${meta.days !== 1 ? 's' : ''} (estimated ${meta.points} point${meta.points !== 1 ? 's' : ''}).` : ''}`,
       confirmText: 'OK',
       cancelText: 'Cancel',
       onCancel: closeConfirm,
@@ -659,10 +674,25 @@ function LeaveRequest() {
 
   const handleCancel = (row) => {
     if (!row?.leave_request_id) return;
+    const computeDaysAndPoints = (r) => {
+      try {
+        const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
+        const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
+        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return { days: null, points: null };
+        const diffMs = e.setHours(0,0,0,0) - s.setHours(0,0,0,0);
+        const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+        const points = days;
+        return { days, points };
+      } catch (err) {
+        return { days: null, points: null };
+      }
+    };
+
+    const meta = computeDaysAndPoints(row);
 
     openConfirm({
       title: 'Confirm cancel',
-      message: 'Cancel this leave request?',
+      message: `Cancel this leave request?${meta.days ? `\n\nThis request is for ${meta.days} day${meta.days !== 1 ? 's' : ''} (estimated ${meta.points} point${meta.points !== 1 ? 's' : ''}).` : ''}`,
       confirmText: 'OK',
       cancelText: 'Cancel',
       onCancel: closeConfirm,

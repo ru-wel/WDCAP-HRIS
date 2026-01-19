@@ -205,14 +205,14 @@ export const get = async (endpoint, requireAuth = true) => {
   }
 };
 
-export const post = async (endpoint, body, requireAuth = true) => {
+export const post = async (endpoint, body, requireAuth = true, timeoutMs = DEFAULT_TIMEOUT_MS) => {
   const makeRequest = async () => {
     const headers = await getHeaders(requireAuth);
     const response = await fetchWithTimeout(joinUrl(BASE_URL, endpoint), {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
-    });
+    }, timeoutMs);
     // Only attempt token refresh/retry when this request required auth.
     return handleResponse(response, requireAuth ? makeRequest : null);
   };

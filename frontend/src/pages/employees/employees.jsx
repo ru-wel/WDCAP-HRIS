@@ -191,6 +191,16 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
             const firstName = String(data?.first_name || 'FirstName').replace(/\s+/g, ' ').trim().replace(/[^a-zA-Z0-9_-]+/g, '_');
             const filename = `${stamp}_${lastName}_${firstName}_EmployeeDetails.pdf`;
 
+            // record audit log for export (best-effort)
+            post('/audit-logs/reports', {
+                report_name: 'Employee Details',
+                filename,
+                start_date: null,
+                end_date: null,
+                row_count: 1,
+                source: 'employee-details',
+            }).catch(() => {});
+
             await exportEmployeeDetailsToPdf({
                 filename,
                 employee: data,
@@ -540,6 +550,7 @@ function Employees(){
     const [searchTerm, setSearchTerm] = useState('');
     const [sortOrder, setSortOrder] = useState('name_az');
     const [reportOpen, setReportOpen] = useState(false);
+<<<<<<< Updated upstream
     const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL');
     const [filtersOpen, setFiltersOpen] = useState(false);
     const filtersWrapRef = useRef(null);
@@ -631,6 +642,16 @@ function Employees(){
             </span>
         </button>
     );
+=======
+    // Default to showing regular employees (hide Project-Based rows by default)
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('employees'); // all | employees | project_based
+
+    const personnelOptions = [
+        { value: 'all', label: 'All' },
+        { value: 'employees', label: 'Employees' },
+        { value: 'project_based', label: 'Project-Based' },
+    ];
+>>>>>>> Stashed changes
 
     const formatYearsOfService = useCallback((hireDateValue) => {
         const raw = String(hireDateValue || '').trim();
@@ -662,15 +683,18 @@ function Employees(){
     const filteredEmployees = useMemo(() => {
         const q = searchTerm.trim().toLowerCase();
         const filteredByType = (() => {
-            if (personnelTypeFilter === 'PROJECT_BASED') {
+            const f = String(personnelTypeFilter || '').toLowerCase();
+            if (f === 'project_based' || f === 'project' || f === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase()) {
                 return employees.filter((e) => String(e?.personnel_type || '').toLowerCase() === String(PERSONNEL_TYPES.PROJECT_BASED || '').toLowerCase());
             }
-            if (personnelTypeFilter === 'STANDARD') {
+
+            if (f === 'employees' || f === 'standard' || f === String(PERSONNEL_TYPES.REGULAR || '').toLowerCase()) {
                 return employees.filter((e) => {
                     const t = String(e?.personnel_type || '').toLowerCase();
                     return t === String(PERSONNEL_TYPES.REGULAR || '').toLowerCase() || t === String(PERSONNEL_TYPES.PROBATIONARY || '').toLowerCase();
                 });
             }
+
             return employees;
         })();
 
@@ -979,6 +1003,7 @@ function Employees(){
                     
                     <div className="flex items-center justify-end md:gap-4 gap-3">
 
+<<<<<<< Updated upstream
                         <div className="relative" ref={filtersWrapRef}>
                             <button
                                 type="button"
@@ -1077,6 +1102,34 @@ function Employees(){
                                 </div>
                             ) : null}
                         </div>
+=======
+                        <DropDownFilter
+                            label="Sort By"
+                            value={sortOrder}
+                            onChange={setSortOrder}
+                            options={[
+                                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
+                                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
+                                { value: 'name_az', label: 'Name: A - Z' },
+                                { value: 'name_za', label: 'Name: Z - A' },
+                                { value: 'position_az', label: 'Position: A - Z' },
+                                { value: 'position_za', label: 'Position: Z - A' },
+                                { value: 'hire_date_newest', label: 'Hire Date: Newest' },
+                                { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
+                                { value: 'personnel_type_az', label: 'Personnel Type: A - Z' },
+                                { value: 'personnel_type_za', label: 'Personnel Type: Z - A' },
+                                { value: 'personnel_type_employee_first', label: 'Personnel Type: Employee First' },
+                                { value: 'personnel_type_project_first', label: 'Personnel Type: Project-Based First' },
+                            ]}
+                        />
+>>>>>>> Stashed changes
+
+                        <DropDownFilter
+                            label="Personnel Type"
+                            value={personnelTypeFilter}
+                            onChange={setPersonnelTypeFilter}
+                            options={personnelOptions}
+                        />
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
                             <input

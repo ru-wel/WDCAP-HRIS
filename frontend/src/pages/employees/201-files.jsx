@@ -23,6 +23,8 @@ const isVisibleChecklistItem = (item) => {
     const name = String(item?.item_name || '').trim();
     if (!name) return false;
     if (isOthersItem(name)) return false;
+    // Hide common typo variant 'Sumpaang Salaysay' while keeping the correct 'Sinumpaang Salaysay'.
+    if (normalizeDocName(name) === normalizeDocName('Sumpaang Salaysay')) return false;
     return true;
 };
 
@@ -91,8 +93,8 @@ const allowedDocumentTypeByNormalized = new Map(
 
 // Allow common wording variants coming from DB onboarding item names.
 const ITEM_NAME_ALIASES = new Map([
-    // Some DB rows use "Sinumpaang Salaysay" while the UI constant uses "Sinumpaang Salaysay".
-    [normalizeDocName('Sinumpaang Salaysay'), DOCUMENT_TYPES.SINUMPAANG_SALAYSAY],
+    // Accept the common typo variant and map it to the canonical document type.
+    [normalizeDocName('Sumpaang Salaysay'), DOCUMENT_TYPES.SINUMPAANG_SALAYSAY],
 ]);
 
 const mapItemNameToDocumentName = (itemName) => {
@@ -115,6 +117,67 @@ const mapStatusToUi = (status) => {
     const v = String(status || '').toLowerCase();
     if (v === 'rejected') return 'disapproved';
     return v || 'pending';
+};
+
+// Category mapping per product spec
+const CATEGORY_MAP = new Map([
+    // Personal Information
+    [normalizeDocName(DOCUMENT_TYPES.RESUME_CV), 'Personal Information'],
+    [normalizeDocName(DOCUMENT_TYPES.PERSONAL_DATA_SHEET), 'Personal Information'],
+    [normalizeDocName(DOCUMENT_TYPES.APPLICATION_FOR_EMPLOYMENT), 'Personal Information'],
+    [normalizeDocName(DOCUMENT_TYPES.EMPLOYEE_PHOTO), 'Personal Information'],
+
+    // Legal & Contracts
+    [normalizeDocName(DOCUMENT_TYPES.EMPLOYEE_CONTRACT), 'Legal & Contracts'],
+    [normalizeDocName(DOCUMENT_TYPES.NDA), 'Legal & Contracts'],
+    [normalizeDocName(DOCUMENT_TYPES.SINUMPAANG_SALAYSAY), 'Legal & Contracts'],
+    [normalizeDocName(DOCUMENT_TYPES.WAIVER_OF_MEDICAL_EXAMINATION), 'Legal & Contracts'],
+
+    // Identification
+    [normalizeDocName(DOCUMENT_TYPES.DRIVERS_LICENSE), 'Identification'],
+    [normalizeDocName(DOCUMENT_TYPES.PRC_ID), 'Identification'],
+
+    // Education
+    [normalizeDocName(DOCUMENT_TYPES.DIPLOMA), 'Education'],
+    [normalizeDocName(DOCUMENT_TYPES.TOR), 'Education'],
+
+    // Benefits handled by SECTION_BREAKS -> 'Benefits'
+]);
+
+    // Explicit ordering of items inside each category to match product spec
+    const CATEGORY_ITEM_ORDER = {
+        'Personal Information': [
+            DOCUMENT_TYPES.EMPLOYEE_PHOTO,
+            DOCUMENT_TYPES.PERSONAL_DATA_SHEET,
+            DOCUMENT_TYPES.RESUME_CV,
+            DOCUMENT_TYPES.APPLICATION_FOR_EMPLOYMENT,
+        ],
+        'Legal & Contracts': [
+            DOCUMENT_TYPES.SINUMPAANG_SALAYSAY,
+            DOCUMENT_TYPES.WAIVER_OF_MEDICAL_EXAMINATION,
+            DOCUMENT_TYPES.NDA,
+            DOCUMENT_TYPES.EMPLOYEE_CONTRACT,
+        ],
+        'Benefits': [
+            DOCUMENT_TYPES.PHILHEALTH,
+            DOCUMENT_TYPES.SSS,
+            DOCUMENT_TYPES.PAG_IBIG,
+        ],
+        'Identification': [
+            DOCUMENT_TYPES.PRC_ID,
+            DOCUMENT_TYPES.DRIVERS_LICENSE,
+        ],
+        'Education': [
+            DOCUMENT_TYPES.DIPLOMA,
+            DOCUMENT_TYPES.TOR,
+        ],
+    };
+
+const getCategoryForItem = (itemName) => {
+    const docName = getDocumentNameForUpload(itemName);
+    if (SECTION_BREAKS.has(docName)) return 'Benefits';
+    const dn = normalizeDocName(docName);
+    return CATEGORY_MAP.get(dn) || 'Other Documents';
 };
 
 const mapUiToApiStatus = (uiStatus) => {
@@ -167,7 +230,9 @@ const previewDocument = async (documentId, fallbackName = 'document', notify, on
 
         const previewUrl = json?.data?.url;
         if (previewUrl) {
-            const fileName = json?.data?.fileName || fallbackName;
+            let fileName = json?.data?.fileName || fallbackName;
+            const mimeType = json?.data?.mimeType || '';
+            fileName = ensureFileNameHasExtension(fileName, mimeType);
 
             const isAuthenticatedStream =
                 typeof previewUrl === 'string' &&
@@ -189,17 +254,18 @@ const previewDocument = async (documentId, fallbackName = 'document', notify, on
                         throw new Error(msg || 'Preview failed');
                     }
 
-                    const mimeType = fileRes.headers.get('content-type') || '';
+                    const streamMime = fileRes.headers.get('content-type') || '';
                     const blob = await fileRes.blob();
                     const objectUrl = URL.createObjectURL(blob);
-                    onPreview({ url: objectUrl, fileName, mimeType, revokeUrlOnClose: true });
+                    const finalName = ensureFileNameHasExtension(fileName, streamMime || mimeType);
+                    onPreview({ url: objectUrl, fileName: finalName, mimeType: streamMime || mimeType, revokeUrlOnClose: true });
                     return;
                 }
 
                 onPreview({
                     url: previewUrl,
                     fileName,
-                    mimeType: json?.data?.mimeType || '',
+                    mimeType: mimeType,
                     revokeUrlOnClose: false
                 });
                 return;
@@ -238,6 +304,38 @@ const extractFileNameFromContentDisposition = (headerValue) => {
     const match = raw.match(/filename=([^;]+)/i);
     if (!match?.[1]) return '';
     return match[1].trim().replace(/^"|"$/g, '');
+};
+
+const ensureFileNameHasExtension = (fileName, mimeType) => {
+    let name = String(fileName || '').trim();
+    const mt = String(mimeType || '').toLowerCase();
+
+    const hasExt = /\.[a-z0-9]{1,6}$/i.test(name);
+    if (hasExt) return name;
+
+    const map = {
+        'application/pdf': 'pdf',
+        'image/png': 'png',
+        'image/jpeg': 'jpg',
+        'image/jpg': 'jpg',
+        'image/gif': 'gif',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+        'application/vnd.ms-excel': 'xls',
+        'text/csv': 'csv',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+        'application/msword': 'doc',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+        // Google Drive native formats -> prefer PDF for preview
+        'application/vnd.google-apps.document': 'pdf',
+        'application/vnd.google-apps.spreadsheet': 'xlsx',
+        'application/vnd.google-apps.presentation': 'pptx',
+    };
+
+    const ext = map[mt] || '';
+    if (!ext) return name;
+    // sanitize name (remove trailing dots/spaces)
+    name = name.replace(/[\.\s]+$/g, '');
+    return `${name}.${ext}`;
 };
 
 const triggerBlobDownload = (blob, fileName) => {
@@ -284,18 +382,22 @@ const downloadDocumentToDisk = async (documentId, fallbackName = 'document', not
         if (ct.includes('application/json')) {
             const json = await res.json();
             const signedUrl = json?.data?.url || '';
+            const providerFileName = json?.data?.fileName || '';
+            const providerMime = json?.data?.mimeType || '';
             if (!signedUrl) throw new Error('Download URL missing from server response.');
 
             const fileRes = await fetch(signedUrl);
             if (!fileRes.ok) throw new Error('Failed to fetch the download file.');
             const blob = await fileRes.blob();
-            triggerBlobDownload(blob, headerName || fallbackName);
+            const finalName = ensureFileNameHasExtension(providerFileName || headerName || fallbackName, providerMime || ct);
+            triggerBlobDownload(blob, finalName);
             return;
         }
 
         // Drive provider streams the file directly.
         const blob = await res.blob();
-        triggerBlobDownload(blob, headerName || fallbackName);
+        const finalName = ensureFileNameHasExtension(headerName || fallbackName, ct);
+        triggerBlobDownload(blob, finalName);
     } catch (e) {
         notify?.({ title: 'Download failed', message: e?.message || 'Failed to download document.' });
         throw e;
@@ -553,6 +655,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
     });
 
     const [replacePickerKey, setReplacePickerKey] = useState(0);
+    const [collapsedByCategory, setCollapsedByCategory] = useState({});
 
     useEffect(() => {
         if (!isOpen) return;
@@ -684,7 +787,9 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
     const handleReplaceFromPreview = async (file) => {
         if (!file) return;
 
-        if (isEmployee && previewState?.locked) {
+        // Allow modification if employee OR HR editing a project-based employee
+        const canModifyFromPreview = (isEmployee || (editData && isProjectBased(employeeFiles?.personnelType)));
+        if (!canModifyFromPreview && previewState?.locked) {
             notify({ title: 'Not allowed', message: 'Approved files cannot be changed.' });
             return;
         }
@@ -727,7 +832,8 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         const documentId = previewState?.documentId;
         if (!documentId) return;
 
-        if (isEmployee && previewState?.locked) {
+        const canModifyFromPreview = (isEmployee || (editData && isProjectBased(employeeFiles?.personnelType)));
+        if (!canModifyFromPreview && previewState?.locked) {
             notify({ title: 'Not allowed', message: 'Approved files cannot be deleted.' });
             return;
         }
@@ -752,7 +858,91 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         await downloadDocumentToDisk(documentId, fileName, notify);
     };
 
+    const openPreviewForItem = (it, locked = false) => {
+        if (!it) return;
+        setPreviewState({
+            open: true,
+            title: it.file_name || 'document',
+            fileName: withEmployeePrefix(employeeFiles?.id, it.file_name || 'document'),
+            url: '',
+            downloadUrl: '',
+            mimeType: '',
+            revokeOnClose: false,
+            loading: true,
+            documentId: it.document_id,
+            checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
+            employeeDbId: employeeFiles.employee_id,
+            documentName: getDocumentNameForUpload(it.item_name),
+            locked,
+        });
+
+        if (it.document_id) {
+            previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
+                setPreviewState((prev) => ({
+                    ...prev,
+                    open: true,
+                    title: fileName || it.file_name || 'document',
+                    fileName: withEmployeePrefix(employeeFiles?.id, fileName || it.file_name || 'document'),
+                    url: url || '',
+                    downloadUrl: url || '',
+                    mimeType: mimeType || '',
+                    revokeOnClose: !!revokeUrlOnClose,
+                    loading: false,
+                    documentId: it.document_id,
+                    checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
+                    employeeDbId: employeeFiles.employee_id,
+                    documentName: getDocumentNameForUpload(it.item_name),
+                }));
+            }).catch(() => setPreviewState((prev) => ({ ...prev, loading: false })));
+        }
+    };
+
     const checklist = dedupeChecklistItems(employeeFiles?.checklistItems || []);
+
+    const groupedSections = useMemo(() => {
+        const items = getRequiredChecklistItems(checklist || []);
+        const groups = items.reduce((acc, it) => {
+            const cat = getCategoryForItem(it.item_name);
+            if (!acc[cat]) acc[cat] = [];
+            acc[cat].push(it);
+            return acc;
+        }, {});
+
+        const desiredOrder = [
+            'Personal Information',
+            'Legal & Contracts',
+            'Benefits',
+            'Identification',
+            'Education',
+            'Other Documents',
+        ];
+
+        const cats = Object.keys(groups || {});
+        const ordered = [
+            ...desiredOrder.filter((c) => cats.includes(c)),
+            ...cats.filter((c) => !desiredOrder.includes(c)),
+        ];
+
+        return ordered.map((cat) => {
+            const groupItems = (groups[cat] || []).slice();
+            const ordering = CATEGORY_ITEM_ORDER[cat] || null;
+            if (ordering && ordering.length) {
+                const ordMap = new Map(ordering.map((v, i) => [normalizeDocName(v), i]));
+                groupItems.sort((a, b) => {
+                    const an = normalizeDocName(getDocumentNameForUpload(a.item_name));
+                    const bn = normalizeDocName(getDocumentNameForUpload(b.item_name));
+                    const ai = ordMap.has(an) ? ordMap.get(an) : Number.MAX_SAFE_INTEGER;
+                    const bi = ordMap.has(bn) ? ordMap.get(bn) : Number.MAX_SAFE_INTEGER;
+                    if (ai !== bi) return ai - bi;
+                    return compareText(a.item_name, b.item_name);
+                });
+            } else {
+                groupItems.sort((a, b) => compareText(a.item_name, b.item_name));
+            }
+
+            return { cat, items: groupItems };
+        });
+    }, [checklist]);
 
     const [checklistOffset, setChecklistOffset] = useState(0);
     const checklistItemsPerPage = 8;
@@ -812,13 +1002,31 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                 status: mapUiToApiStatus(nextStatus),
                 remarks: nextRemarks || null
             });
-            await refresh();
+
+            // Update local UI state only so admin can continue editing without the modal
+            // reloading. Parent `refresh()` can be invoked separately if a full refresh
+            // is necessary.
+            setStatusById((p) => ({ ...p, [it.id]: nextStatus }));
+            setRemarksById((p) => ({ ...p, [it.id]: nextRemarks }));
         } catch (err) {
             console.error('Save failed:', err);
             notify({ title: 'Save failed', message: err?.message || 'Save failed' });
         } finally {
             setSavingReviewId(null);
         }
+    };
+
+    const openReviewConfirm = (it) => {
+        openConfirm({
+            title: 'Review',
+            message: 'Open review panel for this item?',
+            confirmText: 'OK',
+            cancelText: 'Cancel',
+            onConfirm: async () => {
+                setEditData(true);
+                setStatusById((p) => ({ ...p, [it.id]: mapStatusToUi(it.status) }));
+            },
+        });
     };
 
     const cancelEditing = () => {
@@ -833,22 +1041,156 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         setEditData(false);
     };
 
+    const ChecklistItem = ({ it }) => {
+        const statusUi = mapStatusToUi(statusById[it.id] || it.status);
+        const hasFile = !!it.document_id;
+        const isApproved = String(it.status || '').toLowerCase() === 'approved';
+        const locked = !!isEmployee && isApproved;
+
+        return (
+            <div key={it.id} className="grid grid-cols-12 gap-4 items-center py-4 border-b border-gray-100">
+                <div className="col-span-6 sm:col-span-6 text-left font-medium lg:text-sm text-xs">{it.item_name}</div>
+
+                <div className="col-span-4 sm:col-span-4">
+                    <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                            <span className="sr-only">{hasFile ? it.file_name : 'No file attached'}</span>
+                        </div>
+
+                        <div>
+                            <div className="inline-block">
+                                {canHrEdit ? (
+                                    <select
+                                        value={statusById[it.id] || mapStatusToUi(it.status)}
+                                        onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: String(e.target.value || '').toLowerCase() }))}
+                                        className="text-sm border rounded px-2 py-1"
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="submitted">Submitted</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="disapproved">Disapproved</option>
+                                    </select>
+                                ) : (
+                                    <span className={`inline-block text-xs px-2 py-1 rounded-full border ${statusUi === 'disapproved' ? 'border-[#C60000] text-[#C60000]' : statusUi === 'approved' ? 'border-[#198C19] text-[#198C19]' : 'border-gray-300 text-gray-700'}`}>
+                                        {statusUi.replace(/^./, (c) => c.toUpperCase())}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {canHrEdit ? (
+                        <div className="mt-2">
+                            <textarea
+                                value={remarksById[it.id] ?? it.remarks ?? ''}
+                                onChange={(e) => setRemarksById((p) => ({ ...p, [it.id]: e.target.value }))}
+                                placeholder="Remarks (optional)"
+                                className="w-full border rounded px-2 py-1 text-sm"
+                            />
+
+                            <div className="pt-2 flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => saveReviewForItem(it)}
+                                    disabled={savingReviewId === it.id}
+                                    className="h-9 inline-flex items-center px-3 bg-[#198C19] text-white rounded-md text-sm disabled:opacity-60"
+                                >
+                                    {savingReviewId === it.id ? 'Saving…' : 'Save'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStatusById((p) => ({ ...p, [it.id]: mapStatusToUi(it.status) }));
+                                        setRemarksById((p) => ({ ...p, [it.id]: it.remarks || '' }));
+                                    }}
+                                    className="h-9 inline-flex items-center px-3 border rounded-md text-sm"
+                                >
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        mapStatusToUi(statusById[it.id] || it.status) === 'disapproved' && it.remarks ? (
+                            <div className="text-xs text-[#C60000] mt-2">{it.remarks}</div>
+                        ) : null
+                    )}
+                </div>
+
+                <div className="col-span-1 sm:col-span-1 text-sm text-gray-600">{it.updated_at ? new Date(it.updated_at).toLocaleDateString() : '—'}</div>
+
+                <div className="col-span-1 sm:col-span-1 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                        {(isEmployee || (!isEmployee && editData && isProjectBased(employeeFiles?.personnelType))) ? (
+                            <>
+                                {(!hasFile || statusUi === 'disapproved') ? (
+                                    <>
+                                        <input
+                                            id={`file-${it.id}`}
+                                            type="file"
+                                            className="hidden"
+                                            accept={acceptForChecklistItem(it.item_name)}
+                                            onChange={async (e) => {
+                                                const f = e.target.files?.[0];
+                                                if (!f) return;
+                                                const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                if (!ok.ok) { e.target.value = ''; return; }
+
+                                                openConfirm({
+                                                    title: 'Confirm upload',
+                                                    message: 'Upload this file?',
+                                                    confirmText: 'OK',
+                                                    cancelText: 'Cancel',
+                                                    onConfirm: async () => {
+                                                        try {
+                                                            setUploadingId(it.id);
+                                                            const fd = new FormData();
+                                                            fd.append('file', f);
+                                                            fd.append('employee_id', employeeFiles.employee_id);
+                                                            fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                            if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
+                                                            await postFormWithProgress('/documents/upload', fd, () => {});
+                                                            await refresh();
+                                                            e.target.value = '';
+                                                        } catch (err) {
+                                                            console.error('Upload failed:', err);
+                                                            notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
+                                                        } finally {
+                                                            setUploadingId(null);
+                                                        }
+                                                    },
+                                                });
+                                            }}
+                                        />
+                                        <label htmlFor={`file-${it.id}`} className={`h-9 inline-flex items-center bg-[#990100] text-white px-3 rounded-md text-sm cursor-pointer ${uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''}`}>{uploadingId === it.id ? 'Uploading…' : (hasFile ? 'Reupload' : 'Upload')}</label>
+                                    </>
+                                ) : (
+                                    <button type="button" onClick={() => openPreviewForItem(it, locked)} className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition cursor-pointer">
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <button type="button" onClick={() => openPreviewForItem(it, false)} className="inline-flex items-center justify-center h-9 w-9 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition cursor-pointer">
+                                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    </button>
+
+                                    {(statusUi === 'submitted' || statusUi === 'pending') ? (
+                                        <button type="button" onClick={() => openReviewConfirm(it)} className="h-9 inline-flex items-center px-3 border border-[#C60000] text-[#C60000] bg-white rounded-md text-sm hover:bg-[#fff2f2]">Review</button>
+                                    ) : null}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div
-            className={
-                isInline
-                    ? "mt-4"
-                    : "fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 px-3 py-4"
-            }
-        >
-            <div
-                className={
-                    isInline
-                        ? "bg-white rounded-lg shadow-lg w-full border border-gray-300 overflow-hidden flex flex-col"
-                        : "bg-white rounded-lg shadow-lg w-full max-w-6xl border border-gray-300 overflow-hidden flex flex-col max-h-[90vh]"
-                }
-                style={{ WebkitOverflowScrolling: 'touch' }}
-            >
+        <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 px-3 py-4">
+            <div className="bg-white rounded-lg shadow-lg w-full max-w-6xl border border-gray-300 overflow-hidden flex flex-col max-h-[90vh]" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 m-4">
                     <h1 className="text-white font-medium lg:text-lg text-sm">201 Files of {employeeFiles.id}</h1>
                     <button className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" onClick={onClose}>
@@ -858,376 +1200,21 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
                 <div className="flex-1 overflow-auto md:p-6 px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="overflow-x-auto">
-                    <table className="table-style text-center">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th className="px-6 py-3 text-sm">File</th>
-                                <th className="px-6 py-3 text-sm">Status</th>
-                                <th className="px-6 py-3 text-sm">Comments</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentChecklist.map((it) => (
-                                <React.Fragment key={it.id}>
-                                    {SECTION_BREAKS.has(it.item_name) && renderSectionHeaderRow('BENEFITS')}
-                                    <tr>
-                                        <td className="text-left font-semibold pb-5 px-3 lg:text-sm text-xs whitespace-normal wrap-break-word">{it.item_name}</td>
-                                        <td className="pb-5 px-3">
-                                            {it.document_id ? (
-                                                <div className="flex flex-col gap-2">
-                                                    <button
-                                                        type="button"
-                                                        className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
-                                                        onClick={() => {
-                                                            const isApproved = String(it.status || '').toLowerCase() === 'approved';
-                                                            const locked = !!isEmployee && isApproved;
-                                                            setPreviewState({
-                                                                open: true,
-                                                                title: it.file_name || 'document',
-                                                                fileName: withEmployeePrefix(employeeFiles?.id, it.file_name || 'document'),
-                                                                url: '',
-                                                                downloadUrl: '',
-                                                                mimeType: '',
-                                                                revokeOnClose: false,
-                                                                loading: true,
-                                                                documentId: it.document_id,
-                                                                checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
-                                                                employeeDbId: employeeFiles.employee_id,
-                                                                documentName: getDocumentNameForUpload(it.item_name),
-                                                                locked,
-                                                            });
+                        {/* Group checklist items by category and show all in a scrolling view (no pagination) */}
+                        {groupedSections.map(({ cat, items }) => (
+                            <div key={cat} className="mb-6">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-[#990100] text-sm font-semibold">{cat}</h3>
+                                    <div className="text-sm text-gray-500">{items.length} item{items.length !== 1 ? 's' : ''}</div>
+                                </div>
 
-                                                            previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
-                                                                setPreviewState((prev) => ({
-                                                                    ...prev,
-                                                                    open: true,
-                                                                    title: fileName || it.file_name || 'document',
-                                                                    fileName: withEmployeePrefix(employeeFiles?.id, fileName || it.file_name || 'document'),
-                                                                    url: url || '',
-                                                                    downloadUrl: url || '',
-                                                                    mimeType: mimeType || '',
-                                                                    revokeOnClose: !!revokeUrlOnClose,
-                                                                    loading: false,
-                                                                    documentId: it.document_id,
-                                                                    checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
-                                                                    employeeDbId: employeeFiles.employee_id,
-                                                                    documentName: getDocumentNameForUpload(it.item_name),
-                                                                }));
-                                                            }).catch(() => {
-                                                                setPreviewState((prev) => ({ ...prev, loading: false }));
-                                                            });
-                                                        }}
-                                                    >
-                                                        Preview
-                                                    </button>
-
-                                                    {isEmployee && mapStatusToUi(statusById[it.id] || it.status) === 'disapproved' ? (
-                                                        <div className="pt-2 flex flex-col items-center gap-1">
-                                                            <input
-                                                                id={`file-${it.id}`}
-                                                                type="file"
-                                                                className="hidden"
-                                                                disabled={uploadingId === it.id}
-                                                                accept={acceptForChecklistItem(it.item_name)}
-                                                                onChange={async (e) => {
-                                                                    const f = e.target.files?.[0];
-                                                                    if (!f) return;
-
-                                                                    const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                                    if (!ok.ok) {
-                                                                        e.target.value = '';
-                                                                        return;
-                                                                    }
-
-                                                                    setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                                    setSelectedFileById((p) => ({ ...p, [it.id]: f }));
-
-                                                                    if (f.size > 10 * 1024 * 1024) {
-                                                                        notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                        return;
-                                                                    }
-
-                                                                    openConfirm({
-                                                                        title: 'Confirm upload',
-                                                                        message: 'Upload this file?',
-                                                                        confirmText: 'OK',
-                                                                        cancelText: 'Cancel',
-                                                                        onConfirm: async () => {
-                                                                            try {
-                                                                                setUploadingId(it.id);
-                                                                                const fd = new FormData();
-                                                                                fd.append('file', f);
-                                                                                fd.append('employee_id', employeeFiles.employee_id);
-                                                                                fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                                if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                                await postFormWithProgress(
-                                                                                    '/documents/upload',
-                                                                                    fd,
-                                                                                    () => {}
-                                                                                );
-                                                                                await refresh();
-                                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                                e.target.value = '';
-                                                                            } catch (err) {
-                                                                                console.error('Reupload failed:', err);
-                                                                                notify({ title: 'Upload failed', message: err?.message || 'Reupload failed' });
-                                                                            } finally {
-                                                                                setUploadingId(null);
-                                                                            }
-                                                                        },
-                                                                    });
-                                                                }}
-                                                            />
-
-                                                            <div className="flex items-center gap-2 w-full justify-center">
-                                                                <label
-                                                                    htmlFor={`file-${it.id}`}
-                                                                    className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                        uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                                    }`}
-                                                                >
-                                                                    {uploadingId === it.id ? 'Uploading…' : 'Reupload File'}
-                                                                </label>
-                                                                <span className="text-xs text-gray-600 truncate max-w-44">
-                                                                    {selectedFileNameById[it.id] || 'No file selected'}
-                                                                </span>
-                                                            </div>
-
-                                                            <div className="w-full max-w-xs">
-                                                                <LocalFilePreview file={selectedFileById[it.id]} />
-                                                            </div>
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            ) : isEmployee ? (
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <input
-                                                        id={`file-${it.id}`}
-                                                        type="file"
-                                                        className="hidden"
-                                                        disabled={uploadingId === it.id}
-                                                        accept={acceptForChecklistItem(it.item_name)}
-                                                        onChange={async (e) => {
-                                                            const f = e.target.files?.[0];
-                                                            if (!f) return;
-
-                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                            if (!ok.ok) {
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                            setSelectedFileById((p) => ({ ...p, [it.id]: f }));
-
-                                                            if (f.size > 10 * 1024 * 1024) {
-                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            openConfirm({
-                                                                title: 'Confirm upload',
-                                                                message: 'Upload this file?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        setUploadingId(it.id);
-                                                                        const fd = new FormData();
-                                                                        fd.append('file', f);
-                                                                        fd.append('employee_id', employeeFiles.employee_id);
-                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                        await postFormWithProgress(
-                                                                            '/documents/upload',
-                                                                            fd,
-                                                                            () => {}
-                                                                        );
-                                                                        await refresh();
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                    } catch (err) {
-                                                                        console.error('Upload failed:', err);
-                                                                        notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
-                                                                    } finally {
-                                                                        setUploadingId(null);
-                                                                    }
-                                                                },
-                                                            });
-                                                        }}
-                                                    />
-
-                                                    <div className="flex items-center gap-2 w-full justify-center">
-                                                        <label
-                                                            htmlFor={`file-${it.id}`}
-                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                            }`}
-                                                        >
-                                                            {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
-                                                        </label>
-                                                        <span className="text-xs text-gray-600 truncate max-w-44">
-                                                            {selectedFileNameById[it.id] || 'No file selected'}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="w-full max-w-xs">
-                                                        <LocalFilePreview file={selectedFileById[it.id]} />
-                                                    </div>
-                                                </div>
-                                            ) : canHrEdit ? (
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <input
-                                                        id={`file-hr-${it.id}`}
-                                                        type="file"
-                                                        className="hidden"
-                                                        disabled={uploadingId === it.id}
-                                                        accept={acceptForChecklistItem(it.item_name)}
-                                                        onChange={async (e) => {
-                                                            const f = e.target.files?.[0];
-                                                            if (!f) return;
-
-                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                            if (!ok.ok) {
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                            setSelectedFileById((p) => ({ ...p, [it.id]: f }));
-
-                                                            if (f.size > 10 * 1024 * 1024) {
-                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            openConfirm({
-                                                                title: 'Confirm upload',
-                                                                message: 'Upload this file?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        setUploadingId(it.id);
-                                                                        const fd = new FormData();
-                                                                        fd.append('file', f);
-                                                                        fd.append('employee_id', employeeFiles.employee_id);
-                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                        await postFormWithProgress('/documents/upload', fd, () => {});
-                                                                        await refresh();
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                    } catch (err) {
-                                                                        console.error('Upload failed:', err);
-                                                                        notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
-                                                                    } finally {
-                                                                        setUploadingId(null);
-                                                                    }
-                                                                },
-                                                            });
-                                                        }}
-                                                    />
-
-                                                    <div className="flex items-center gap-2 w-full justify-center">
-                                                        <label
-                                                            htmlFor={`file-hr-${it.id}`}
-                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                            }`}
-                                                        >
-                                                            {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
-                                                        </label>
-                                                        <span className="text-xs text-gray-600 truncate max-w-44">
-                                                            {selectedFileNameById[it.id] || 'No file selected'}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="w-full max-w-xs">
-                                                        <LocalFilePreview file={selectedFileById[it.id]} />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-500 text-xs">No file</span>
-                                            )}
-                                        </td>
-                                        <td className="pb-5 px-3">
-                                            {it.virtual ? (
-                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
-                                                    {(it.status || 'pending').replace(/^./, (c) => c.toUpperCase())}
-                                                </span>
-                                            ) : (!editData || isEmployee) ? (
-                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
-                                                    {(statusById[it.id] || 'pending').replace(/^./, (c) => c.toUpperCase())}
-                                                </span>
-                                            ) : (
-                                                <select
-                                                    className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs w-full max-w-36"
-                                                    value={statusById[it.id] || 'pending'}
-                                                    disabled={isEmployee || !editData}
-                                                    onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: e.target.value }))}
-                                                    required
-                                                >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="submitted">Submitted</option>
-                                                    <option value="approved">Approved</option>
-                                                    <option value="disapproved">Disapproved</option>
-                                                </select>
-                                            )}
-                                        </td>
-                                        <td className="pb-5 px-3 whitespace-normal wrap-break-word">
-                                            {it.virtual ? (
-                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{it.remarks || ''}</p>
-                                            ) : mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
-                                                <textarea
-                                                    value={remarksById[it.id] || ''}
-                                                    onChange={(e) => setRemarksById((p) => ({ ...p, [it.id]: e.target.value }))}
-                                                    placeholder="Reason"
-                                                    className="input-field w-full lg:text-sm text-xs"
-                                                    maxLength={200}
-                                                />
-                                            ) : (
-                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{remarksById[it.id] || it.remarks || ''}</p>
-                                            )}
-
-                                            {!isEmployee && editData && !it.virtual && (
-                                                <div className="mt-2 flex justify-end">
-                                                    <button
-                                                        type="button"
-                                                        className="bg-[#FFA500] px-4 py-1 rounded-md text-xs text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-60 disabled:pointer-events-none"
-                                                        disabled={savingReviewId === it.id}
-                                                        onClick={() =>
-                                                            openConfirm({
-                                                                message: 'Save this item?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: () => saveReviewForItem(it),
-                                                            })
-                                                        }
-                                                    >
-                                                        {savingReviewId === it.id ? 'Saving…' : 'Save'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+                                <div className="w-full">
+                                    {items.map((it) => (
+                                        <ChecklistItem key={it.id} it={it} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
                     <div className="mt-4 lg:flex items-center lg:justify-between">
@@ -1236,7 +1223,7 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
                         </p>
 
-                        {checklistPageCount > 0 && (
+                        {checklistPageCount > 1 && (
                             <ReactPaginate
                                 breakLabel="..."
                                 nextLabel=">"
@@ -1339,9 +1326,10 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                         mimeType={previewState.mimeType}
                         loading={previewState.loading}
                         onClose={closePreview}
-                        allowImageActions={!isEmployee || !previewState.locked}
-                        onReplaceImage={!isEmployee || !previewState.locked ? triggerReplaceFromPreview : undefined}
-                        onDeleteFile={!isEmployee || !previewState.locked ? handleDeleteFromPreview : undefined}
+                        // Allow change/delete when not locked (approved). Employees may replace files; HR may when editing and project-based.
+                        allowImageActions={!previewState.locked && (isEmployee || (editData && isProjectBased(employeeFiles?.personnelType)))}
+                        onReplaceImage={!previewState.locked && (isEmployee || (editData && isProjectBased(employeeFiles?.personnelType))) ? triggerReplaceFromPreview : undefined}
+                        onDeleteFile={!previewState.locked && (isEmployee || (editData && isProjectBased(employeeFiles?.personnelType))) ? handleDeleteFromPreview : undefined}
                         onDownload={handleDownloadFromPreview}
                     />
 
@@ -1372,7 +1360,8 @@ export default function OnboardingFiles() {
     const [sortOrder, setSortOrder] = useState('name_az');
     const [rows, setRows] = useState([]);
     const [statusFilter, setStatusFilter] = useState('all'); // all | incomplete | complete
-    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('all'); // all | standard | project_based
+    // Default to showing regular employees (hide Project-Based rows by default)
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState('employees'); // all | employees | project_based
 
     const [reportOpen, setReportOpen] = useState(false);
 
@@ -1611,7 +1600,8 @@ const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => 
         if (isEmployee) return filteredRowsWithStatus;
         const f = String(personnelTypeFilter || 'all');
         if (f === 'project_based') return filteredRowsWithStatus.filter((r) => isProjectBased(r?.personnelType));
-        if (f === 'standard') return filteredRowsWithStatus.filter((r) => !isProjectBased(r?.personnelType));
+        // Accept either the legacy 'standard' or the newer 'employees' value as "regular employees"
+        if (f === 'employees' || f === 'standard') return filteredRowsWithStatus.filter((r) => !isProjectBased(r?.personnelType));
         return filteredRowsWithStatus;
     }, [filteredRowsWithStatus, isEmployee, personnelTypeFilter]);
 
@@ -1661,6 +1651,28 @@ const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => 
         return sorted;
     }, [filteredRowsWithPersonnelType, sortOrder]);
 
+    const toggleSort = (key) => {
+        switch (key) {
+            case 'employee_id':
+                setSortOrder((s) => (s === 'employee_id_asc' ? 'employee_id_desc' : 'employee_id_asc'));
+                break;
+            case 'name':
+                setSortOrder((s) => (s === 'name_az' ? 'name_za' : 'name_az'));
+                break;
+            case 'personnel_type':
+                setSortOrder((s) => (s === 'personnel_type_employee_first' ? 'personnel_type_project_first' : 'personnel_type_employee_first'));
+                break;
+            case 'hire_date':
+                setSortOrder((s) => (s === 'hire_date_newest' ? 'hire_date_oldest' : 'hire_date_newest'));
+                break;
+            case 'completion':
+                setSortOrder((s) => (s === 'completion_complete_first' ? 'completion_incomplete_first' : 'completion_complete_first'));
+                break;
+            default:
+                break;
+        }
+    };
+
     const [itemOffset, setItemOffset] = useState(0);
     const itemsPerPage = 10;
     const endOffset = itemOffset + itemsPerPage;
@@ -1673,7 +1685,10 @@ const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => 
     }, [searchTerm, sortOrder, statusFilter, personnelTypeFilter, rows.length]);
 
     const handlePageClick = (event) => {
-        setItemOffset(event.selected * itemsPerPage);
+        const selected = Number.isFinite(event?.selected) ? event.selected : 0;
+        const maxPage = Math.max(0, pageCount - 1);
+        const clamped = Math.min(Math.max(0, selected), maxPage);
+        setItemOffset(clamped * itemsPerPage);
     };
 
 const handleSendReminder = (row) => {
@@ -1702,12 +1717,14 @@ const handleSendReminder = (row) => {
         open: true,
         title: 'Send Reminder',
         message: [
-            `Send a reminder email to ${row?.name || 'this employee'}?`,
+            `Send a reminder email to ${row?.id || row?.email || 'this employee'}?`,
             lineParts.length ? lineParts.join('') : 'No missing documents detected based on current checklist.',
         ].join(''),
         row,
     });
 };
+
+// openPreviewForItem moved into ModalFiles component for proper access to state
 
     const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
         const base = (startDate || endDate)
@@ -1805,51 +1822,32 @@ const handleSendReminder = (row) => {
 
                     <div className="flex items-center justify-end md:gap-4 gap-3">
                         {!isEmployee ? (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-[#990100] hidden md:inline">Filter Status</span>
-                                <select
-                                    className="bg-white lg:h-10 md:h-9 h-8 px-2 rounded-lg text-sm border border-[#990100] focus:outline-none cursor-pointer"
-                                    value={statusFilter}
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                >
-                                    <option value="all">Show All</option>
-                                    <option value="incomplete">Show Incomplete Only</option>
-                                    <option value="complete">Show Complete Only</option>
-                                </select>
-                            </div>
+                            <DropDownFilter
+                                label="Status"
+                                value={statusFilter}
+                                onChange={setStatusFilter}
+                                options={[
+                                    { value: 'all', label: 'All' },
+                                    { value: 'incomplete', label: 'Incomplete' },
+                                    { value: 'complete', label: 'Complete' },
+                                ]}
+                            />
                         ) : null}
+
+                        {/* Sort dropdown removed: headers are now clickable for sorting */}
 
                         {!isEmployee ? (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-[#990100] hidden md:inline">Personnel Type</span>
-                                <select
-                                    className="bg-white lg:h-10 md:h-9 h-8 px-2 rounded-lg text-sm border border-[#990100] focus:outline-none cursor-pointer"
-                                    value={personnelTypeFilter}
-                                    onChange={(e) => setPersonnelTypeFilter(e.target.value)}
-                                >
-                                    <option value="all">All</option>
-                                    <option value="standard">Employees</option>
-                                    <option value="project_based">Project-Based</option>
-                                </select>
-                            </div>
+                            <DropDownFilter
+                                label="Personnel Type"
+                                value={personnelTypeFilter}
+                                onChange={setPersonnelTypeFilter}
+                                options={[
+                                    { value: 'all', label: 'All' },
+                                    { value: 'employees', label: 'Employees' },
+                                    { value: 'project_based', label: 'Project-Based' },
+                                ]}
+                            />
                         ) : null}
-
-                        <DropDownFilter
-                            value={sortOrder}
-                            onChange={setSortOrder}
-                            options={[
-                                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                                { value: 'name_az', label: 'Name: A - Z' },
-                                { value: 'name_za', label: 'Name: Z - A' },
-                                { value: 'personnel_type_employee_first', label: 'Personnel Type: Employee First' },
-                                { value: 'personnel_type_project_first', label: 'Personnel Type: Project-Based First' },
-                                { value: 'hire_date_newest', label: 'Hire Date: Newest' },
-                                { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
-                                { value: 'completion_complete_first', label: 'Completion: Complete First' },
-                                { value: 'completion_incomplete_first', label: 'Completion: Incomplete First' },
-                            ]}
-                        />
 
                         <div className="relative text-gray-600 border border-[#990100] rounded-lg">
                             <input
@@ -1934,13 +1932,23 @@ const handleSendReminder = (row) => {
                             <table className="table-style">
                                 <thead className="thead-style">
                                     <tr>
-                                        <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
-                                        <th className="th-style">Name</th>
-                                        <th className="th-style">Personnel Type</th>
-                                        <th className="th-style">Hire Date</th>
-                                        <th className="th-style">Progress</th>
-                                        <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
-                                    </tr>
+                                            <th className="th-style rounded-tl-lg rounded-bl-lg cursor-pointer" onClick={() => toggleSort('employee_id')}>
+                                                Employee ID {sortOrder.startsWith('employee_id_') ? (sortOrder === 'employee_id_asc' ? '▲' : '▼') : null}
+                                            </th>
+                                            <th className="th-style cursor-pointer" onClick={() => toggleSort('name')}>
+                                                Name {sortOrder.startsWith('name_') ? (sortOrder === 'name_az' ? '▲' : '▼') : null}
+                                            </th>
+                                            <th className="th-style cursor-pointer" onClick={() => toggleSort('personnel_type')}>
+                                                Personnel Type {sortOrder.startsWith('personnel_type_') ? (sortOrder === 'personnel_type_employee_first' ? '▲' : '▼') : null}
+                                            </th>
+                                            <th className="th-style cursor-pointer" onClick={() => toggleSort('hire_date')}>
+                                                Hire Date {sortOrder.startsWith('hire_date_') ? (sortOrder === 'hire_date_oldest' ? '▲' : '▼') : null}
+                                            </th>
+                                            <th className="th-style cursor-pointer" onClick={() => toggleSort('completion')}>
+                                                Progress {sortOrder.startsWith('completion_') ? (sortOrder === 'completion_complete_first' ? '▲' : '▼') : null}
+                                            </th>
+                                            <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                                        </tr>
                                 </thead>
                                 <tbody className="tbody-style">
                                     {visibleRows.length === 0 ? (
@@ -2039,14 +2047,14 @@ const handleSendReminder = (row) => {
                                     Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> employee{visibleRows.length !== 1 ? 's' : ''}
                                 </p>
 
-                                {pageCount > 0 && (
+                                {pageCount > 1 && (
                                     <ReactPaginate
                                         breakLabel="..."
                                         nextLabel=">"
                                         onPageChange={handlePageClick}
                                         pageRangeDisplayed={2}
                                         pageCount={pageCount}
-                                        forcePage={Math.floor(itemOffset / itemsPerPage)}
+                                        forcePage={Math.min(Math.max(0, Math.floor(itemOffset / itemsPerPage)), Math.max(0, pageCount - 1))}
                                         previousLabel="<"
                                         renderOnZeroPageCount={null}
                                         marginPagesDisplayed={2}
@@ -2094,10 +2102,10 @@ const handleSendReminder = (row) => {
 
             setSendReminderState((p) => ({ ...p, open: false, row: null }));
 
-            openConfirm({
+                openConfirm({
                 title: 'Reminder processed',
                 message: [
-                    `Employee: ${row?.name || ''}`.trim(),
+                    `Employee: ${row?.id || row?.email || ''}`.trim(),
                     emailStatus,
                     res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
                     res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,

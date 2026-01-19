@@ -511,55 +511,7 @@ function Dashboard() {
               )}
             </section>
 
-            <section className="mt-8">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-4">
-                  Recent Activity
-                </h2>
-
-                <div className="space-y-3">
-                  {loading ? (
-                    <div className="text-sm text-gray-600">Loading activity…</div>
-                  ) : summary.recentAuditLogs.length ? (
-                    summary.recentAuditLogs.slice(0, 5).map((row) => (
-                      <div
-                        key={row.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          const route = getAuditRouteForRow(row);
-                          if (route) navigate(route);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key !== 'Enter' && e.key !== ' ') return;
-                          const route = getAuditRouteForRow(row);
-                          if (route) navigate(route);
-                        }}
-                        className="flex min-w-0 items-start justify-between gap-3 border-b border-[#f0dede] pb-3 rounded-md px-2 cursor-pointer hover:bg-gray-50"
-                      >
-                        <div className="min-w-0">
-                          <p className="text-sm text-gray-900">
-                            <span className="font-semibold block truncate">
-                              {row.user.email || 'Unknown user'}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">{formatAuditAction(row)}</p>
-                        </div>
-                        <span className="shrink-0 text-[11px] px-2 py-1 rounded-full bg-[#ad3332] text-white">
-                          {row.user.role || 'User'}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-600">No recent activity.</div>
-                  )}
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Recent account activities for monitoring and compliance.
-                </p>
-              </div>
-            </section>
+            {/* Recent Activity removed per request */}
           </>
         ) : (
           <>

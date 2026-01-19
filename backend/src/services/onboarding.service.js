@@ -274,38 +274,87 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
         if (!error && data?.id) {
           newEmployee = data;
         } else {
-          // Fallback: if DB schema requires user_id, create a placeholder app user (no Supabase Auth user).
-          // This user has no login access because it does not exist in Supabase Auth.
-          const placeholderId = crypto.randomUUID();
+          // Fallback: DB requires a user_id. Create a disabled/auth placeholder in Supabase Auth
+          // and insert the corresponding app user row so the foreign key constraint is satisfied.
           const nowIso = new Date().toISOString();
 
-          const tryInsertPlaceholder = async (placeholderEmail) => {
-            const { data: inserted, error: insertError } = await supabase
-              .from('users')
-              .insert([{
-                id: placeholderId,
-                email: placeholderEmail,
-                role: ROLES.EMPLOYEE,
-                employee_id: null,
-                created_at: nowIso,
-                updated_at: nowIso,
-                last_login: null
-              }])
-              .select()
-              .single();
-            if (insertError) throw insertError;
-            return inserted;
-          };
-
-          try {
-            await tryInsertPlaceholder(null);
-          } catch (insertErr) {
-            // If email is NOT NULL, use an internal placeholder that is not used for login.
-            const fallbackEmail = `contractor_${placeholderId}@no-email.local`;
-            await tryInsertPlaceholder(fallbackEmail);
+          // Create a deterministic dummy email using the employee's name.
+          // Format: firstname.lastname@project-based.com (lowercased, non-alphanumeric replaced with dot)
+          const mkSafe = (v) => String(v || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '');
+          const safeFirst = mkSafe(first_name);
+          const safeLast = mkSafe(last_name);
+          let dummyEmail = null;
+          if (safeFirst || safeLast) {
+            const local = [safeFirst, safeLast].filter(Boolean).join('.');
+            dummyEmail = `${local}@project-based.com`;
           }
 
-          createdUserId = placeholderId;
+          // Prepare a temporary strong password for the placeholder auth user.
+          const placeholderPassword = crypto.randomBytes(18).toString('base64url');
+
+          // Attempt to create an Auth user for the dummy email. If the identity already exists,
+          // resolve its ID by email.
+          try {
+            if (!dummyEmail) throw new Error('No dummy email could be generated');
+
+            const { data: authData, error: authCreateErr } = await supabase.auth.admin.createUser({
+              email: dummyEmail,
+              password: placeholderPassword,
+              email_confirm: true
+            });
+
+            if (authCreateErr || !authData?.user) {
+              const msg = String(authCreateErr?.message || '').toLowerCase();
+              const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
+              if (!alreadyExists) {
+                throw authCreateErr || new Error('Failed to create auth placeholder user');
+              }
+
+              const existingAuthId = await findAuthUserIdByEmail(dummyEmail);
+              if (!existingAuthId) throw new Error('Auth placeholder exists but could not resolve its id');
+              createdUserId = existingAuthId;
+            } else {
+              createdUserId = authData.user.id;
+            }
+          } catch (authErr) {
+            // If auth user creation fails, attempt to fallback to a reserved internal email and create
+            // an auth user with that as a last resort. This is unusual but provides a path that satisfies FK.
+            const fallbackEmail = `contractor_${Date.now()}@no-email.local`;
+            try {
+              const { data: authData2, error: authCreateErr2 } = await supabase.auth.admin.createUser({
+                email: fallbackEmail,
+                password: placeholderPassword,
+                email_confirm: true
+              });
+              if (authCreateErr2 || !authData2?.user) throw authCreateErr2 || new Error('Failed to create fallback auth user');
+              createdUserId = authData2.user.id;
+              dummyEmail = fallbackEmail;
+            } catch (finalErr) {
+              throw new InternalServerError(`Failed to create placeholder auth user: ${finalErr?.message || finalErr}`);
+            }
+          }
+
+          // Insert the app user row corresponding to the Auth user id.
+          const { data: insertedUser, error: insertUserErr } = await supabase
+            .from('users')
+            .insert([{
+              id: createdUserId,
+              email: dummyEmail,
+              role: ROLES.EMPLOYEE,
+              employee_id: null,
+              created_at: nowIso,
+              updated_at: nowIso,
+              last_login: null
+            }])
+            .select()
+            .single();
+
+          if (insertUserErr) {
+            // If we couldn't insert app user, attempt cleanup of auth user we created (best-effort) then fail.
+            try { if (createdUserId) await supabase.auth.admin.deleteUser(createdUserId); } catch {}
+            throw new InternalServerError(`Failed to create app user placeholder: ${insertUserErr.message}`);
+          }
+
           createdPlaceholderUser = true;
 
           const { data: empData, error: empError } = await supabase

@@ -400,6 +400,7 @@ function Onboarding(){
         open: false,
         title: 'Confirmation',
         message: '',
+        content: null,
         confirmText: 'OK',
         cancelText: null,
         onConfirm: null,
@@ -407,11 +408,12 @@ function Onboarding(){
 
     const [confirmBusy, setConfirmBusy] = useState(false);
 
-    const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+    const openConfirm = ({ title, message, content, confirmText, cancelText, onConfirm }) => {
         setConfirmState({
             open: true,
             title: title || 'Confirmation',
             message: message || '',
+            content: content ?? null,
             confirmText: confirmText || 'OK',
             cancelText: cancelText ?? null,
             onConfirm: onConfirm || null,
@@ -419,7 +421,7 @@ function Onboarding(){
     };
 
     const closeConfirm = () => {
-        setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null }));
+        setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null, content: null }));
     };
 
     const handleConfirm = async () => {
@@ -432,6 +434,7 @@ function Onboarding(){
         const snapshot = {
             title: confirmState.title,
             message: confirmState.message,
+            content: confirmState.content,
             confirmText: confirmState.confirmText,
             cancelText: confirmState.cancelText,
             onConfirm: confirmState.onConfirm,
@@ -570,29 +573,16 @@ function Onboarding(){
         return true;
     };
 
-    // form submission
-    const handleSubmit = async () => {
-        setError("");
-
-        // validate all fields from both steps
-        if (!validateStep1()) {
-            setSteps(1); // go back to Step 1 to show errors
-            return;
-        }
-
-        if (!validateStep2()) return;
-
+    // submit the onboarding payload to the API
+    const submitNow = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-
             const normalizedPhone = normalizePhMobile(formData.phone);
             const normalizedEmergencyPhone = normalizePhMobile(formData.emergencyPhone);
 
             const response = await post('/onboarding/complete', {
-                // account info
                 email: isProjectBased ? null : formData.email,
                 role: isProjectBased ? ROLES.EMPLOYEE : formData.role,
-                // employee info
                 first_name: formData.fname,
                 last_name: formData.lname,
                 department_id: formData.department_id,
@@ -626,13 +616,68 @@ function Onboarding(){
                 cancelText: null,
                 onConfirm: () => navigate('/employees'),
             });
-
         } catch (err) {
             console.error('Onboarding error:', err);
             setError(err.message || 'Failed to onboard employee. Please try again.');
         } finally {
             setLoading(false);
         }
+    };
+
+    // form submission (opens a confirmation modal summarizing the data)
+    const handleSubmit = async () => {
+        setError("");
+
+        // validate all fields from both steps
+        if (!validateStep1()) {
+            setSteps(1); // go back to Step 1 to show errors
+            return;
+        }
+
+        if (!validateStep2()) return;
+
+        const findDeptName = (id) => {
+            const d = (departments || []).find((x) => String(x.id) === String(id));
+            if (!d) return String(id || '');
+            return d.department_name || d.name || d.title || d.label || String(id);
+        };
+
+        const findPosName = (id) => {
+            const p = (positions || []).find((x) => String(x.id) === String(id));
+            if (!p) return String(id || '');
+            return p.position_title || p.position_name || p.name || p.title || String(id);
+        };
+
+        const prettyDate = (s) => {
+            try {
+                if (!s) return '';
+                const d = new Date(s);
+                if (Number.isNaN(d.getTime())) return String(s);
+                return d.toLocaleDateString('en-CA'); // YYYY-MM-DD style similar to form
+            } catch {
+                return String(s);
+            }
+        };
+
+        const content = (
+            <div className="space-y-2">
+                <div><b>Name:</b> {String(formData.fname || '')} {String(formData.lname || '')}</div>
+                <div><b>Personnel Type:</b> {String(formData.personnelType || '')}</div>
+                <div><b>Department:</b> {findDeptName(formData.department_id)}</div>
+                <div><b>Position:</b> {findPosName(formData.position_id)}</div>
+                <div><b>Hire Date:</b> {prettyDate(formData.hireDate)}</div>
+                <div><b>Birth Date:</b> {prettyDate(formData.birthDate)}</div>
+                <div><b>Phone:</b> {String(formData.phone || '')}</div>
+            </div>
+        );
+
+            openConfirm({
+                title: 'Confirm Onboarding Details',
+                content,
+                confirmText: 'Confirm and Submit',
+                cancelText: 'Cancel',
+                onConfirm: submitNow,
+            });
     };
 
     const handleNext = () => {
@@ -748,6 +793,8 @@ function Onboarding(){
                 open={confirmState.open}
                 title={confirmState.title}
                 message={confirmState.message}
+                content={confirmState.content}
+                variant="form"
                 confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
                 cancelText={confirmState.cancelText}
                 onConfirm={handleConfirm}

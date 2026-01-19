@@ -4,7 +4,8 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import "./leave.css";
-import { get } from "../../services/api.js";
+import { get, put } from "../../services/api.js";
+import ConfirmModal from "../../components/confirm-modal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
 
@@ -43,7 +44,7 @@ function formatPrettyDateRange(startIso, endIso) {
   return `${formatPrettyDate(startIso)} to ${formatPrettyDate(endIso)}`;
 }
 
-function EventPopover({ open, anchor, data, onClose }) {
+function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -77,6 +78,9 @@ function EventPopover({ open, anchor, data, onClose }) {
 
       <div ref={ref} className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style={{ width: CARD_W, height: CARD_H, left, top }}>
           <div className="relative p-3 flex justify-end gap-2 border-b">
+            {canCancel ? (
+              <button className="gc-icon-btn" title="Cancel Leave" onClick={() => onCancelClick?.(data)}>Cancel</button>
+            ) : null}
             <button className="gc-icon-btn" title="Close" onClick={onClose}>✕</button>
           </div>
           <div className="p-5">
@@ -210,6 +214,12 @@ export default function Leave() {
             calendarName: leaveType,
             start_date: start,
             end_date: endInclusive,
+            // metadata for actions
+            leave_request_id: r.leave_request_id || r.id,
+            employee_db_id: r.employee_db_id || r.employee_id,
+            leave_type_name: r.leave_type_name || r.type,
+            status: r.status || 'APPROVED',
+            _raw: r,
           };
         });
 
@@ -226,6 +236,72 @@ export default function Leave() {
     fetchCalendar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
+
+  const performCancel = async (leaveRequestId, employeeDbId) => {
+    if (!leaveRequestId) throw new Error('Missing leave id');
+    // Employee cancelling their own pending request
+    if (isEmployee && String(user.employee_id) === String(employeeDbId)) {
+      await put(`/leave/requests/${leaveRequestId}/cancel`);
+      return;
+    }
+
+    // HR/Admin can change status to CANCELLED
+    if (canManage) {
+      await put(`/leave/requests/${leaveRequestId}/status`, { status: 'CANCELLED' });
+      return;
+    }
+
+    throw new Error('Not authorized to cancel this leave');
+  };
+
+  const requestCancel = async (data) => {
+    if (!data) return;
+    const leaveRequestId = data.leave_request_id || data.id;
+    const employeeDbId = data.employee_db_id || data.employeeId || null;
+    const leaveTypeName = data.leave_type_name || data.calendarName || '';
+    const start = data.start_date || data.start;
+    const end = data.end_date || data.end_date;
+    const days = calcInclusiveDays(start, end);
+
+    // fetch leave credits to show sick leave balance if available
+    let credits = [];
+    try {
+      const res = isEmployee ? await get('/leave/credits/me') : await get(`/leave/credits?employee_id=${encodeURIComponent(String(employeeDbId || ''))}`);
+      credits = Array.isArray(res?.data) ? res.data : [];
+    } catch (e) {
+      credits = [];
+    }
+
+    const sick = (credits || []).find((c) => /sick/i.test(String(c.leave_type_name || c.label || '')) ) || null;
+
+    const content = (
+      <div className="space-y-3 text-sm">
+        <div><b>Employee:</b> {data.title?.split(' - ')[0] || '—'}</div>
+        <div><b>Type:</b> {leaveTypeName}</div>
+        <div><b>Dates:</b> {formatPrettyDateRange(start, end)}</div>
+        <div><b>Inclusive Days:</b> {days}</div>
+        {sick ? (
+          <div>
+            <b>Sick Leave Balance:</b> {sick.current_balance ?? sick.credit ?? '—'} (used: {sick.used_leave ?? sick.used ?? 0})
+          </div>
+        ) : (
+          <div className="text-gray-600">No sick leave balance information available.</div>
+        )}
+
+        <div className="pt-2 text-xs text-gray-700">If this leave has already been deducted from the balance, cancelling may restore the credits. HR will review and the system will adjust balances accordingly.</div>
+      </div>
+    );
+
+    openConfirm({
+      title: 'Confirm Leave Cancellation',
+      content,
+      confirmText: 'Confirm Cancellation',
+      cancelText: 'Back',
+      onConfirm: async () => {
+        await performCancel(leaveRequestId, employeeDbId);
+      },
+    });
+  };
 
   const leaveTypeOptions = useMemo(() => {
     const types = Array.from(
@@ -292,6 +368,53 @@ export default function Leave() {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [anchor, setAnchor] = useState({ x: 200, y: 200 });
+
+  const [confirmState, setConfirmState] = useState({
+    open: false,
+    title: '',
+    message: '',
+    content: null,
+    confirmText: 'OK',
+    cancelText: 'Cancel',
+    onConfirm: null,
+  });
+
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
+  const openConfirm = ({ title = '', message = '', content = null, confirmText = 'OK', cancelText = 'Cancel', onConfirm = null }) => {
+    setConfirmState({ open: true, title, message, content, confirmText, cancelText, onConfirm });
+  };
+
+  const closeConfirm = () => setConfirmState((p) => ({ ...p, open: false, onConfirm: null, content: null }));
+
+  const handleConfirm = async () => {
+    const fn = confirmState.onConfirm;
+    if (!fn) {
+      closeConfirm();
+      return;
+    }
+
+    try {
+      setConfirmBusy(true);
+      await fn();
+      await fetchCalendar();
+      setPopoverOpen(false);
+      setSelected(null);
+      setConfirmState({ open: true, title: 'Success', message: 'Action completed successfully.', content: null, confirmText: 'OK', cancelText: null, onConfirm: null });
+    } catch (e) {
+      setConfirmState({ open: true, title: 'Error', message: e?.message || 'Action failed.', content: null, confirmText: 'OK', cancelText: null, onConfirm: null });
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
+
+  const calcInclusiveDays = (startIso, endIso) => {
+    if (!startIso) return 0;
+    const s = new Date(startIso + 'T00:00:00');
+    const e = new Date((endIso || startIso) + 'T00:00:00');
+    const diff = Math.floor((e.getTime() - s.getTime()) / (24 * 60 * 60 * 1000));
+    return Math.max(1, diff + 1);
+  };
 
   return (
     <div>
@@ -391,6 +514,20 @@ export default function Leave() {
         anchor={anchor}
         data={selected}
         onClose={() => setPopoverOpen(false)}
+        onCancelClick={requestCancel}
+        canCancel={canManage || (isEmployee && String(selected?.employee_db_id || '') === String(user?.employee_id || ''))}
+      />
+      <ConfirmModal
+        open={confirmState.open}
+        title={confirmState.title}
+        message={confirmState.message}
+        content={confirmState.content}
+        variant="form"
+        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        onConfirm={handleConfirm}
+        onCancel={confirmBusy ? undefined : closeConfirm}
+        confirmDisabled={confirmBusy}
       />
     </div>
   );

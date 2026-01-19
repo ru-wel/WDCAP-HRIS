@@ -18,6 +18,11 @@ function DropDownFilter({
     return Array.isArray(options) && options.length ? options : fallback;
   }, [options]);
 
+  const selectedLabel = useMemo(() => {
+    const opt = resolvedOptions.find((o) => o.value === value);
+    return opt ? opt.label : null;
+  }, [resolvedOptions, value]);
+
   function filterDropdown() {
     if (disabled) return;
     setIsOpen((v) => !v);
@@ -44,7 +49,7 @@ function DropDownFilter({
             className="flex items-center bg-white lg:h-10 md:h-9 h-8 rounded-lg py-1 cursor-pointer px-3 md:text-sm text-xs text-[#990100] md:gap-8 gap-4 disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={disabled}
           >
-            {label}
+            {selectedLabel || label}
             <img
               src="/icons/red-dropdown.png"
               width={"10px"}

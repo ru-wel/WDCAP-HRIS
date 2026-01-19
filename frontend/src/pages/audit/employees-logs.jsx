@@ -315,7 +315,11 @@ function EmployeesLogs() {
       : visibleLogs;
 
     const stamp = new Date().toISOString().slice(0, 10);
-    const ext = fileType === 'XLSX' ? 'xlsx' : 'csv';
+    const upper = String(fileType || 'XLSX').toUpperCase();
+    const isPdf = upper === 'PDF';
+    const isXlsx = upper === 'XLSX';
+    const isCsv = upper === 'CSV';
+    const ext = isPdf ? 'pdf' : isXlsx ? 'xlsx' : 'csv';
     const filename = `audit-employees-${stamp}.${ext}`;
 
     const columns = [
@@ -326,7 +330,35 @@ function EmployeesLogs() {
       { header: 'Changes', value: (log) => formatEmployeeChanges(log) },
     ];
 
-    if (fileType === 'XLSX') {
+    // Audit log record (best-effort)
+    post('/audit-logs/reports', {
+      report_name: 'Audit Employees Report',
+      filename,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      row_count: rowsForExport.length,
+      source: 'audit-employees',
+    }).catch(() => {});
+
+    if (isPdf) {
+      // use PDF exporter
+      import('../../utils/pdf.js').then(({ exportReportToPdf }) => {
+        try {
+          exportReportToPdf({
+            filename,
+            title: 'Audit - Employees',
+            summaryLines: [
+              startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+              `Rows: ${rowsForExport.length}`,
+            ],
+            columns,
+            rows: rowsForExport,
+          });
+        } catch (e) {
+          console.error('Failed to export PDF:', e);
+        }
+      });
+    } else if (isXlsx) {
       exportRowsToXlsx({ filename, sheetName: 'Employees Logs', columns, rows: rowsForExport });
     } else {
       exportRowsToCsv({ filename, columns, rows: rowsForExport });
@@ -395,6 +427,7 @@ function EmployeesLogs() {
           onClose={() => setReportOpen(false)}
           onGenerate={handleGenerateReport}
           enableDateRange={true}
+          fileTypes={["XLSX", "CSV", "PDF"]}
         />
 
         {/* LOADING */}
