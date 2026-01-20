@@ -193,8 +193,8 @@ export const getDashboardSummary = async (user) => {
       pendingLeaveRequestsCount
     };
 
-    // Admin/HR-only dashboard blocks.
-    if (role === ROLES.ADMIN || role === ROLES.HR) {
+    // Executive/HR-only dashboard blocks.
+    if (role === ROLES.EXECUTIVE || role === ROLES.HR) {
       const [employeesCount, departmentsCount, activeProjectsCount, recentAuditLogs, pendingEvaluations] = await Promise.all([
         countRows('employees', { column: 'id', filters: [{ op: 'eq', col: 'employment_status', val: EMPLOYMENT_STATUSES.ACTIVE }] }),
         countRows('departments', { column: 'id' }),

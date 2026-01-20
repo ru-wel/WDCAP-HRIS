@@ -18,7 +18,8 @@ export default function Sidenav({
 
   const isEmployee = role === ROLES.EMPLOYEE;
   const isHr = role === ROLES.HR;
-  const isAdmin = role === ROLES.ADMIN;
+  const isManager = role === ROLES.MANAGER;
+  const isExecutive = role === ROLES.EXECUTIVE;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,7 +46,6 @@ export default function Sidenav({
 
     // support older safari
     if (mq.addEventListener) mq.addEventListener("change", handler);
-    else mq.addListener(handler);
 
     setIsMobile(mq.matches);
 
@@ -178,7 +178,7 @@ export default function Sidenav({
       path: "/employees",
       children: [
         { label: "Onboarding", path: "/employees/onboarding" },
-        ...(isAdmin ? [{ label: "User Accounts", path: "/employees/user-accounts" }] : []),
+        ...(isExecutive || isHr ? [{ label: "User Accounts", path: "/employees/user-accounts" }] : []),
         { label: "201 Files", path: "/employees/201-files" },
         { label: "Departments", path: "/employees/departments" },
       ],

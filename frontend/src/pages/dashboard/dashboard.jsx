@@ -354,7 +354,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
-  const canSeeAuditDashboard = user?.role === ROLES.ADMIN;
+  const canSeeAuditDashboard = user?.role === ROLES.EXECUTIVE || user?.role === ROLES.HR;
   const [isProjectBased, setIsProjectBased] = useState(false);
 
   const rawName = String(user?.name || '').trim();
@@ -363,7 +363,7 @@ function Dashboard() {
   const displayName =
     safeName ||
     [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() ||
-    (user?.role === ROLES.ADMIN ? 'Admin' : user?.role === ROLES.HR ? 'HR' : '') ||
+    (user?.role === ROLES.EXECUTIVE ? 'Executive' : user?.role === ROLES.HR ? 'HR' : user?.role === ROLES.MANAGER ? 'Manager' : '') ||
     user?.email ||
     '';
 

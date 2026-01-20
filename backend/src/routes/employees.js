@@ -11,24 +11,24 @@ const router = express.Router();
 router.use(authenticate);
 
 // create employee
-router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.createEmployeeSchema), employeeController.createEmployee);
+router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeValidation.createEmployeeSchema), employeeController.createEmployee);
 
 // get my employee profile (self)
 router.get('/me', employeeController.getMyEmployeeProfile);
 
 // get all employees
-router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), employeeController.getAllEmployees);
+router.get('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), employeeController.getAllEmployees);
 
 // get employee by user_id
-router.get('/user/:userId', authorizeRoles(ROLES.ADMIN, ROLES.HR), employeeController.getEmployeeByUserId);
+router.get('/user/:userId', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), employeeController.getEmployeeByUserId);
 
 // get employee by id
-router.get('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.employeeIdSchema), employeeController.getEmployeeById);
+router.get('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeValidation.employeeIdSchema), employeeController.getEmployeeById);
 
 // update employee
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(employeeValidation.updateEmployeeSchema), employeeController.updateEmployee);
+router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeValidation.updateEmployeeSchema), employeeController.updateEmployee);
 
-// delete employee - Admin only
-router.delete('/:id', authorizeRoles(ROLES.ADMIN), validate(employeeValidation.employeeIdSchema), employeeController.deleteEmployee);
+// delete employee - Executive only
+router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE), validate(employeeValidation.employeeIdSchema), employeeController.deleteEmployee);
 
 export default router;

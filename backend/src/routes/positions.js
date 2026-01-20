@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // create position
-router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(positionValidation.createPositionSchema), positionController.createPosition);
+router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(positionValidation.createPositionSchema), positionController.createPosition);
 
 // get all positions
 router.get('/', positionController.getAllPositions);
@@ -20,9 +20,9 @@ router.get('/', positionController.getAllPositions);
 router.get('/:id', validate(positionValidation.positionIdSchema), positionController.getPositionById);
 
 // update position
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(positionValidation.updatePositionSchema), positionController.updatePosition);
+router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(positionValidation.updatePositionSchema), positionController.updatePosition);
 
-// delete position - Admin only
-router.delete('/:id', authorizeRoles(ROLES.ADMIN), validate(positionValidation.positionIdSchema), positionController.deletePosition);
+// delete position - Executive and HR
+router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(positionValidation.positionIdSchema), positionController.deletePosition);
 
 export default router;

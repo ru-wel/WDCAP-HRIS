@@ -4,7 +4,7 @@ import { ForbiddenError } from '../utils/errors.js';
 
 const ensureEmployeeAccess = async ({ req, employeeDbId }) => {
   const userRole = req.user?.role;
-  if (userRole === ROLES.ADMIN || userRole === ROLES.HR) return;
+  if (userRole === ROLES.EXECUTIVE || userRole === ROLES.HR || userRole === ROLES.MANAGER) return;
 
   const me = String(req.user?.employee_db_id ?? '');
   if (!me) throw new ForbiddenError('You do not have an associated employee profile');

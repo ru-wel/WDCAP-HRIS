@@ -97,25 +97,25 @@ function TitleManager() {
 
 function DepartmentsRoute() {
   const { user } = useAuth();
-  const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const isEmployee = user?.role === ROLES.EMPLOYEE || user?.role === ROLES.MANAGER;
   return isEmployee ? <EmployeeDepartments /> : <Departments />;
 }
 
 function DepartmentDetailsRoute() {
   const { user } = useAuth();
-  const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const isEmployee = user?.role === ROLES.EMPLOYEE || user?.role === ROLES.MANAGER;
   return isEmployee ? <EmployeeDepartmentMembers /> : <DepartmentEmployees />;
 }
 
 function ProjectsRoute() {
   const { user } = useAuth();
-  const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const isEmployee = user?.role === ROLES.EMPLOYEE || user?.role === ROLES.MANAGER;
   return isEmployee ? <EmployeeProjects /> : <Projects />;
 }
 
 function ProjectDetailsRoute() {
   const { user } = useAuth();
-  const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const isEmployee = user?.role === ROLES.EMPLOYEE || user?.role === ROLES.MANAGER;
   return isEmployee ? <EmployeeProjectMembers /> : <ProjectEmployees />;
 }
 
@@ -134,7 +134,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
 
           <Route path="/calendar" element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <CalendarPage />
               </ProtectedRoute>
             }/>
@@ -142,7 +142,7 @@ function App() {
           <Route
             path="/departments"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <DepartmentsRoute />
               </ProtectedRoute>
             }
@@ -151,7 +151,7 @@ function App() {
           <Route
             path="/evaluation"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <Evaluation />
               </ProtectedRoute>
             }
@@ -159,7 +159,7 @@ function App() {
           <Route
             path="/evaluation/history"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <EvaluationHistory />
               </ProtectedRoute>
             }
@@ -167,7 +167,7 @@ function App() {
           <Route
             path="/evaluation/upload"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]}>
                 <EvaluationUpload />
               </ProtectedRoute>
             }
@@ -176,7 +176,7 @@ function App() {
           <Route
             path="/employees"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <Employees />
               </ProtectedRoute>
             }
@@ -184,7 +184,7 @@ function App() {
           <Route
             path="/employees/onboarding"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <Onboarding />
               </ProtectedRoute>
             }
@@ -192,7 +192,7 @@ function App() {
           <Route
             path="/employees/user-accounts"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <UserAccounts />
               </ProtectedRoute>
             }
@@ -200,7 +200,7 @@ function App() {
           <Route
             path="/employees/201-files"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <OnboardingFiles />
               </ProtectedRoute>
             }
@@ -208,7 +208,7 @@ function App() {
           <Route
             path="/employees/departments"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <DepartmentsRoute />
               </ProtectedRoute>
             }
@@ -216,7 +216,7 @@ function App() {
           <Route
             path="/employees/departments/:departmentId"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <DepartmentDetailsRoute />
               </ProtectedRoute>
             }
@@ -225,7 +225,7 @@ function App() {
           <Route
             path="/projects"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <ProjectsRoute />
               </ProtectedRoute>
             }
@@ -233,7 +233,7 @@ function App() {
           <Route
             path="/projects/:projectId"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <ProjectDetailsRoute />
               </ProtectedRoute>
             }
@@ -247,7 +247,7 @@ function App() {
           <Route
             path="/analytics"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.HR]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <Analytics />
               </ProtectedRoute>
             }
@@ -256,7 +256,7 @@ function App() {
           <Route
             path="/audit/user-accounts"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <UserAccountsLogs />
               </ProtectedRoute>
             }
@@ -264,7 +264,7 @@ function App() {
           <Route
             path="/audit/employees"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <EmployeesLogs />
               </ProtectedRoute>
             }
@@ -272,7 +272,7 @@ function App() {
           <Route
             path="/audit/departments"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <DepartmentsLogs />
               </ProtectedRoute>
             }
@@ -280,7 +280,7 @@ function App() {
           <Route
             path="/audit/projects"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <ProjectsLogs />
               </ProtectedRoute>
             }
@@ -288,7 +288,7 @@ function App() {
           <Route
             path="/audit/leave"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <LeaveLogs />
               </ProtectedRoute>
             }
@@ -296,7 +296,7 @@ function App() {
           <Route
             path="/audit/evaluation"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <EvaluationLogs />
               </ProtectedRoute>
             }
@@ -304,7 +304,7 @@ function App() {
           <Route
             path="/audit/reports"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <ReportsLogs />
               </ProtectedRoute>
             }

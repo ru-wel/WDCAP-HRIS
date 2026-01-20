@@ -117,7 +117,7 @@ function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel })
 export default function Leave() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
-  const canManage = user?.role === ROLES.ADMIN || user?.role === ROLES.HR;
+  const canManage = user?.role === ROLES.EXECUTIVE || user?.role === ROLES.MANAGER;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");

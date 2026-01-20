@@ -57,8 +57,8 @@ export const createEmployeeWithAccountSchema = Joi.object({
   // Password is auto-assigned by the system after employee_id is generated.
   // We accept it for backward compatibility but do not require it.
   password: Joi.string().trim().allow('', null).optional(),
-  role: Joi.string().valid(ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE).default(ROLES.EMPLOYEE).messages({
-    'any.only': 'Role must be either Admin, HR, or Employee'
+  role: Joi.string().valid(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE).default(ROLES.EMPLOYEE).messages({
+    'any.only': 'Role must be Executive, HR, Manager, or Employee'
   }),
 
   // employee info

@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // create department
-router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(departmentValidation.createDepartmentSchema), departmentController.createDepartment);
+router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(departmentValidation.createDepartmentSchema), departmentController.createDepartment);
 
 // get all departments
 router.get('/', departmentController.getAllDepartments);
@@ -23,9 +23,9 @@ router.get('/:id', validate(departmentValidation.departmentIdSchema), department
 router.get('/:id/members', validate(departmentValidation.departmentIdSchema), departmentController.getDepartmentMembers);
 
 // update department
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(departmentValidation.updateDepartmentSchema), departmentController.updateDepartment);
+router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(departmentValidation.updateDepartmentSchema), departmentController.updateDepartment);
 
-// delete department - Admin only
-router.delete('/:id', authorizeRoles(ROLES.ADMIN), validate(departmentValidation.departmentIdSchema), departmentController.deleteDepartment);
+// delete department - Executive and HR
+router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(departmentValidation.departmentIdSchema), departmentController.deleteDepartment);
 
 export default router;

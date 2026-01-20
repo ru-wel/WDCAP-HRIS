@@ -558,7 +558,7 @@ export default function Evaluation() {
 
   const role = user?.role;
   const isEmployee = role === ROLES.EMPLOYEE;
-  const canManage = role === ROLES.ADMIN || role === ROLES.HR;
+  const canManage = role === ROLES.EXECUTIVE || role === ROLES.HR || role === ROLES.MANAGER;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

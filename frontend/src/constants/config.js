@@ -3,8 +3,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localho
 
 // user roles
 export const ROLES = {
-  ADMIN: 'Admin',
+  EXECUTIVE: 'Executive',
   HR: 'HR',
+  MANAGER: 'Manager',
   EMPLOYEE: 'Employee'
 };
 

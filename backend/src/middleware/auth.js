@@ -117,8 +117,8 @@ export const authorizeRoles = (...allowedRoles) => { // parameter for array of a
 // only employee can access their own data
 export const verifyEmployeeOwnership = async (req, res, next) => {
   try {
-    // HR and Admin can access any employee's data
-    if (req.user.role === ROLES.ADMIN || req.user.role === ROLES.HR) {
+    // HR and Executive can access any employee's data
+    if (req.user.role === ROLES.EXECUTIVE || req.user.role === ROLES.HR) {
       return next();
     }
 
@@ -143,8 +143,8 @@ export const verifyEmployeeOwnership = async (req, res, next) => {
 // only employee can access their own checklist data
 export const verifyChecklistOwnership = async (req, res, next) => {
   try {
-    // HR and Admin can access any checklist item
-    if (req.user.role === ROLES.ADMIN || req.user.role === ROLES.HR) {
+    // HR and Executive can access any checklist item
+    if (req.user.role === ROLES.EXECUTIVE || req.user.role === ROLES.HR) {
       return next();
     }
 

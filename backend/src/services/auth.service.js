@@ -192,7 +192,7 @@ const getAuditFallbackActorUserId = async () => {
     const { data } = await supabase
       .from('users')
       .select('id, role')
-      .in('role', [ROLES.ADMIN, ROLES.HR])
+      .in('role', [ROLES.EXECUTIVE, ROLES.HR])
       .order('created_at', { ascending: true })
       .limit(1)
       .maybeSingle();

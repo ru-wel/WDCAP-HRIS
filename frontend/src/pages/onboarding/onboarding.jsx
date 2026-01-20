@@ -283,8 +283,9 @@ function StepTwo({ data, setData }) {
                     <p className='text-sm pb-2'><b>Role:</b></p>
                     <select name="role" className={`input-field ${validFieldClass(isNonEmpty(data.role))} cursor-pointer w-[250px]`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
                         <option value="">Select Role</option>
-                        <option value={ROLES.ADMIN}>{ROLES.ADMIN}</option>
+                        <option value={ROLES.EXECUTIVE}>{ROLES.EXECUTIVE}</option>
                         <option value={ROLES.HR}>{ROLES.HR}</option>
+                        <option value={ROLES.MANAGER}>{ROLES.MANAGER}</option>
                         <option value={ROLES.EMPLOYEE}>{ROLES.EMPLOYEE}</option>
                     </select>
                 </div>

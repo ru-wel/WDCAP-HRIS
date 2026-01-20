@@ -8,31 +8,31 @@ const router = express.Router();
 // all routes require authentication
 router.use(authenticate);
 
-// get all audit logs (Admin / HR only)
+// get all audit logs (Executive / HR only)
 router.get(
   '/',
-  authorizeRoles(ROLES.ADMIN),
+  authorizeRoles(ROLES.EXECUTIVE, ROLES.HR),
   auditLogController.getAllAuditLogs
 );
 
-// get audit logs by table name (Admin / HR only)
+// get audit logs by table name (Executive / HR only)
 router.get(
   '/table/:tableName',
-  authorizeRoles(ROLES.ADMIN),
+  authorizeRoles(ROLES.EXECUTIVE, ROLES.HR),
   auditLogController.getAuditLogsByTable
 );
 
-// get audit logs by user id (Admin / HR only)
+// get audit logs by user id (Executive / HR only)
 router.get(
   '/user/:userId',
-  authorizeRoles(ROLES.ADMIN),
+  authorizeRoles(ROLES.EXECUTIVE, ROLES.HR),
   auditLogController.getAuditLogsByUser
 );
 
 // log a generated report (all authenticated roles)
 router.post(
   '/reports',
-  authorizeRoles(ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE),
+  authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE),
   auditLogController.createReportAuditLog
 );
 

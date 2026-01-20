@@ -17,12 +17,12 @@ router.get('/', onboardingItemController.getAllOnboardingItems);
 router.get('/:id', onboardingItemController.getOnboardingItemById);
 
 // create onboarding item
-router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(onboardingItemValidation.createOnboardingItemSchema), onboardingItemController.createOnboardingItem);
+router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(onboardingItemValidation.createOnboardingItemSchema), onboardingItemController.createOnboardingItem);
 
 // update onboarding item
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(onboardingItemValidation.updateOnboardingItemSchema), onboardingItemController.updateOnboardingItem);
+router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(onboardingItemValidation.updateOnboardingItemSchema), onboardingItemController.updateOnboardingItem);
 
 // delete onboarding item
-router.delete('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), onboardingItemController.deleteOnboardingItem);
+router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), onboardingItemController.deleteOnboardingItem);
 
 export default router;

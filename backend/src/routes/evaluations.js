@@ -27,22 +27,22 @@ router.use(authenticate);
 // Employee: view own evaluations
 router.get('/me', evaluationController.listMyEvaluations);
 
-// Admin/HR: list + schedule management
-router.get('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.listEvaluationsSchema), evaluationController.listEvaluations);
-router.get('/pending', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.pendingDueSchema), evaluationController.listPendingDueEvaluations);
-router.post('/ensure-schedule', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.ensureScheduleSchema), evaluationController.ensureSchedule);
-router.post('/schedule', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.createScheduleSchema), evaluationController.createSchedule);
+// Executive/HR/Manager: list + schedule management
+router.get('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.listEvaluationsSchema), evaluationController.listEvaluations);
+router.get('/pending', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.pendingDueSchema), evaluationController.listPendingDueEvaluations);
+router.post('/ensure-schedule', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(evaluationValidation.ensureScheduleSchema), evaluationController.ensureSchedule);
+router.post('/schedule', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.createScheduleSchema), evaluationController.createSchedule);
 
 // Shared (employee ownership enforced in controller)
 router.get('/employee/:employee_id', validate(evaluationValidation.employeeIdParamSchema), evaluationController.listEvaluationsByEmployee);
 router.get('/:evaluation_id', validate(evaluationValidation.evaluationIdParamSchema), evaluationController.getEvaluationById);
 
-// Admin/HR only: reschedule + submit results
-router.put('/:evaluation_id/schedule', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(evaluationValidation.updateScheduleSchema), evaluationController.updateSchedule);
+// Executive/HR/Manager: reschedule + submit results
+router.put('/:evaluation_id/schedule', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.updateScheduleSchema), evaluationController.updateSchedule);
 
 router.post(
   '/:evaluation_id/submit',
-  authorizeRoles(ROLES.ADMIN, ROLES.HR),
+  authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER),
   upload.fields([
     { name: 'breakdown_file', maxCount: 1 },
     { name: 'final_file', maxCount: 1 },

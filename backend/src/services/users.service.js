@@ -42,12 +42,12 @@ export const getAllUsers = async (requester) => {
 
     let query = supabase.from("users").select(userFields);
 
-    if (requesterRole === ROLES.ADMIN) {
+    if (requesterRole === ROLES.EXECUTIVE) {
       // no additional filtering
     } else if (requesterRole === ROLES.HR) {
-      query = query.in("role", [ROLES.HR, ROLES.EMPLOYEE]);
+      query = query.in("role", [ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]);
     } else {
-      // Employee (or any unexpected role): self-only
+      // Employee/Manager (or any unexpected role): self-only
       query = query.eq("id", requesterId || "__no_user__");
     }
 

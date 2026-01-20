@@ -14,19 +14,19 @@ router.use(authenticate);
 router.get('/types', leaveController.getLeaveTypes);
 
 // Leave requests
-router.get('/requests', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(leaveValidation.listLeaveRequestsSchema), leaveController.listLeaveRequests);
+router.get('/requests', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(leaveValidation.listLeaveRequestsSchema), leaveController.listLeaveRequests);
 router.get('/requests/me', validate(leaveValidation.listMyLeaveRequestsSchema), leaveController.listMyLeaveRequests);
 router.post('/requests', validate(leaveValidation.createLeaveRequestSchema), leaveController.createLeaveRequest);
-router.put('/requests/:leave_request_id/status', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(leaveValidation.updateLeaveRequestStatusSchema), leaveController.updateLeaveRequestStatus);
+router.put('/requests/:leave_request_id/status', authorizeRoles(ROLES.EXECUTIVE, ROLES.MANAGER), validate(leaveValidation.updateLeaveRequestStatusSchema), leaveController.updateLeaveRequestStatus);
 router.put('/requests/:leave_request_id/cancel', authorizeRoles(ROLES.EMPLOYEE), validate(leaveValidation.cancelLeaveRequestSchema), leaveController.cancelLeaveRequest);
 
 // Leave history
-router.get('/history', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(leaveValidation.listLeaveHistorySchema), leaveController.listLeaveHistory);
+router.get('/history', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(leaveValidation.listLeaveHistorySchema), leaveController.listLeaveHistory);
 router.get('/history/me', validate(leaveValidation.listMyLeaveHistorySchema), leaveController.listMyLeaveHistory);
 
 // Leave balances/credits
-router.get('/credits', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(leaveValidation.listLeaveCreditsSchema), leaveController.listLeaveCredits);
+router.get('/credits', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(leaveValidation.listLeaveCreditsSchema), leaveController.listLeaveCredits);
 router.get('/credits/me', validate(leaveValidation.listMyLeaveCreditsSchema), leaveController.listMyLeaveCredits);
-router.put('/credits/:leave_balance_id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(leaveValidation.updateLeaveCreditSchema), leaveController.updateLeaveCredit);
+router.put('/credits/:leave_balance_id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(leaveValidation.updateLeaveCreditSchema), leaveController.updateLeaveCredit);
 
 export default router;

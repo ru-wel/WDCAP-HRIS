@@ -11,7 +11,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // create project
-router.post('/', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(projectValidation.createProjectSchema), projectController.createProject);
+router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(projectValidation.createProjectSchema), projectController.createProject);
 
 // get all projects
 router.get('/', projectController.getAllProjects);
@@ -26,9 +26,9 @@ router.get('/:id', validate(projectValidation.projectIdSchema), projectControlle
 router.get('/:id/members', validate(projectValidation.projectIdSchema), projectController.getProjectMembers);
 
 // update project
-router.put('/:id', authorizeRoles(ROLES.ADMIN, ROLES.HR), validate(projectValidation.updateProjectSchema), projectController.updateProject);
+router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(projectValidation.updateProjectSchema), projectController.updateProject);
 
-// delete project - Admin only
-router.delete('/:id', authorizeRoles(ROLES.ADMIN), validate(projectValidation.projectIdSchema), projectController.deleteProject);
+// delete project - Executive and HR
+router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(projectValidation.projectIdSchema), projectController.deleteProject);
 
 export default router;

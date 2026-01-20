@@ -654,7 +654,7 @@ export const createLeaveRequest = async (payload, user) => {
         const { data: recipients } = await supabase
           .from('users')
           .select('email, role')
-          .in('role', [ROLES.ADMIN, ROLES.HR]);
+          .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
         to = (recipients || []).map((r) => r.email).filter(Boolean);
       }
 
@@ -957,7 +957,7 @@ export const cancelLeaveRequest = async (leaveRequestId, user) => {
         const { data: recipients } = await supabase
           .from('users')
           .select('email, role')
-          .in('role', [ROLES.ADMIN, ROLES.HR]);
+          .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
         toHr = (recipients || []).map((r) => r.email).filter(Boolean);
       }
 

@@ -223,7 +223,7 @@ function ProjectEmployees() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const canEditProject = user?.role === ROLES.ADMIN || user?.role === ROLES.HR;
+  const canEditProject = user?.role === ROLES.EXECUTIVE || user?.role === ROLES.HR;
 
   const [locationEditOpen, setLocationEditOpen] = useState(false);
   const [locationInput, setLocationInput] = useState("");
