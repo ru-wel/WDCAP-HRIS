@@ -263,7 +263,7 @@ function ProjectEmployees() {
     return draftSortOrder ? 1 : 0;
   }, [draftSortOrder]);
 
-  const clearDraftFilters = () => {
+  const clearFilters = () => {
     setDraftSortOrder("name_az");
   };
 
@@ -663,16 +663,15 @@ function ProjectEmployees() {
                     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
                       <button
                         type="button"
-                        onClick={clearDraftFilters}
-                        className="text-[#C60000] font-semibold hover:underline"
+                        onClick={clearFilters}
+                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
                       >
                         Clear all
                       </button>
-
                       <button
                         type="button"
                         onClick={applyDraftFilters}
-                        className="bg-[#C60000] text-white px-6 py-2 rounded-md hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out"
+                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
                       >
                         Apply
                       </button>
