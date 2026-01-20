@@ -10,7 +10,7 @@ import { exportRowsToXlsx } from '../../utils/excel.js';
 import ReportModal from '../../components/report-modal.jsx';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
 import { exportEmployeeDetailsToPdf, exportReportToPdf } from '../../utils/pdf.js';
-
+import DropDownFilter from '../../components/dropdownfilter.jsx';
 
 function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, departments, positions}){
     const [data, setData] = useState(employee || {});
@@ -108,7 +108,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 
     useEffect(() => {
         if (!isOpen || !employee) return;
-        // Always start in view mode when the modal opens.
         setData(employee);
         setInitialData(employee);
         setEditData(false);
@@ -130,8 +129,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                 if (!photoDoc?.id) return;
                 if (cancelled) return;
 
-                // Fetch bytes via authenticated download, then create a local object URL for <img>.
-                // This works for both Supabase signed URLs and Google Drive streaming.
                 const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
                 const apiBase = base.endsWith('/api') ? base : `${base}/api`;
                 const token = localStorage.getItem('access_token');
@@ -164,7 +161,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                 if (cancelled) return;
                 setPhotoPreviewUrl(objectUrl);
             } catch {
-                // Photo is best-effort.
+                // best-effort
             } finally {
                 if (!cancelled) setPhotoLoading(false);
             }
@@ -174,11 +171,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
         return () => {
             cancelled = true;
             if (objectUrl) {
-                try {
-                    URL.revokeObjectURL(objectUrl);
-                } catch {
-                    // ignore
-                }
+                try { URL.revokeObjectURL(objectUrl); } catch {}
             }
         };
     }, [isOpen, employee?.id]);
@@ -207,11 +200,9 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
         }
     };
 
-    {/* WHEN EDITING THE VALUE */}
     const handleChange = (a) => {
         const { name, value } = a.target;
 
-        // reset position when department changes
         if (name === 'department_id') {
             setData(prev => ({...prev, [name]: value, position_id: ''}));
         } else {
@@ -325,9 +316,7 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
     if (!isOpen || !employee) return null;
 
     return(
-
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
-
             <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:w-180 md:w-140 w-80 lg:h-140 md:h-120 h-100 overflow-y-auto border border-gray-300" data-lenis-prevent>
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
                     <h1 className='text-white text-sm sm:text-base lg:text-lg font-medium'>Information of {data.employee_id} {data.last_name}</h1>
@@ -439,7 +428,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                     <h2 className='lg:text-md text:sm text-left pb-4'><b>Personal Information</b></h2>
 
                     <div className="md:grid md:grid-cols-2 gap-4 items-center text-left"> 
-                        
                         <div className="items-center md:pb-0 pb-3">
                             <p className='lg:text-sm text-xs pb-1.5'><b>Birth Date:</b></p>
                             <input type="date" name="birth_date" value={data.birth_date} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field cursor-pointer disabled:cursor-default" max = {maxDate} />
@@ -465,12 +453,8 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
                         <p className='lg:text-sm text-xs pb-1.5'><b>Emergency Contact No.:</b></p>
                         <input type="tel" name="emergency_contact_number" value = {data.emergency_contact_number} disabled = {!editData || loading} onChange={handleChange} className="modal-employees-field" maxLength="11" onInput={(e) => {e.target.value = e.target.value.replace(/[^0-9]/g, ''); }} />
                     </div>
-                    
-
-                    {/* BUTTONS FOR CREATING AND SAVING CHANGES AS WELL AS DELETING THE RECORD */}
 
                     <div className="pt-7">
-
                         {!editData ? (
                             <div className="flex justify-end gap-4">
                                 <button
@@ -530,7 +514,6 @@ function ModalEmployees({isOpen, onClose, employee, onSave, onDelete, department
 }
 
 function Employees(){
-    
     const [isModalOpen, setModalOpen] = useState(false);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [employees, setEmployees] = useState([]);
@@ -542,6 +525,9 @@ function Employees(){
     const [reportOpen, setReportOpen] = useState(false);
     const [personnelTypeFilter, setPersonnelTypeFilter] = useState('ALL');
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+    const [draftPersonnelType, setDraftPersonnelType] = useState(personnelTypeFilter);
+
     const filtersWrapRef = useRef(null);
 
     useEffect(() => {
@@ -573,8 +559,6 @@ function Employees(){
             { value: 'hire_date_oldest', label: 'Hire Date: Oldest' },
             { value: 'personnel_type_az', label: 'Personnel Type: A–Z' },
             { value: 'personnel_type_za', label: 'Personnel Type: Z–A' },
-            /*{ value: 'personnel_type_employee_first', label: 'Personnel: Employee First' },
-            { value: 'personnel_type_project_first', label: 'Personnel: Project-Based First' },*/
         ],
         []
     );
@@ -614,24 +598,6 @@ function Employees(){
 
     const activeFilterCount = activeFilterChips.length;
 
-    const Chip = ({ selected, children, onClick, title }) => (
-        <button
-            type="button"
-            title={title}
-            onClick={onClick}
-            className={
-                selected
-                    ? 'bg-[#990100] text-white border border-[#990100]'
-                    : 'bg-white text-[#990100] border border-[#990100] hover:bg-[#990100]/10'
-            }
-            style={{ borderRadius: 9999 }}
-        >
-            <span className="px-3 py-1.5 text-xs sm:text-sm font-medium inline-flex items-center">
-                {children}
-            </span>
-        </button>
-    );
-
     const formatYearsOfService = useCallback((hireDateValue) => {
         const raw = String(hireDateValue || '').trim();
         if (!raw) return '—';
@@ -644,7 +610,6 @@ function Employees(){
         let years = now.getFullYear() - d.getFullYear();
         let months = now.getMonth() - d.getMonth();
 
-        // If the current day is before the hire day, treat the month as not yet completed.
         if (now.getDate() < d.getDate()) months -= 1;
         if (months < 0) {
             years -= 1;
@@ -730,8 +695,6 @@ function Employees(){
         return sorted;
     }, [employees, searchTerm, sortOrder, personnelTypeFilter]);
 
-    //REACT-PAGINATE
-
     const [itemOffset, setItemOffset] = useState(0);
     const itemsPerPage = 15;
     const endOffset = itemOffset + itemsPerPage;
@@ -748,7 +711,6 @@ function Employees(){
     useEffect(() => {
         setItemOffset(0);
     }, [searchTerm, sortOrder, personnelTypeFilter, employees.length]);
-    
 
     const fetchEmployees = useCallback(async () => {
         try {
@@ -787,7 +749,6 @@ function Employees(){
         }
     }, []);
 
-    // fetch employees from backend
     useEffect(() => {
         fetchEmployees();
     }, [fetchEmployees]);
@@ -798,15 +759,6 @@ function Employees(){
     };
 
     const handleClose = () => setModalOpen(false);
-    const toggleRowSelected = (empId) => {
-        if (!empId) return;
-        setSelectedEmployeeIds((prev) => {
-            const next = { ...prev };
-            if (next[empId]) delete next[empId];
-            else next[empId] = true;
-            return next;
-        });
-    };
 
     const setPageSelected = (rows, selected) => {
         setSelectedEmployeeIds((prev) => {
@@ -821,19 +773,6 @@ function Employees(){
     };
 
     const selectedCount = useMemo(() => Object.keys(selectedEmployeeIds).length, [selectedEmployeeIds]);
-
-    const StatusBadge = ({ value }) => {
-        const v = String(value || '').toLowerCase();
-        const isActive = v === String(EMPLOYMENT_STATUSES.ACTIVE || 'active').toLowerCase();
-        const classes = isActive
-            ? 'text-[#198C19] bg-[#198C19]/20'
-            : 'text-[#C60000] bg-[#C60000]/20';
-        return (
-            <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${classes}`}>
-                {value || 'N/A'}
-            </span>
-        );
-    };
 
     const updateEmployeeData = (updated) => {
         setEmployees(prev =>
@@ -911,8 +850,6 @@ function Employees(){
         const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
         const filename = `employees-report-${cat}-${stamp}.${ext}`;
 
-        // Export first to keep it a direct user gesture (avoids browser download blocking).
-        // Audit logging is best-effort and should not block the download.
         post('/audit-logs/reports', {
             report_name: 'Employees Report',
             filename,
@@ -920,9 +857,7 @@ function Employees(){
             end_date: endDate || null,
             row_count: rowsForExport.length,
             source: 'employees',
-        }).catch(() => {
-            // best-effort only
-        });
+        }).catch(() => {});
 
         const columns = [
             { header: 'Employee ID', value: (r) => r.employee_id },
@@ -952,9 +887,7 @@ function Employees(){
                 ],
                 columns,
                 rows: rowsForExport,
-            }).catch(() => {
-                // best-effort only
-            });
+            }).catch(() => {});
         } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
@@ -963,22 +896,18 @@ function Employees(){
 
         setReportOpen(false);
     };
-    
+
     return(
         <div className="">
             <Navbar />
 
             <div className="p-7 lg:mx-18 md:mx-10">
-
-                {/* HEADER */}
                 <div className="md:flex justify-between items-center w-full">
-
                     <div className="">
                         <h1 className='lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5'>Employees</h1>
                     </div>
                     
                     <div className="flex items-center justify-end md:gap-4 gap-3">
-
                         <div className="relative" ref={filtersWrapRef}>
                             <button
                                 type="button"
@@ -997,83 +926,70 @@ function Employees(){
                             </button>
 
                             {filtersOpen ? (
-                                <div className="absolute right-0 mt-2 w-[min(92vw,520px)] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
+                                <div className="absolute right-0 mt-2 w-[min(92vw,520px)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                                <div className="flex flex-col max-h-[80vh]">
+                                    <div className="flex-1 overflow-y-auto p-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="text-sm font-semibold text-[#990100]">Filters</p>
-                                            <p className="text-xs text-gray-500">Tap chips to apply.</p>
+                                        <p className="text-sm font-semibold text-[#990100]">Filters</p>
+                                        <p className="text-xs text-gray-500">Tap chips to apply.</p>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={resetFilters}
-                                                className="text-xs font-medium text-[#990100] hover:underline"
-                                            >
-                                                Reset
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFiltersOpen(false)}
-                                                className="text-xs font-medium text-gray-500 hover:text-gray-700"
-                                                aria-label="Close filters"
-                                            >
-                                                ✕
-                                            </button>
-                                        </div>
-                                    </div>
 
-
-                                    <div className="mt-4">
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {personnelTypeOptions.map((opt) => (
-                                                <Chip
-                                                    key={opt.value}
-                                                    selected={personnelTypeFilter === opt.value}
-                                                    onClick={() => setPersonnelTypeFilter(opt.value)}
-                                                    title={opt.label}
-                                                >
-                                                    {opt.label}
-                                                </Chip>
-                                            ))}
-                                        </div>
+                                        <button
+                                        type="button"
+                                        onClick={() => setFiltersOpen(false)}
+                                        className="text-xs font-medium text-gray-500 hover:text-gray-700"
+                                        >
+                                        Close
+                                        </button>
                                     </div>
 
                                     <div className="mt-4">
-                                        <p className="text-xs font-semibold text-gray-700 mb-2">Sort By</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {sortOptions.map((opt) => (
-                                                <Chip
-                                                    key={opt.value}
-                                                    selected={sortOrder === opt.value}
-                                                    onClick={() => setSortOrder(opt.value)}
-                                                    title={opt.label}
-                                                >
-                                                    {opt.label}
-                                                </Chip>
-                                            ))}
-                                        </div>
+                                        <DropDownFilter
+                                        label="Personnel Type"
+                                        value={draftPersonnelType}
+                                        onChange={setDraftPersonnelType}
+                                        options={personnelTypeOptions}
+                                        />
                                     </div>
 
-                                    {activeFilterChips.length ? (
-                                        <div className="mt-4 pt-4 border-t border-gray-200">
-                                            <p className="text-xs font-semibold text-gray-700 mb-2">Active</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {activeFilterChips.map((c) => (
-                                                    <button
-                                                        key={c.key}
-                                                        type="button"
-                                                        onClick={c.onClear}
-                                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#990100]/10 text-[#990100] text-xs font-medium border border-[#990100]/30 hover:bg-[#990100]/15"
-                                                        title="Click to clear"
-                                                    >
-                                                        {c.label}
-                                                        <span className="text-sm leading-none">×</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ) : null}
+                                    <div className="mt-4">
+                                        <DropDownFilter
+                                        label="Sort By"
+                                        value={draftSortOrder}
+                                        onChange={setDraftSortOrder}
+                                        options={sortOptions}
+                                        />
+                                    </div>
+                                    </div>
+
+                                    {/* FOOTER (Clear all + Apply) */}
+                                    <div className="bg-white border-t border-gray-200 px-5 py-4 flex items-center justify-between">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                        setDraftPersonnelType('ALL');
+                                        setDraftSortOrder('name_az');
+                                        }}
+                                        className="text-[#990100] text-sm font-semibold hover:underline cursor-pointer"
+                                    >
+                                        Clear all
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                        // Apply draft -> real filters
+                                        setPersonnelTypeFilter(draftPersonnelType);
+                                        setSortOrder(draftSortOrder);
+                                        setFiltersOpen(false);
+                                        }}
+                                        className="bg-[#990100] text-white text-sm font-semibold px-6 py-2 rounded-lg shadow-md hover:bg-[#b01212] hover:scale-[1.02] transition cursor-pointer"
+                                    >
+                                        Apply
+                                    </button>
+                                    </div>
+                                </div>
                                 </div>
                             ) : null}
                         </div>
@@ -1088,13 +1004,14 @@ function Employees(){
                                 className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
                             />
                             <button type="submit" className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer">
-                               <img src = "icons/red-search.png" className="lg:w-5 lg:h-5 w-4 h-4 items-center" type="submit" />
+                               <img src="icons/red-search.png" className="lg:w-5 lg:h-5 w-4 h-4 items-center" type="submit" />
                             </button>
                         </div>
-
                     </div> 
                 </div>
+
                 <hr className='text-[#990100] mt-6 '/>
+
                 {selectedCount ? (
                     <div className="mt-4 text-sm text-gray-700">
                         Selected: <b>{selectedCount}</b>
@@ -1119,29 +1036,16 @@ function Employees(){
                     </button>
                 </div>
 
-                {/* TABLE */}
-                
-
                 <div className="div-table">
                     <table className="table-style">
                         <thead className="thead-style">
                             <tr>
-                                {/*<th className="th-style rounded-tl-lg rounded-bl-lg w-10">
-                                    <input
-                                        type="checkbox"
-                                        aria-label="Select all on page"
-                                        checked={currentEmp.length > 0 && currentEmp.every((r) => !!selectedEmployeeIds[r.id])}
-                                        onChange={(e) => setPageSelected(currentEmp, e.target.checked)}
-                                    />
-                                </th>*/}
                                 <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                                 <th className="th-style">Name</th>
-                                {/*<th className="th-style">Department</th>*/}
                                 <th className="th-style">Position</th>
                                 <th className="th-style">Hire Date</th>
                                 <th className="th-style">Years of Service</th>
                                 <th className="th-style">Personnel Type</th>
-                                {/*<th className="th-style hidden md:table-cell">Status</th>*/}
                                 <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
                             </tr>
                         </thead>
@@ -1155,23 +1059,12 @@ function Employees(){
                             ) : (
                                 currentEmp.map((row) => (
                                    <tr key={row.id} className="tr-style">
-                                        {/*<td className="td-style">
-                                            <input
-                                                type="checkbox"
-                                                aria-label={`Select ${row.employee_id}`}
-                                                checked={!!selectedEmployeeIds[row.id]}
-                                                onChange={() => toggleRowSelected(row.id)}
-                                            />
-                                        </td>*/}
                                         <td className="td-style font-medium">
                                             {row.employee_id}
                                         </td>
                                         <td className="td-style">
                                             {row.first_name} {row.last_name}
                                         </td>
-                                        {/*<td className="td-style">
-                                            {row.department_name || 'N/A'}
-                                        </td>*/}
                                         <td className="td-style">
                                             {row.position_title}
                                         </td>
@@ -1184,9 +1077,6 @@ function Employees(){
                                         <td className="td-style">
                                             {row.personnel_type}
                                         </td>
-                                        {/*<td className="td-style">
-                                            <StatusBadge value={row.employment_status} />
-                                        </td>*/}
                                         <td className="td-style">
                                             <button
                                                 className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
@@ -1200,6 +1090,7 @@ function Employees(){
                             )}
                         </tbody>
                     </table>
+
                     <ModalEmployees
                         isOpen={isModalOpen}
                         onClose={handleClose}

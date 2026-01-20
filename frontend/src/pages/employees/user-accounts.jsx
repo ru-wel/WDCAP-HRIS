@@ -15,12 +15,12 @@ function ChipButton({ active, children, onClick, title }) {
       type="button"
       title={title}
       onClick={onClick}
-      className={[
-        "px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer",
-        active
-          ? "bg-[#990100] text-white border-[#990100]"
-          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
-      ].join(" ")}
+    className={[
+    "px-4 py-2 rounded-full text-sm font-medium border transition cursor-pointer",
+    active
+        ? "bg-[#990100] text-white border-[#990100] shadow-sm"
+        : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/5",
+    ].join(" ")}
     >
       {children}
     </button>
@@ -694,77 +694,105 @@ function UserAccounts (){
                                 <span className="text-xs">▾</span>
                             </button>
 
-                          {filtersOpen ? (
-                            <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-sm font-semibold text-[#111827]">Filters</p>
-                                <button
-                                  type="button"
-                                  onClick={() => setFiltersOpen(false)}
-                                  className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
-                                >
-                                  Close
-                                </button>
-                              </div>
+                            {filtersOpen ? (
+                            <div className="absolute right-0 mt-2 w-[min(92vw,520px)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                                <div className="flex flex-col max-h-[80vh]">
+                                
+                                {/* ===== CONTENT (scrollable) ===== */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    
+                                    {/* Header */}
+                                    <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-[#990100]">Filters</p>
+                                        <p className="text-xs text-gray-500">Tap chips to apply.</p>
+                                    </div>
 
-                              <div className="space-y-4">
-                                {/* SORT */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    {sortOptions.map((opt) => (
-                                      <ChipButton
-                                        key={opt.value}
-                                        active={sortOrder === opt.value}
-                                        onClick={() => setSortOrder(opt.value)}
-                                        title={opt.label}
-                                      >
-                                        {opt.label}
-                                      </ChipButton>
-                                    ))}
-                                  </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFiltersOpen(false)}
+                                        className="text-xs font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    >
+                                        Close
+                                    </button>
+                                    </div>
+
+                                    {/* SORT */}
+                                    <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {sortOptions.map((opt) => (
+                                        <ChipButton
+                                            key={opt.value}
+                                            active={sortOrder === opt.value}
+                                            onClick={() => setSortOrder(opt.value)}
+                                            title={opt.label}
+                                        >
+                                            {opt.label}
+                                        </ChipButton>
+                                        ))}
+                                    </div>
+                                    </div>
+
+                                    {/* ROLE */}
+                                    <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-2">Role</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <ChipButton active={roleFilter === 'all'} onClick={() => setRoleFilter('all')}>
+                                        All
+                                        </ChipButton>
+                                        <ChipButton active={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')}>
+                                        Admin
+                                        </ChipButton>
+                                        <ChipButton active={roleFilter === 'hr'} onClick={() => setRoleFilter('hr')}>
+                                        HR
+                                        </ChipButton>
+                                        <ChipButton active={roleFilter === 'employee'} onClick={() => setRoleFilter('employee')}>
+                                        Employee
+                                        </ChipButton>
+                                    </div>
+                                    </div>
+
+                                    {/* STATUS */}
+                                    <div>
+                                    <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <ChipButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>
+                                        All
+                                        </ChipButton>
+                                        <ChipButton active={statusFilter === 'active'} onClick={() => setStatusFilter('active')}>
+                                        Active
+                                        </ChipButton>
+                                        <ChipButton active={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')}>
+                                        Inactive
+                                        </ChipButton>
+                                    </div>
+                                    </div>
+
                                 </div>
 
-                                {/* ROLE */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Role</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <ChipButton active={roleFilter === 'all'} onClick={() => setRoleFilter('all')}>All</ChipButton>
-                                    <ChipButton active={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')}>Admin</ChipButton>
-                                    <ChipButton active={roleFilter === 'hr'} onClick={() => setRoleFilter('hr')}>HR</ChipButton>
-                                    <ChipButton active={roleFilter === 'employee'} onClick={() => setRoleFilter('employee')}>Employee</ChipButton>
-                                  </div>
-                                </div>
-
-                                {/* STATUS */}
-                                <div>
-                                  <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
-                                  <div className="flex flex-wrap gap-2">
-                                    <ChipButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</ChipButton>
-                                    <ChipButton active={statusFilter === 'active'} onClick={() => setStatusFilter('active')}>Active</ChipButton>
-                                    <ChipButton active={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')}>Inactive</ChipButton>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-2">
-                                  <button
+                                {/* ===== FOOTER (sticky) ===== */}
+                                <div className="bg-white border-t border-gray-200 px-5 py-4 flex items-center justify-between">
+                                    <button
                                     type="button"
                                     onClick={clearFilters}
-                                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                                  >
+                                    className="text-[#990100] text-sm font-semibold hover:underline cursor-pointer"
+                                    >
                                     Clear all
-                                  </button>
-                                  <button
+                                    </button>
+
+                                    <button
                                     type="button"
                                     onClick={() => setFiltersOpen(false)}
-                                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                                  >
+                                    className="bg-[#990100] text-white text-sm font-semibold px-6 py-2 rounded-lg shadow-md hover:bg-[#b01212] hover:scale-[1.02] transition cursor-pointer"
+                                    >
                                     Apply
-                                  </button>
+                                    </button>
                                 </div>
-                              </div>
+
+                                </div>
                             </div>
-                          ) : null}
+                            ) : null}
                         </div>
 
                         {/* SEARCH */}
