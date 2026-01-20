@@ -1,54 +1,68 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import DropDownFilter from "../../components/dropdownfilter";
 import { get, post, del, put } from "../../services/api.js";
-import ReactPaginate from 'react-paginate';
+import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { compareDate, compareText } from "../../utils/sort";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
 
-function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existingEmployeeIds, onNotify }) {
+function AddEmployeeModal({
+  isOpen,
+  onClose,
+  projectId,
+  onEmployeeAdded,
+  existingEmployeeIds,
+  onNotify,
+}) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedEmployee, setSelectedEmployee] = React.useState(null);
   const [availableEmployees, setAvailableEmployees] = React.useState([]);
-  const [assignmentDate, setAssignmentDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [assignmentDate, setAssignmentDate] = React.useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [status, setStatus] = React.useState("Active");
   const [loading, setLoading] = React.useState(false);
   const [addLoading, setAddLoading] = React.useState(false);
 
-  // fetch available employees when modal opens
   React.useEffect(() => {
     if (isOpen) {
       fetchAvailableEmployees();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, projectId]);
 
   const fetchAvailableEmployees = async () => {
     try {
       setLoading(true);
-      const response = await get('/employees');
+      const response = await get("/employees");
 
       if (response.success) {
         setAvailableEmployees(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch employees:', error);
-      onNotify?.({ title: 'Error', message: error?.message || 'Failed to load employees' });
+      console.error("Failed to fetch employees:", error);
+      onNotify?.({
+        title: "Error",
+        message: error?.message || "Failed to load employees",
+      });
     } finally {
       setLoading(false);
     }
   };
-  
-  const assignedIds = existingEmployeeIds instanceof Set ? existingEmployeeIds : new Set(existingEmployeeIds || []);
+
+  const assignedIds =
+    existingEmployeeIds instanceof Set
+      ? existingEmployeeIds
+      : new Set(existingEmployeeIds || []);
 
   const filteredEmployees = searchTerm
     ? availableEmployees
         .filter((emp) => !assignedIds.has(emp.id))
         .filter((emp) => {
-        const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-        return fullName.includes(searchTerm.toLowerCase());
-      })
+          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+          return fullName.includes(searchTerm.toLowerCase());
+        })
     : [];
 
   const handleSelectEmployee = (employee) => {
@@ -62,29 +76,31 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
     try {
       setAddLoading(true);
 
-      const response = await post('/projectassignments', {
+      const response = await post("/projectassignments", {
         project_id: projectId,
         employee_id: selectedEmployee.id,
         assignment_date: assignmentDate,
-        status: status
+        status: status,
       });
 
       if (response.success) {
         onNotify?.({
-          title: 'Success',
+          title: "Success",
           message: `${selectedEmployee.first_name} ${selectedEmployee.last_name} added to project successfully!`,
         });
-        onEmployeeAdded(); // Refresh the employee list
-        // Reset form
+        onEmployeeAdded();
         setSelectedEmployee(null);
         setSearchTerm("");
-        setAssignmentDate(new Date().toISOString().split('T')[0]);
+        setAssignmentDate(new Date().toISOString().split("T")[0]);
         setStatus("Active");
         onClose();
       }
     } catch (error) {
-      console.error('Failed to add employee:', error);
-      onNotify?.({ title: 'Error', message: error?.message || 'Failed to add employee to project' });
+      console.error("Failed to add employee:", error);
+      onNotify?.({
+        title: "Error",
+        message: error?.message || "Failed to add employee to project",
+      });
     } finally {
       setAddLoading(false);
     }
@@ -94,8 +110,10 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
-    <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto" data-lenis-prevent>
-
+      <div
+        className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto"
+        data-lenis-prevent
+      >
         <div className="bg-[#990100] rounded-lg px-5 py-3 flex justify-between items-center">
           <h1 className="text-white text-lg font-semibold">Add New Employee</h1>
           <button
@@ -109,7 +127,7 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
         <div className="mt-6 flex flex-col items-center gap-3">
           {loading ? (
             <p className="text-gray-600">Loading employees...</p>
-          ): (
+          ) : (
             <>
               <div className="flex items-center gap-3 w-full max-w-md">
                 <input
@@ -130,12 +148,15 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
                         : "bg-gray-300 text-gray-600 cursor-not-allowed"
                     }`}
                 >
-                  {addLoading ? 'Adding ...' : 'Add'}
+                  {addLoading ? "Adding ..." : "Add"}
                 </button>
               </div>
 
               {filteredEmployees.length > 0 && (
-                <div className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto" data-lenis-prevent>
+                <div
+                  className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto"
+                  data-lenis-prevent
+                >
                   {filteredEmployees.map((employee) => (
                     <button
                       key={employee.id}
@@ -143,7 +164,8 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
                       onClick={() => handleSelectEmployee(employee)}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F5F5]"
                     >
-                      {employee.first_name} {employee.last_name} ({employee.employee_id})
+                      {employee.first_name} {employee.last_name} (
+                      {employee.employee_id})
                     </button>
                   ))}
                 </div>
@@ -190,7 +212,6 @@ function AddEmployeeModal({ isOpen, onClose, projectId, onEmployeeAdded, existin
               )}
             </>
           )}
-
         </div>
       </div>
     </div>
@@ -208,30 +229,85 @@ function ProjectEmployees() {
   const [locationInput, setLocationInput] = useState("");
   const [locationSaving, setLocationSaving] = useState(false);
 
-  // state for project employees
   const [projectEmployees, setProjectEmployees] = useState([]);
   const [projectDetails, setProjectDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('name_az');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("name_az");
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "employee_id_asc", label: "Employee ID: Ascending" },
+      { value: "employee_id_desc", label: "Employee ID: Descending" },
+      { value: "name_az", label: "Name: A - Z" },
+      { value: "name_za", label: "Name: Z - A" },
+      { value: "position_az", label: "Position: A - Z" },
+      { value: "position_za", label: "Position: Z - A" },
+      { value: "personnel_type_az", label: "Personnel Type: A - Z" },
+      { value: "personnel_type_za", label: "Personnel Type: Z - A" },
+      { value: "date_added_newest", label: "Date Added: Newest" },
+      { value: "date_added_oldest", label: "Date Added: Oldest" },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearDraftFilters = () => {
+    setDraftSortOrder("name_az");
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const openAddModal = () => setAddModalOpen(true);
+  const closeAddModal = () => setAddModalOpen(false);
 
   const formatDate = (value) => {
-    if (!value) return '—';
+    if (!value) return "—";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return String(value);
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    return d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
-  const closeAddModal = () => setAddModalOpen(false);
+
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: 'Confirmation',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
+    title: "Confirmation",
+    message: "",
+    confirmText: "OK",
+    cancelText: "Cancel",
     onConfirm: null,
   });
 
@@ -240,10 +316,10 @@ function ProjectEmployees() {
   const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
     setConfirmState({
       open: true,
-      title: title || 'Confirmation',
-      message: message || '',
-      confirmText: confirmText || 'OK',
-      cancelText: cancelText || 'Cancel',
+      title: title || "Confirmation",
+      message: message || "",
+      confirmText: confirmText || "OK",
+      cancelText: cancelText || "Cancel",
       onConfirm: onConfirm || null,
     });
   };
@@ -283,16 +359,17 @@ function ProjectEmployees() {
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+        const wasConfirmation =
+          snapshot.cancelText != null && snapshot.cancelText !== "";
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null };
         }
 
         return {
           open: true,
-          title: 'Success',
-          message: 'Action completed successfully.',
-          confirmText: 'OK',
+          title: "Success",
+          message: "Action completed successfully.",
+          confirmText: "OK",
           cancelText: null,
           onConfirm: null,
         };
@@ -300,9 +377,9 @@ function ProjectEmployees() {
     } catch (e) {
       setConfirmState({
         open: true,
-        title: 'Error',
-        message: e?.message || 'Action failed.',
-        confirmText: 'OK',
+        title: "Error",
+        message: e?.message || "Action failed.",
+        confirmText: "OK",
         cancelText: null,
         onConfirm: null,
       });
@@ -313,15 +390,14 @@ function ProjectEmployees() {
 
   const openInfo = ({ title, message }) => {
     openConfirm({
-      title: title || 'Info',
-      message: message || '',
-      confirmText: 'OK',
+      title: title || "Info",
+      message: message || "",
+      confirmText: "OK",
       cancelText: null,
       onConfirm: null,
     });
   };
 
-  // fetch project details
   const fetchProjectDetails = async () => {
     try {
       const response = await get(`/projects/${projectId}`);
@@ -330,7 +406,7 @@ function ProjectEmployees() {
         setProjectDetails(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch project details:', error);
+      console.error("Failed to fetch project details:", error);
     }
   };
 
@@ -351,17 +427,27 @@ function ProjectEmployees() {
       onConfirm: async () => {
         try {
           setLocationSaving(true);
-          const resp = await put(`/projects/${projectId}`, { site_location: next });
+          const resp = await put(`/projects/${projectId}`, {
+            site_location: next,
+          });
           if (resp?.success) {
-            setProjectDetails((prev) => (prev ? { ...prev, site_location: next } : prev));
+            setProjectDetails((prev) =>
+              prev ? { ...prev, site_location: next } : prev
+            );
             setLocationEditOpen(false);
             openInfo({ title: "Success", message: "Project location updated." });
           } else {
-            openInfo({ title: "Error", message: resp?.message || "Failed to update project location" });
+            openInfo({
+              title: "Error",
+              message: resp?.message || "Failed to update project location",
+            });
           }
         } catch (e) {
           console.error("Failed to update project location:", e);
-          openInfo({ title: "Error", message: e?.message || "Failed to update project location" });
+          openInfo({
+            title: "Error",
+            message: e?.message || "Failed to update project location",
+          });
         } finally {
           setLocationSaving(false);
         }
@@ -369,41 +455,48 @@ function ProjectEmployees() {
     });
   };
 
-  // fetch project employees
   const fetchProjectEmployees = async () => {
     try {
-        setLoading(true);
-        const response = await get(`/projectassignments/by-project/${projectId}`);
+      setLoading(true);
+      const response = await get(`/projectassignments/by-project/${projectId}`);
 
-        if (response.success) {
-          setProjectEmployees(response.data);
-        }
-
-      } catch (error) {
-        console.error('Failed to fetch project employees:', error);
-        setError(error.message || 'Failed to load employees');
-      } finally { setLoading(false); }
-    };
+      if (response.success) {
+        setProjectEmployees(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch project employees:", error);
+      setError(error.message || "Failed to load employees");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteEmployee = async (assignmentId) => {
     openConfirm({
-      title: 'Remove employee',
-      message: 'Are you sure you want to remove this employee from the project?',
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Remove employee",
+      message: "Are you sure you want to remove this employee from the project?",
+      confirmText: "OK",
+      cancelText: "Cancel",
       onConfirm: async () => {
         try {
           const response = await del(`/projectassignments/${assignmentId}`);
 
           if (response.success) {
-            openInfo({ title: 'Success', message: 'Employee removed from project successfully!' });
+            openInfo({
+              title: "Success",
+              message: "Employee removed from project successfully!",
+            });
             fetchProjectEmployees();
           }
         } catch (error) {
-          console.error('Failed to remove employee:', error);
-          openInfo({ title: 'Error', message: error?.message || 'Failed to remove employee from project' });
+          console.error("Failed to remove employee:", error);
+          openInfo({
+            title: "Error",
+            message:
+              error?.message || "Failed to remove employee from project",
+          });
         }
-      }
+      },
     });
   };
 
@@ -412,22 +505,23 @@ function ProjectEmployees() {
       fetchProjectDetails();
       fetchProjectEmployees();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 
-  //REACT-PAGINATE
-  
+  // REACT-PAGINATE
   const [itemOffset, setItemOffset] = useState(0);
   const itemsPerPage = 15;
+
   const filteredAssignments = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     const filtered = !q
       ? projectEmployees
       : projectEmployees.filter((a) => {
           const emp = a.employees || {};
-          const name = `${emp.first_name || ''} ${emp.last_name || ''}`.toLowerCase();
-          const empId = String(emp.employee_id || '').toLowerCase();
-          const position = String(emp.positions?.position_title || '').toLowerCase();
-          const type = String(emp.personnel_type || '').toLowerCase();
+          const name = `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
+          const empId = String(emp.employee_id || "").toLowerCase();
+          const position = String(emp.positions?.position_title || "").toLowerCase();
+          const type = String(emp.personnel_type || "").toLowerCase();
           return (
             name.includes(q) ||
             empId.includes(q) ||
@@ -440,59 +534,70 @@ function ProjectEmployees() {
       const aEmp = a.employees || {};
       const bEmp = b.employees || {};
 
-      const aNameKey = `${aEmp.last_name || ''} ${aEmp.first_name || ''}`.trim();
-      const bNameKey = `${bEmp.last_name || ''} ${bEmp.first_name || ''}`.trim();
+      const aNameKey = `${aEmp.last_name || ""} ${aEmp.first_name || ""}`.trim();
+      const bNameKey = `${bEmp.last_name || ""} ${bEmp.first_name || ""}`.trim();
 
       switch (sortOrder) {
-        case 'employee_id_asc':
+        case "employee_id_asc":
           return compareText(aEmp.employee_id, bEmp.employee_id);
-        case 'employee_id_desc':
+        case "employee_id_desc":
           return compareText(bEmp.employee_id, aEmp.employee_id);
-        case 'name_za':
+        case "name_za":
           return compareText(bNameKey, aNameKey);
-        case 'position_az':
-          return compareText(aEmp.positions?.position_title, bEmp.positions?.position_title);
-        case 'position_za':
-          return compareText(bEmp.positions?.position_title, aEmp.positions?.position_title);
-        case 'personnel_type_az':
+        case "position_az":
+          return compareText(
+            aEmp.positions?.position_title,
+            bEmp.positions?.position_title
+          );
+        case "position_za":
+          return compareText(
+            bEmp.positions?.position_title,
+            aEmp.positions?.position_title
+          );
+        case "personnel_type_az":
           return compareText(aEmp.personnel_type, bEmp.personnel_type);
-        case 'personnel_type_za':
+        case "personnel_type_za":
           return compareText(bEmp.personnel_type, aEmp.personnel_type);
-        case 'date_added_newest':
+        case "date_added_newest":
           return compareDate(b.assignment_date, a.assignment_date);
-        case 'date_added_oldest':
+        case "date_added_oldest":
           return compareDate(a.assignment_date, b.assignment_date);
-        case 'name_az':
+        case "name_az":
         default:
           return compareText(aNameKey, bNameKey);
       }
     });
+
     return sorted;
   }, [projectEmployees, searchTerm, sortOrder]);
 
   const endOffset = itemOffset + itemsPerPage;
   const currentProjEmp = filteredAssignments.slice(itemOffset, endOffset);
-  const assignedEmployeeIds = new Set(projectEmployees.map((a) => a.employee_id).filter(Boolean));
+  const assignedEmployeeIds = new Set(
+    projectEmployees.map((a) => a.employee_id).filter(Boolean)
+  );
+
   const pageCount = Math.ceil(filteredAssignments.length / itemsPerPage);
   const multiPages = pageCount > 1;
-  
+
   const handlePageClick = (event) => {
-    const newOffset = (event.selected * itemsPerPage);
+    const newOffset = event.selected * itemsPerPage;
     setItemOffset(newOffset);
   };
 
   useEffect(() => {
     setItemOffset(0);
   }, [searchTerm, sortOrder, projectEmployees.length]);
-      
 
   return (
     <div>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="flex justify-between items-center">
-
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/projects')} className="text-[#990100] hover:text-[#CC0000] transition-colors flex items-center gap-1 text-sm font-medium cursor-pointer">
+            <button
+              onClick={() => navigate("/projects")}
+              className="text-[#990100] hover:text-[#CC0000] transition-colors flex items-center gap-1 text-sm font-medium cursor-pointer"
+            >
               <span className="text-xl">←</span>Back
             </button>
             <span className="text-gray-300">|</span>
@@ -502,22 +607,80 @@ function ProjectEmployees() {
           </div>
 
           <div className="flex items-center gap-3">
-            <DropDownFilter
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={[
-                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                { value: 'name_az', label: 'Name: A - Z' },
-                { value: 'name_za', label: 'Name: Z - A' },
-                { value: 'position_az', label: 'Position: A - Z' },
-                { value: 'position_za', label: 'Position: Z - A' },
-                { value: 'personnel_type_az', label: 'Personnel Type: A - Z' },
-                { value: 'personnel_type_za', label: 'Personnel Type: Z - A' },
-                { value: 'date_added_newest', label: 'Date Added: Newest' },
-                { value: 'date_added_oldest', label: 'Date Added: Oldest' },
-              ]}
-            />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+
+              {filtersOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">
+                        Filters
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Sort
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftSortOrder === opt.value}
+                            onClick={() => setDraftSortOrder(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button
+                        type="button"
+                        onClick={clearDraftFilters}
+                        className="text-[#C60000] font-semibold hover:underline"
+                      >
+                        Clear all
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={applyDraftFilters}
+                        className="bg-[#C60000] text-white px-6 py-2 rounded-md hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
@@ -541,41 +704,69 @@ function ProjectEmployees() {
         <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-lg p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-[#990100]">Project Overview</h2>
+              <h2 className="text-lg font-semibold text-[#990100]">
+                Project Overview
+              </h2>
 
               <div className="mt-3 rounded-md border border-gray-200 overflow-hidden">
                 <div className="bg-[#EDEDED] px-4 py-3">
                   <p className="text-center font-bold text-gray-900 tracking-wide uppercase">
                     {(projectDetails?.project_name || `Project #${projectId}`) +
-                      (projectDetails?.site_location ? `, ${projectDetails.site_location}` : '')}
+                      (projectDetails?.site_location
+                        ? `, ${projectDetails.site_location}`
+                        : "")}
                   </p>
                 </div>
 
                 <div className="px-4 py-4">
                   <div className="grid grid-cols-1 sm:grid-cols-[180px_12px_1fr] gap-y-2 text-sm text-gray-900">
-                    <div className="font-semibold uppercase tracking-wide">Project ID</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Project ID
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{projectDetails?.project_code || projectId || '—'}</div>
+                    <div className="break-words">
+                      {projectDetails?.project_code || projectId || "—"}
+                    </div>
 
-                    <div className="font-semibold uppercase tracking-wide">Project Name</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Project Name
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{projectDetails?.project_name || '—'}</div>
+                    <div className="break-words">
+                      {projectDetails?.project_name || "—"}
+                    </div>
 
-                    <div className="font-semibold uppercase tracking-wide">Status</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Status
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{projectDetails?.status || '—'}</div>
+                    <div className="break-words">
+                      {projectDetails?.status || "—"}
+                    </div>
 
-                    <div className="font-semibold uppercase tracking-wide">Date Started</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Date Started
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{formatDate(projectDetails?.start_date)}</div>
+                    <div className="break-words">
+                      {formatDate(projectDetails?.start_date)}
+                    </div>
 
-                    <div className="font-semibold uppercase tracking-wide">Contract Completion Date</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Contract Completion Date
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{formatDate(projectDetails?.end_date)}</div>
+                    <div className="break-words">
+                      {formatDate(projectDetails?.end_date)}
+                    </div>
 
-                    <div className="font-semibold uppercase tracking-wide">Location</div>
+                    <div className="font-semibold uppercase tracking-wide">
+                      Location
+                    </div>
                     <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">{projectDetails?.site_location || '—'}</div>
+                    <div className="break-words">
+                      {projectDetails?.site_location || "—"}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -623,7 +814,7 @@ function ProjectEmployees() {
             </div>
           )}
         </div>
-        
+
         {loading && (
           <div className="flex justify-center items-center py-20">
             <p className="text-gray-600">Loading employees...</p>
@@ -635,7 +826,7 @@ function ProjectEmployees() {
             <p>{error}</p>
             <button
               onClick={() => {
-                setError('');
+                setError("");
                 fetchProjectDetails();
                 fetchProjectEmployees();
               }}
@@ -647,45 +838,54 @@ function ProjectEmployees() {
         )}
 
         {!loading && !error && (
-          <>
-            <div className="flex justify-end mt-5">
-              <button
-                onClick={openAddModal}
-                className="generate-report-button"
-              >
-                Add Employee
-              </button>
-            </div>
-          </>
+          <div className="flex justify-end mt-5">
+            <button onClick={openAddModal} className="generate-report-button">
+              Add Employee
+            </button>
+          </div>
         )}
 
         <div className="div-table">
           <table className="table-style">
             <thead className="thead-style">
               <tr>
-                <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
+                <th className="th-style rounded-tl-lg rounded-bl-lg">
+                  Employee ID
+                </th>
                 <th className="th-style">Name</th>
                 <th className="th-style">Position</th>
                 <th className="th-style">Personnel Type</th>
                 <th className="th-style">Date Added</th>
-                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">
+                  Actions
+                </th>
               </tr>
             </thead>
 
             <tbody className="tbody-style">
               {currentProjEmp.map((assignment) => (
-                <tr
-                  key={assignment.id}
-                  className="tr-style"
-                >
-                  <td className="td-style font-medium">{assignment.employees?.employee_id || 'N/A'}</td>
-                  <td className="td-style">{assignment.employees?.first_name + " " + assignment.employees?.last_name || 'Unknown'}</td>
-                  <td className="td-style">{assignment.employees?.positions?.position_title || 'N/A'}</td>
-                  <td className="td-style">{assignment.employees?.personnel_type}</td>
+                <tr key={assignment.id} className="tr-style">
+                  <td className="td-style font-medium">
+                    {assignment.employees?.employee_id || "N/A"}
+                  </td>
+                  <td className="td-style">
+                    {(assignment.employees?.first_name || "") +
+                      " " +
+                      (assignment.employees?.last_name || "") || "Unknown"}
+                  </td>
+                  <td className="td-style">
+                    {assignment.employees?.positions?.position_title || "N/A"}
+                  </td>
+                  <td className="td-style">
+                    {assignment.employees?.personnel_type}
+                  </td>
                   <td className="td-style">
                     {assignment.assignment_date
-                      ? new Date(assignment.assignment_date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })
-                      : 'N/A'}
+                      ? new Date(assignment.assignment_date).toLocaleDateString(
+                          "en-US",
+                          { month: "2-digit", day: "2-digit", year: "2-digit" }
+                        )
+                      : "N/A"}
                   </td>
 
                   <td className="td-style">
@@ -704,10 +904,11 @@ function ProjectEmployees() {
           <br />
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
-              Showing <b>{currentProjEmp.length}</b> of <b>{filteredAssignments.length}</b>
+              Showing <b>{currentProjEmp.length}</b> of{" "}
+              <b>{filteredAssignments.length}</b>
             </p>
 
-            <div className=" ">
+            <div>
               {multiPages && (
                 <ReactPaginate
                   breakLabel="..."
@@ -721,9 +922,17 @@ function ProjectEmployees() {
                   marginPagesDisplayed={2}
                   pageClassName=""
                   pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                  previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                  previousClassName={
+                    multiPages
+                      ? "cursor-pointer hover:text-gray-500 hover:underline"
+                      : "text-gray-400 cursor-not-allowed pointer-events-none"
+                  }
                   previousLinkClassName="page-link"
-                  nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                  nextClassName={
+                    multiPages
+                      ? "cursor-pointer hover:text-gray-500 hover:underline"
+                      : "text-gray-400 cursor-not-allowed pointer-events-none"
+                  }
                   nextLinkClassName="page-link"
                   breakClassName="page-item"
                   breakLinkClassName="page-link"
@@ -736,20 +945,20 @@ function ProjectEmployees() {
         </div>
       </div>
 
-        <AddEmployeeModal
-          isOpen={isAddModalOpen}
-          onClose={closeAddModal}
-          projectId={projectId}
-          onEmployeeAdded={fetchProjectEmployees}
-          existingEmployeeIds={assignedEmployeeIds}
-          onNotify={openInfo}
-        />
+      <AddEmployeeModal
+        isOpen={isAddModalOpen}
+        onClose={closeAddModal}
+        projectId={projectId}
+        onEmployeeAdded={fetchProjectEmployees}
+        existingEmployeeIds={assignedEmployeeIds}
+        onNotify={openInfo}
+      />
 
       <ConfirmModal
         open={confirmState.open}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
         onCancel={confirmBusy ? undefined : closeConfirm}

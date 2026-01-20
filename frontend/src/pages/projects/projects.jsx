@@ -272,8 +272,6 @@ function Projects() {
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
   const [showUpdateActions, setShowUpdateActions] = useState(false);
-
-  // ✅ Employees-style filter UI state (design only)
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
@@ -821,7 +819,6 @@ function Projects() {
           </h1>
 
           <div className="flex items=center justify-end md:gap-4 gap-3">
-            {/* ✅ Employees-style Filters (same size: 320px) */}
             <div className="relative">
               <button
                 type="button"
@@ -844,7 +841,6 @@ function Projects() {
               {filtersOpen && (
                 <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                   <div className="flex flex-col">
-                    {/* HEADER */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-bold text-[#990100]">Filters</p>
                       <button
@@ -857,7 +853,6 @@ function Projects() {
                       </button>
                     </div>
 
-                    {/* CONTENT */}
                     <div className="px-4 py-3">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
                       <div className="flex flex-wrap gap-2">
@@ -873,7 +868,6 @@ function Projects() {
                       </div>
                     </div>
 
-                    {/* FOOTER */}
                     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
                       <button
                         type="button"
