@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import DropDownFilter from "../../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { get, post, put } from "../../services/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
-import { compareDate, compareText } from '../../utils/sort.js';
+import { compareDate, compareText } from "../../utils/sort.js";
 
 const formatDateShort = (iso) => {
   if (!iso) return "";
@@ -39,7 +38,6 @@ const formatRange = (startIso, endIso, mode) => {
   return `${start} to ${end}`;
 };
 
-/** ✅ UPDATED: header matches your sample design */
 function ModalShell({ open, title, onClose, children }) {
   useEffect(() => {
     if (!open) return;
@@ -199,9 +197,8 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
     const fetchTypes = async () => {
       try {
         setLoadingTypes(true);
-        // Load employee profile for eligibility checks
         try {
-          const prof = await get('/employees/me');
+          const prof = await get("/employees/me");
           setEmployeeProfile(prof?.data || null);
         } catch {
           setEmployeeProfile(null);
@@ -211,7 +208,6 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
         const types = Array.isArray(resp?.data) ? resp.data : [];
         setLeaveTypes(types);
 
-        // Preselect the first enabled type
         const firstEnabled = types.find((t) => isTypeEnabled(t));
         setLeaveTypeId(firstEnabled ? String(firstEnabled.leave_type_id ?? "") : "");
       } catch (e) {
@@ -227,29 +223,28 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
   }, [open]);
 
   const isTypeEnabled = (t) => {
-    const name = String(t?.leave_type_name || '').toLowerCase();
-    const hireDateIso = String(employeeProfile?.hire_date || '').slice(0, 10);
-    const personnelType = String(employeeProfile?.personnel_type || '').toLowerCase();
+    const name = String(t?.leave_type_name || "").toLowerCase();
+    const hireDateIso = String(employeeProfile?.hire_date || "").slice(0, 10);
+    const personnelType = String(employeeProfile?.personnel_type || "").toLowerCase();
 
-    let probationary = personnelType === 'probationary';
+    let probationary = personnelType === "probationary";
 
     if (probationary && hireDateIso) {
       try {
         const hired = new Date(`${hireDateIso}T00:00:00`);
         const now = new Date();
-        const diffDays = Math.floor((now.getTime() - hired.getTime()) / (24 * 60 * 60 * 1000));
-        if (diffDays >= 365) probationary = false; // treat as regularized after 1 year
+        const diffDays = Math.floor(
+          (now.getTime() - hired.getTime()) / (24 * 60 * 60 * 1000)
+        );
+        if (diffDays >= 365) probationary = false;
       } catch {
-        // ignore parse errors; fall back to personnel type only
       }
     }
 
     if (probationary) {
-      // Only Leave Without Pay allowed during probationary period
-      return name.includes('without pay');
+      return name.includes("without pay");
     }
 
-    // Regular / others: allow all
     return true;
   };
 
@@ -267,26 +262,31 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
 
     try {
       setSubmitting(true);
-      await post("/leave/requests", {
-        leave_type_id: toApiLeaveTypeId(leaveTypeId),
-        start_date: startDate,
-        end_date: endDate,
-        reason: reason || null,
-      }, true, 60000);
+      await post(
+        "/leave/requests",
+        {
+          leave_type_id: toApiLeaveTypeId(leaveTypeId),
+          start_date: startDate,
+          end_date: endDate,
+          reason: reason || null,
+        },
+        true,
+        60000
+      );
 
       onCreated?.();
       onClose?.();
       onNotify?.({
-        type: 'success',
-        title: 'Success',
-        message: 'Leave request submitted successfully.',
+        type: "success",
+        title: "Success",
+        message: "Leave request submitted successfully.",
       });
     } catch (e) {
       console.error("Failed to create leave request:", e);
       onNotify?.({
-        type: 'error',
-        title: 'Error',
-        message: e?.message || 'Failed to create leave request',
+        type: "error",
+        title: "Error",
+        message: e?.message || "Failed to create leave request",
       });
     } finally {
       setSubmitting(false);
@@ -322,24 +322,27 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
           </select>
 
           {(() => {
-            const type = String(employeeProfile?.personnel_type || '').toLowerCase();
-            const hire = String(employeeProfile?.hire_date || '').slice(0, 10);
+            const type = String(employeeProfile?.personnel_type || "").toLowerCase();
+            const hire = String(employeeProfile?.hire_date || "").slice(0, 10);
             let show = false;
-            if (type === 'probationary') {
+            if (type === "probationary") {
               show = true;
               if (hire) {
                 try {
                   const d = new Date(`${hire}T00:00:00`);
-                  const diff = Math.floor((Date.now() - d.getTime()) / (24 * 60 * 60 * 1000));
+                  const diff = Math.floor(
+                    (Date.now() - d.getTime()) / (24 * 60 * 60 * 1000)
+                  );
                   if (diff >= 365) show = false;
                 } catch {
-                  // ignore
+                  //
                 }
               }
             }
             return show ? (
               <div className="col-span-2 text-xs text-gray-600">
-                Only <b>Leave Without Pay</b> is available during the probationary period.
+                Only <b>Leave Without Pay</b> is available during the probationary
+                period.
               </div>
             ) : null;
           })()}
@@ -394,10 +397,10 @@ function LeaveRequest() {
 
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: '',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
+    title: "",
+    message: "",
+    confirmText: "OK",
+    cancelText: "Cancel",
     onConfirm: null,
     onCancel: null,
     confirmDisabled: false,
@@ -406,10 +409,10 @@ function LeaveRequest() {
   const [confirmBusy, setConfirmBusy] = useState(false);
 
   const openConfirm = ({
-    title = '',
-    message = '',
-    confirmText = 'OK',
-    cancelText = 'Cancel',
+    title = "",
+    message = "",
+    confirmText = "OK",
+    cancelText = "Cancel",
     onConfirm,
     onCancel,
     confirmDisabled = false,
@@ -427,7 +430,12 @@ function LeaveRequest() {
   };
 
   const closeConfirm = () => {
-    setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null, onCancel: null }));
+    setConfirmState((prev) => ({
+      ...prev,
+      open: false,
+      onConfirm: null,
+      onCancel: null,
+    }));
   };
 
   const handleConfirm = async () => {
@@ -463,16 +471,17 @@ function LeaveRequest() {
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+        const wasConfirmation =
+          snapshot.cancelText != null && snapshot.cancelText !== "";
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null, onCancel: null };
         }
 
         return {
           open: true,
-          title: 'Success',
-          message: 'Action completed successfully.',
-          confirmText: 'OK',
+          title: "Success",
+          message: "Action completed successfully.",
+          confirmText: "OK",
           cancelText: null,
           onConfirm: null,
           onCancel: null,
@@ -482,9 +491,9 @@ function LeaveRequest() {
     } catch (e) {
       setConfirmState({
         open: true,
-        title: 'Error',
-        message: e?.message || 'Action failed.',
-        confirmText: 'OK',
+        title: "Error",
+        message: e?.message || "Action failed.",
+        confirmText: "OK",
         cancelText: null,
         onConfirm: null,
         onCancel: null,
@@ -496,11 +505,11 @@ function LeaveRequest() {
   };
 
   const notify = ({ type, title, message } = {}) => {
-    const isError = String(type || '').toLowerCase() === 'error';
+    const isError = String(type || "").toLowerCase() === "error";
     openConfirm({
-      title: title || (isError ? 'Error' : 'Success'),
-      message: message || '',
-      confirmText: 'OK',
+      title: title || (isError ? "Error" : "Success"),
+      message: message || "",
+      confirmText: "OK",
       cancelText: null,
       onConfirm: null,
       onCancel: null,
@@ -510,10 +519,63 @@ function LeaveRequest() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState('requested_newest');
+  const [sortOrder, setSortOrder] = useState("requested_newest");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "employee_id_asc", label: "Employee ID: Ascending" },
+      { value: "employee_id_desc", label: "Employee ID: Descending" },
+      { value: "name_az", label: "Name: A - Z" },
+      { value: "name_za", label: "Name: Z - A" },
+      { value: "leave_type_az", label: "Leave Type: A - Z" },
+      { value: "leave_type_za", label: "Leave Type: Z - A" },
+      { value: "leave_date_newest", label: "Date: Newest" },
+      { value: "leave_date_oldest", label: "Date: Oldest" },
+      { value: "status_az", label: "Status: A - Z" },
+      { value: "status_za", label: "Status: Z - A" },
+      { value: "requested_newest", label: "Date Requested: Newest" },
+      { value: "requested_oldest", label: "Date Requested: Oldest" },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearFilters = () => {
+    setDraftSortOrder("requested_newest");
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -556,7 +618,6 @@ function LeaveRequest() {
 
   useEffect(() => {
     fetchRequests();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
 
   const filteredRows = useMemo(() => {
@@ -572,29 +633,29 @@ function LeaveRequest() {
   const visibleRows = useMemo(() => {
     const sorted = [...filteredRows].sort((a, b) => {
       switch (sortOrder) {
-        case 'employee_id_asc':
+        case "employee_id_asc":
           return compareText(a?.id, b?.id);
-        case 'employee_id_desc':
+        case "employee_id_desc":
           return compareText(b?.id, a?.id);
-        case 'name_az':
+        case "name_az":
           return compareText(a?.name, b?.name);
-        case 'name_za':
+        case "name_za":
           return compareText(b?.name, a?.name);
-        case 'leave_type_az':
+        case "leave_type_az":
           return compareText(a?.type, b?.type);
-        case 'leave_type_za':
+        case "leave_type_za":
           return compareText(b?.type, a?.type);
-        case 'leave_date_newest':
+        case "leave_date_newest":
           return compareDate(b?.startDateRaw, a?.startDateRaw);
-        case 'leave_date_oldest':
+        case "leave_date_oldest":
           return compareDate(a?.startDateRaw, b?.startDateRaw);
-        case 'status_az':
+        case "status_az":
           return compareText(a?.status, b?.status);
-        case 'status_za':
+        case "status_za":
           return compareText(b?.status, a?.status);
-        case 'requested_newest':
+        case "requested_newest":
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
-        case 'requested_oldest':
+        case "requested_oldest":
           return (a?.createdAtTs || 0) - (b?.createdAtTs || 0);
         default:
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
@@ -626,10 +687,11 @@ function LeaveRequest() {
       try {
         const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
         const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
-        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return { days: null, points: null };
-        const diffMs = e.setHours(0,0,0,0) - s.setHours(0,0,0,0);
+        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()))
+          return { days: null, points: null };
+        const diffMs = e.setHours(0, 0, 0, 0) - s.setHours(0, 0, 0, 0);
         const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
-        const points = days; // default: 1 point per day
+        const points = days;
         return { days, points };
       } catch (err) {
         return { days: null, points: null };
@@ -639,10 +701,16 @@ function LeaveRequest() {
     const meta = computeDaysAndPoints(row);
 
     openConfirm({
-      title: 'Confirm update',
-      message: `Update leave request status to ${String(nextStatus || '').toUpperCase()}?${meta.days ? `\n\nThis request is for ${meta.days} day${meta.days !== 1 ? 's' : ''} (estimated ${meta.points} point${meta.points !== 1 ? 's' : ''}).` : ''}`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Confirm update",
+      message: `Update leave request status to ${String(nextStatus || "").toUpperCase()}?${
+        meta.days
+          ? `\n\nThis request is for ${meta.days} day${
+              meta.days !== 1 ? "s" : ""
+            } (estimated ${meta.points} point${meta.points !== 1 ? "s" : ""}).`
+          : ""
+      }`,
+      confirmText: "OK",
+      cancelText: "Cancel",
       onCancel: closeConfirm,
       onConfirm: async () => {
         try {
@@ -652,18 +720,18 @@ function LeaveRequest() {
           await fetchRequests();
           setDetailsOpen(false);
           openConfirm({
-            title: 'Success',
-            message: 'Leave request updated successfully.',
-            confirmText: 'OK',
+            title: "Success",
+            message: "Leave request updated successfully.",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
         } catch (e) {
-          console.error('Failed to update leave request:', e);
+          console.error("Failed to update leave request:", e);
           openConfirm({
-            title: 'Error',
-            message: e?.message || 'Failed to update leave request',
-            confirmText: 'OK',
+            title: "Error",
+            message: e?.message || "Failed to update leave request",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
@@ -678,8 +746,9 @@ function LeaveRequest() {
       try {
         const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
         const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
-        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return { days: null, points: null };
-        const diffMs = e.setHours(0,0,0,0) - s.setHours(0,0,0,0);
+        if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()))
+          return { days: null, points: null };
+        const diffMs = e.setHours(0, 0, 0, 0) - s.setHours(0, 0, 0, 0);
         const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
         const points = days;
         return { days, points };
@@ -691,10 +760,16 @@ function LeaveRequest() {
     const meta = computeDaysAndPoints(row);
 
     openConfirm({
-      title: 'Confirm cancel',
-      message: `Cancel this leave request?${meta.days ? `\n\nThis request is for ${meta.days} day${meta.days !== 1 ? 's' : ''} (estimated ${meta.points} point${meta.points !== 1 ? 's' : ''}).` : ''}`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Confirm cancel",
+      message: `Cancel this leave request?${
+        meta.days
+          ? `\n\nThis request is for ${meta.days} day${
+              meta.days !== 1 ? "s" : ""
+            } (estimated ${meta.points} point${meta.points !== 1 ? "s" : ""}).`
+          : ""
+      }`,
+      confirmText: "OK",
+      cancelText: "Cancel",
       onCancel: closeConfirm,
       onConfirm: async () => {
         try {
@@ -702,18 +777,18 @@ function LeaveRequest() {
           await fetchRequests();
           setDetailsOpen(false);
           openConfirm({
-            title: 'Success',
-            message: 'Leave request cancelled successfully.',
-            confirmText: 'OK',
+            title: "Success",
+            message: "Leave request cancelled successfully.",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
         } catch (e) {
-          console.error('Failed to cancel leave request:', e);
+          console.error("Failed to cancel leave request:", e);
           openConfirm({
-            title: 'Error',
-            message: e?.message || 'Failed to cancel leave request',
-            confirmText: 'OK',
+            title: "Error",
+            message: e?.message || "Failed to cancel leave request",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
@@ -740,24 +815,78 @@ function LeaveRequest() {
                 Request Leave
               </button>
             )}
-            <DropDownFilter
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={[
-                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                { value: 'name_az', label: 'Name: A - Z' },
-                { value: 'name_za', label: 'Name: Z - A' },
-                { value: 'leave_type_az', label: 'Leave Type: A - Z' },
-                { value: 'leave_type_za', label: 'Leave Type: Z - A' },
-                { value: 'leave_date_newest', label: 'Date: Newest' },
-                { value: 'leave_date_oldest', label: 'Date: Oldest' },
-                { value: 'status_az', label: 'Status: A - Z' },
-                { value: 'status_za', label: 'Status: Z - A' },
-                { value: 'requested_newest', label: 'Date Requested: Newest' },
-                { value: 'requested_oldest', label: 'Date Requested: Oldest' },
-              ]}
-            />
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+
+              {filtersOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">Filters</p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Sort
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftSortOrder === opt.value}
+                            onClick={() => setDraftSortOrder(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyDraftFilters}
+                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
@@ -804,34 +933,29 @@ function LeaveRequest() {
             <tbody className="tbody-style">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan="6"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     Loading...
                   </td>
                 </tr>
               ) : filteredRows.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td
+                    colSpan="6"
+                    className="px-6 py-8 text-center text-gray-500"
+                  >
                     No leave requests found
                   </td>
                 </tr>
               ) : (
                 currentRows.map((row) => (
-                  <tr
-                    key={row.leave_request_id || row.id}
-                    className="tr-style"
-                  >
-                    <td className="td-style font-medium">
-                      {row.id}
-                    </td>
-                    <td className="td-style">
-                      {row.name}
-                    </td>
-                    <td className="td-style">
-                      {row.type}
-                    </td>
-                    <td className="td-style">
-                      {row.date}
-                    </td>
+                  <tr key={row.leave_request_id || row.id} className="tr-style">
+                    <td className="td-style font-medium">{row.id}</td>
+                    <td className="td-style">{row.name}</td>
+                    <td className="td-style">{row.type}</td>
+                    <td className="td-style">{row.date}</td>
                     <td className="td-style">
                       <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
                         {row.status}
@@ -856,9 +980,15 @@ function LeaveRequest() {
           </table>
           <br />
           <div className="lg:flex items-center lg:justify-between">
-            <p className='lg:text-md text-sm'>
-              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> request{visibleRows.length !== 1 ? 's' : ''}
-              {pageCount ? <> | Page <b>{currentPage}</b> of <b>{pageCount}</b></> : null}
+            <p className="lg:text-md text-sm">
+              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b>{" "}
+              request{visibleRows.length !== 1 ? "s" : ""}
+              {pageCount ? (
+                <>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                </>
+              ) : null}
             </p>
 
             {pageCount > 0 && (
@@ -874,9 +1004,17 @@ function LeaveRequest() {
                 marginPagesDisplayed={2}
                 pageClassName=""
                 pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                previousClassName={
+                  multiPages
+                    ? "cursor-pointer hover:text-gray-500 hover:underline"
+                    : "text-gray-400 cursor-not-allowed pointer-events-none"
+                }
                 previousLinkClassName="page-link"
-                nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+                nextClassName={
+                  multiPages
+                    ? "cursor-pointer hover:text-gray-500 hover:underline"
+                    : "text-gray-400 cursor-not-allowed pointer-events-none"
+                }
                 nextLinkClassName="page-link"
                 breakClassName="page-item"
                 breakLinkClassName="page-link"
@@ -894,7 +1032,10 @@ function LeaveRequest() {
         onClose={() => setDetailsOpen(false)}
         canUpdate={!isEmployee}
         onUpdate={handleUpdate}
-        canCancel={isEmployee && String(selectedRow?.status || '').toUpperCase() === 'PENDING'}
+        canCancel={
+          isEmployee &&
+          String(selectedRow?.status || "").toUpperCase() === "PENDING"
+        }
         onCancelRequest={handleCancel}
       />
 
@@ -909,10 +1050,10 @@ function LeaveRequest() {
         open={confirmState.open}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
-        onCancel={confirmBusy ? undefined : (confirmState.onCancel || closeConfirm)}
+        onCancel={confirmBusy ? undefined : confirmState.onCancel || closeConfirm}
         confirmDisabled={Boolean(confirmState.confirmDisabled || confirmBusy)}
       />
     </div>

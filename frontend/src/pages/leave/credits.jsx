@@ -1,15 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import DropDownFilter from "../../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { get, put, post } from "../../services/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
-import { compareNumber, compareText } from '../../utils/sort.js';
-import { exportRowsToCsv } from '../../utils/csv.js';
-import { exportRowsToXlsx } from '../../utils/excel.js';
+import { compareNumber, compareText } from "../../utils/sort.js";
+import { exportRowsToCsv } from "../../utils/csv.js";
+import { exportRowsToXlsx } from "../../utils/excel.js";
 
-/** ✅ UPDATED: header matches your boxed red header design */
 function ModalShell({ open, title, onClose, children }) {
   useEffect(() => {
     if (!open) return;
@@ -30,11 +28,8 @@ function ModalShell({ open, title, onClose, children }) {
         aria-hidden="true"
       />
 
-      {/* MODAL CONTAINER */}
       <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
-        {/* IMPORTANT: padding wrapper so header is NOT full-bleed */}
         <div className="p-4 sm:p-6">
-          {/* HEADER (boxed like Employees) */}
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
             <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
               {title}
@@ -50,7 +45,6 @@ function ModalShell({ open, title, onClose, children }) {
             </button>
           </div>
 
-          {/* CONTENT */}
           <div className="pt-6">{children}</div>
         </div>
       </div>
@@ -58,7 +52,14 @@ function ModalShell({ open, title, onClose, children }) {
   );
 }
 
-function LeaveCreditsDetailsModal({ open, row, details, onClose, canEdit, onSave }) {
+function LeaveCreditsDetailsModal({
+  open,
+  row,
+  details,
+  onClose,
+  canEdit,
+  onSave,
+}) {
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState([]);
 
@@ -69,7 +70,7 @@ function LeaveCreditsDetailsModal({ open, row, details, onClose, canEdit, onSave
     setDraft(
       items.map((it) => ({
         leave_balance_id: it.leave_balance_id,
-        leave_type_name: it.leave_type_name || 'Leave',
+        leave_type_name: it.leave_type_name || "Leave",
         current_balance: it.current_balance ?? 0,
         used_leave: it.used_leave ?? 0,
       }))
@@ -150,10 +151,13 @@ function LeaveCreditsDetailsModal({ open, row, details, onClose, canEdit, onSave
                       min={0}
                       className="border border-gray-300 rounded-md px-3 py-1 text-sm w-28 text-center"
                       value={
-                        draft.find((d) => d.leave_balance_id === lt.leave_balance_id)
-                          ?.current_balance ?? lt.credit
+                        draft.find(
+                          (d) => d.leave_balance_id === lt.leave_balance_id
+                        )?.current_balance ?? lt.credit
                       }
-                      onChange={(e) => onChangeCredit(lt.leave_balance_id, e.target.value)}
+                      onChange={(e) =>
+                        onChangeCredit(lt.leave_balance_id, e.target.value)
+                      }
                     />
                   ) : (
                     <span className="font-medium">{lt.credit}</span>
@@ -247,7 +251,11 @@ function GenerateReportModal({ open, onClose, onGenerate }) {
   }, [open]);
 
   return (
-    <ModalShell open={open} title="Generate Report - Leave Credits" onClose={onClose}>
+    <ModalShell
+      open={open}
+      title="Generate Report - Leave Credits"
+      onClose={onClose}
+    >
       <div className="space-y-5">
         <div className="grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
           <div className="text-right font-semibold">Starting Date:</div>
@@ -298,20 +306,20 @@ export default function LeaveCredits() {
 
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: '',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
+    title: "",
+    message: "",
+    confirmText: "OK",
+    cancelText: "Cancel",
     onConfirm: null,
     onCancel: null,
     confirmDisabled: false,
   });
 
   const openConfirm = ({
-    title = '',
-    message = '',
-    confirmText = 'OK',
-    cancelText = 'Cancel',
+    title = "",
+    message = "",
+    confirmText = "OK",
+    cancelText = "Cancel",
     onConfirm,
     onCancel,
     confirmDisabled = false,
@@ -329,7 +337,12 @@ export default function LeaveCredits() {
   };
 
   const closeConfirm = () => {
-    setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null, onCancel: null }));
+    setConfirmState((prev) => ({
+      ...prev,
+      open: false,
+      onConfirm: null,
+      onCancel: null,
+    }));
   };
 
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -367,16 +380,17 @@ export default function LeaveCredits() {
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+        const wasConfirmation =
+          snapshot.cancelText != null && snapshot.cancelText !== "";
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null, onCancel: null };
         }
 
         return {
           open: true,
-          title: 'Success',
-          message: 'Action completed successfully.',
-          confirmText: 'OK',
+          title: "Success",
+          message: "Action completed successfully.",
+          confirmText: "OK",
           cancelText: null,
           onConfirm: null,
           onCancel: null,
@@ -386,9 +400,9 @@ export default function LeaveCredits() {
     } catch (e) {
       setConfirmState({
         open: true,
-        title: 'Error',
-        message: e?.message || 'Action failed.',
-        confirmText: 'OK',
+        title: "Error",
+        message: e?.message || "Action failed.",
+        confirmText: "OK",
         cancelText: null,
         onConfirm: null,
         onCancel: null,
@@ -400,7 +414,7 @@ export default function LeaveCredits() {
   };
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState('name_az');
+  const [sortOrder, setSortOrder] = useState("name_az");
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [detailsByEmployeeId, setDetailsByEmployeeId] = useState({});
@@ -408,6 +422,55 @@ export default function LeaveCredits() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "employee_id_asc", label: "Employee ID: Ascending" },
+      { value: "employee_id_desc", label: "Employee ID: Descending" },
+      { value: "name_az", label: "Name: A - Z" },
+      { value: "name_za", label: "Name: Z - A" },
+      { value: "leave_credits_high", label: "Leave Credits: High - Low" },
+      { value: "leave_credits_low", label: "Leave Credits: Low - High" },
+      { value: "used_leave_high", label: "Used Leave: High - Low" },
+      { value: "used_leave_low", label: "Used Leave: Low - High" },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearFilters = () => {
+    setDraftSortOrder("name_az");
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 
   const fetchCredits = async () => {
     try {
@@ -468,21 +531,21 @@ export default function LeaveCredits() {
   const visibleRows = useMemo(() => {
     const sorted = [...filteredRows].sort((a, b) => {
       switch (sortOrder) {
-        case 'employee_id_asc':
+        case "employee_id_asc":
           return compareText(a?.id, b?.id);
-        case 'employee_id_desc':
+        case "employee_id_desc":
           return compareText(b?.id, a?.id);
-        case 'name_az':
+        case "name_az":
           return compareText(a?.name, b?.name);
-        case 'name_za':
+        case "name_za":
           return compareText(b?.name, a?.name);
-        case 'leave_credits_high':
+        case "leave_credits_high":
           return compareNumber(b?.credits, a?.credits);
-        case 'leave_credits_low':
+        case "leave_credits_low":
           return compareNumber(a?.credits, b?.credits);
-        case 'used_leave_high':
+        case "used_leave_high":
           return compareNumber(b?.usedLeave, a?.usedLeave);
-        case 'used_leave_low':
+        case "used_leave_low":
           return compareNumber(a?.usedLeave, b?.usedLeave);
         default:
           return compareText(a?.name, b?.name);
@@ -534,21 +597,19 @@ export default function LeaveCredits() {
     });
 
     const dateTag = [startingDate, endDate].filter(Boolean).join("_to_");
-    const ext = fileType === 'XLSX' ? 'xlsx' : 'csv';
+    const ext = fileType === "XLSX" ? "xlsx" : "csv";
     const filename = `leave-credits-report${dateTag ? `-${dateTag}` : ""}-${new Date()
       .toISOString()
       .slice(0, 10)}.${ext}`;
 
-    post('/audit-logs/reports', {
-      report_name: 'Leave Credits Report',
+    post("/audit-logs/reports", {
+      report_name: "Leave Credits Report",
       filename,
       start_date: startingDate || null,
       end_date: endDate || null,
       row_count: detailRows.length,
-      source: 'leave-credits',
-    }).catch(() => {
-      // best-effort only
-    });
+      source: "leave-credits",
+    }).catch(() => {});
 
     const columns = [
       { header: "Employee ID", value: (r) => r.employee_code },
@@ -558,10 +619,10 @@ export default function LeaveCredits() {
       { header: "Used Leave", value: (r) => r.used_leave },
     ];
 
-    if (fileType === 'XLSX') {
+    if (fileType === "XLSX") {
       exportRowsToXlsx({
         filename,
-        sheetName: 'Leave Credits',
+        sheetName: "Leave Credits",
         columns,
         rows: detailRows,
       });
@@ -588,10 +649,10 @@ export default function LeaveCredits() {
     if (!safeItems.length) return;
 
     openConfirm({
-      title: 'Confirm update',
-      message: `Save leave credit changes for ${employeeRow?.name || 'this employee'}?`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Confirm update",
+      message: `Save leave credit changes for ${employeeRow?.name || "this employee"}?`,
+      confirmText: "OK",
+      cancelText: "Cancel",
       onCancel: closeConfirm,
       onConfirm: async () => {
         try {
@@ -603,18 +664,18 @@ export default function LeaveCredits() {
           await fetchCredits();
           setDetailsOpen(false);
           openConfirm({
-            title: 'Success',
-            message: 'Leave credits updated successfully.',
-            confirmText: 'OK',
+            title: "Success",
+            message: "Leave credits updated successfully.",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
         } catch (e) {
-          console.error('Failed to update leave credits:', e);
+          console.error("Failed to update leave credits:", e);
           openConfirm({
-            title: 'Error',
-            message: e?.message || 'Failed to update leave credits',
-            confirmText: 'OK',
+            title: "Error",
+            message: e?.message || "Failed to update leave credits",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
@@ -632,20 +693,79 @@ export default function LeaveCredits() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
-            <DropDownFilter
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={[
-                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                { value: 'name_az', label: 'Name: A - Z' },
-                { value: 'name_za', label: 'Name: Z - A' },
-                { value: 'leave_credits_high', label: 'Leave Credits: High - Low' },
-                { value: 'leave_credits_low', label: 'Leave Credits: Low - High' },
-                { value: 'used_leave_high', label: 'Used Leave: High - Low' },
-                { value: 'used_leave_low', label: 'Used Leave: Low - High' },
-              ]}
-            />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+
+              {filtersOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">
+                        Filters
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Sort
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftSortOrder === opt.value}
+                            onClick={() => setDraftSortOrder(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyDraftFilters}
+                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
@@ -687,7 +807,9 @@ export default function LeaveCredits() {
 
         <div className="div-table">
           {loading && (
-            <div className="text-sm text-gray-600 mb-3">Loading leave credits…</div>
+            <div className="text-sm text-gray-600 mb-3">
+              Loading leave credits…
+            </div>
           )}
           <table className="table-style">
             <thead className="thead-style">
@@ -698,7 +820,9 @@ export default function LeaveCredits() {
                 <th className="th-style">Name</th>
                 <th className="th-style">Leave Credits</th>
                 <th className="th-style">Used Leave</th>
-                <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                <th className="th-style rounded-tr-lg rounded-br-lg">
+                  Actions
+                </th>
               </tr>
             </thead>
 
@@ -730,11 +854,12 @@ export default function LeaveCredits() {
 
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
-              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> employee
-              {visibleRows.length !== 1 ? "s" : ""}
+              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b>{" "}
+              employee{visibleRows.length !== 1 ? "s" : ""}
               {pageCount ? (
                 <>
-                  {" "}| Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
                 </>
               ) : null}
             </p>
@@ -799,10 +924,12 @@ export default function LeaveCredits() {
         open={confirmState.open}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
-        onCancel={confirmBusy ? undefined : (confirmState.onCancel || closeConfirm)}
+        onCancel={
+          confirmBusy ? undefined : confirmState.onCancel || closeConfirm
+        }
         confirmDisabled={Boolean(confirmState.confirmDisabled || confirmBusy)}
       />
     </div>

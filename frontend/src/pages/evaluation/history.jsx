@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import DropDownFilter from '../../components/dropdownfilter.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
 import ReportModal from '../../components/report-modal.jsx';
 import ReactPaginate from 'react-paginate';
@@ -47,7 +46,6 @@ const normalizeEvaluationDocs = (evaluation) => {
   const parsed = safeJsonParse(raw);
   if (parsed && typeof parsed === 'object') return parsed;
 
-  // legacy string path/id
   return { file: { provider: 'unknown', fileName: 'Document', legacy: true, raw } };
 };
 
@@ -247,11 +245,8 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      {/* ✅ Removed overflow-hidden so the inner header style looks correct */}
       <div className="w-full max-w-5xl rounded-xl bg-white shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
-        {/* ✅ Inner padding wrapper (this is the key) */}
         <div className="p-4 sm:p-6 flex flex-col flex-1 min-h-0">
-          {/* ✅ Boxed header like Employees */}
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 flex-shrink-0">
             <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
               Evaluation History of {employee?.employeeCode || employeeName}
@@ -267,7 +262,6 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
             </button>
           </div>
 
-          {/* ✅ Scrollable content */}
           <div className="pt-6 overflow-auto flex-1 min-h-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
               <div className="flex gap-2"><span className="font-semibold">Employee Name:</span><span>{employeeName}</span></div>
@@ -403,8 +397,8 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                 </div>
               </div>
             </div>
-          </div>{/* end scrollable content */}
-        </div>{/* end padding wrapper */}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -423,6 +417,55 @@ export default function EvaluationHistory() {
   const [rows, setRows] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('employee_id_asc');
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
+      { value: 'employee_id_desc', label: 'Employee ID: Descending' },
+      { value: 'name_az', label: 'Name: A - Z' },
+      { value: 'name_za', label: 'Name: Z - A' },
+      { value: 'position_az', label: 'Position: A - Z' },
+      { value: 'position_za', label: 'Position: Z - A' },
+      { value: 'hire_newest', label: 'Hire Date: Newest' },
+      { value: 'hire_oldest', label: 'Hire Date: Oldest' },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearFilters = () => {
+    setDraftSortOrder('employee_id_asc');
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+        active
+          ? 'bg-[#990100] text-white border-[#990100]'
+          : 'bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  );
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsEmployee, setDetailsEmployee] = useState(null);
@@ -471,7 +514,6 @@ export default function EvaluationHistory() {
         try {
           URL.revokeObjectURL(p.url);
         } catch {
-          // ignore
         }
       }
       return {
@@ -535,7 +577,6 @@ export default function EvaluationHistory() {
 
   useEffect(() => {
     fetchEmployees();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
 
   useEffect(() => {
@@ -546,7 +587,6 @@ export default function EvaluationHistory() {
     if (!match) return;
 
     openDetails(match);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, rows]);
 
   const filtered = useMemo(() => {
@@ -587,7 +627,6 @@ export default function EvaluationHistory() {
     return sorted;
   }, [filtered, sortOrder]);
 
-  // Pagination
   const [itemOffset, setItemOffset] = useState(0);
   const itemsPerPage = 15;
   const endOffset = itemOffset + itemsPerPage;
@@ -825,20 +864,76 @@ export default function EvaluationHistory() {
             Generate Report
           </button>
 
-          <DropDownFilter
-            value={sortOrder}
-            onChange={setSortOrder}
-            options={[
-              { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-              { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-              { value: 'name_az', label: 'Name: A - Z' },
-              { value: 'name_za', label: 'Name: Z - A' },
-              { value: 'position_az', label: 'Position: A - Z' },
-              { value: 'position_za', label: 'Position: Z - A' },
-              { value: 'hire_newest', label: 'Hire Date: Newest' },
-              { value: 'hire_oldest', label: 'Hire Date: Oldest' },
-            ]}
-          />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((p) => !p)}
+              className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+            >
+              <span className="font-medium">Filters</span>
+
+              {activeFiltersCount ? (
+                <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                  {activeFiltersCount}
+                </span>
+              ) : null}
+
+              <span className="text-xs">▾</span>
+            </button>
+
+            {filtersOpen && (
+              <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                <div className="flex flex-col">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <p className="text-sm font-bold text-[#990100]">Filters</p>
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen(false)}
+                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="px-4 py-3">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                    <div className="flex flex-wrap gap-2">
+                      {sortOptions.map((opt) => (
+                        <ChipButton
+                          key={opt.value}
+                          active={draftSortOrder === opt.value}
+                          onClick={() => setDraftSortOrder(opt.value)}
+                        >
+                          {opt.label}
+                        </ChipButton>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="text-[#C60000] font-semibold hover:underline"
+                    >
+                      Clear all
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={applyDraftFilters}
+                      className="bg-[#C60000] text-white px-6 py-2 rounded-md hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="relative text-gray-600 border border-[#990100] rounded-lg">
             <input

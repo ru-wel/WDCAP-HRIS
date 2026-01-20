@@ -1,15 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import DropDownFilter from "../../components/dropdownfilter";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { get, put, post } from "../../services/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
-import { compareDate, compareText } from '../../utils/sort.js';
-import ReportModal from '../../components/report-modal.jsx';
-import { exportRowsToCsv } from '../../utils/csv.js';
-import { exportRowsToXlsx } from '../../utils/excel.js';
-import { filterRowsByDateRange } from '../../utils/reporting.js';
+import { compareDate, compareText } from "../../utils/sort.js";
+import ReportModal from "../../components/report-modal.jsx";
+import { exportRowsToCsv } from "../../utils/csv.js";
+import { exportRowsToXlsx } from "../../utils/excel.js";
+import { filterRowsByDateRange } from "../../utils/reporting.js";
+
 const formatDateShort = (iso) => {
   if (!iso) return "";
   const d = new Date(iso);
@@ -83,18 +83,12 @@ function ModalShell({ open, title, onClose, children }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/20"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
 
       <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
         <div className="p-4 sm:p-6">
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
-            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
-              {title}
-            </h1>
+            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">{title}</h1>
 
             <button
               type="button"
@@ -145,14 +139,11 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
   }, [open, row]);
 
   const originalStatus = row?.status || "PENDING";
-  const hasChanges = String(status || "").toUpperCase() !== String(originalStatus || "").toUpperCase();
+  const hasChanges =
+    String(status || "").toUpperCase() !== String(originalStatus || "").toUpperCase();
 
   return (
-    <ModalShell
-      open={open}
-      title={`Leave History of ${row?.id ?? ""}`}
-      onClose={onClose}
-    >
+    <ModalShell open={open} title={`Leave History of ${row?.id ?? ""}`} onClose={onClose}>
       <div className="space-y-5 text-sm">
         <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2">
           <div className="font-semibold">Date Requested:</div>
@@ -231,10 +222,10 @@ export default function LeaveHistory() {
 
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: '',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
+    title: "",
+    message: "",
+    confirmText: "OK",
+    cancelText: "Cancel",
     onConfirm: null,
     onCancel: null,
     confirmDisabled: false,
@@ -243,10 +234,10 @@ export default function LeaveHistory() {
   const [confirmBusy, setConfirmBusy] = useState(false);
 
   const openConfirm = ({
-    title = '',
-    message = '',
-    confirmText = 'OK',
-    cancelText = 'Cancel',
+    title = "",
+    message = "",
+    confirmText = "OK",
+    cancelText = "Cancel",
     onConfirm,
     onCancel,
     confirmDisabled = false,
@@ -300,16 +291,16 @@ export default function LeaveHistory() {
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== "";
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null, onCancel: null };
         }
 
         return {
           open: true,
-          title: 'Success',
-          message: 'Action completed successfully.',
-          confirmText: 'OK',
+          title: "Success",
+          message: "Action completed successfully.",
+          confirmText: "OK",
           cancelText: null,
           onConfirm: null,
           onCancel: null,
@@ -319,9 +310,9 @@ export default function LeaveHistory() {
     } catch (e) {
       setConfirmState({
         open: true,
-        title: 'Error',
-        message: e?.message || 'Action failed.',
-        confirmText: 'OK',
+        title: "Error",
+        message: e?.message || "Action failed.",
+        confirmText: "OK",
         cancelText: null,
         onConfirm: null,
         onCancel: null,
@@ -335,10 +326,63 @@ export default function LeaveHistory() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState('requested_newest');
+  const [sortOrder, setSortOrder] = useState("requested_newest");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "employee_id_asc", label: "Employee ID: Ascending" },
+      { value: "employee_id_desc", label: "Employee ID: Descending" },
+      { value: "name_az", label: "Name: A - Z" },
+      { value: "name_za", label: "Name: Z - A" },
+      { value: "leave_type_az", label: "Leave Type: A - Z" },
+      { value: "leave_type_za", label: "Leave Type: Z - A" },
+      { value: "leave_date_newest", label: "Date: Newest" },
+      { value: "leave_date_oldest", label: "Date: Oldest" },
+      { value: "status_az", label: "Status: A - Z" },
+      { value: "status_za", label: "Status: Z - A" },
+      { value: "requested_newest", label: "Date Requested: Newest" },
+      { value: "requested_oldest", label: "Date Requested: Oldest" },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearFilters = () => {
+    setDraftSortOrder("requested_newest");
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -357,37 +401,34 @@ export default function LeaveHistory() {
 
   useEffect(() => {
     fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
 
   const handleUpdate = (row, nextStatus) => {
     if (!row?.leave_request_id) return;
     openConfirm({
-      title: 'Confirm update',
-      message: `Update leave history status to ${String(nextStatus || '').toUpperCase()}?`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Confirm update",
+      message: `Update leave history status to ${String(nextStatus || "").toUpperCase()}?`,
+      confirmText: "OK",
+      cancelText: "Cancel",
       onCancel: closeConfirm,
       onConfirm: async () => {
         try {
-          await put(`/leave/requests/${row.leave_request_id}/status`, {
-            status: nextStatus,
-          });
+          await put(`/leave/requests/${row.leave_request_id}/status`, { status: nextStatus });
           await fetchHistory();
           setDetailsOpen(false);
           openConfirm({
-            title: 'Success',
-            message: 'Leave history updated successfully.',
-            confirmText: 'OK',
+            title: "Success",
+            message: "Leave history updated successfully.",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
         } catch (e) {
-          console.error('Failed to update leave history:', e);
+          console.error("Failed to update leave history:", e);
           openConfirm({
-            title: 'Error',
-            message: e?.message || 'Failed to update leave history',
-            confirmText: 'OK',
+            title: "Error",
+            message: e?.message || "Failed to update leave history",
+            confirmText: "OK",
             cancelText: null,
             onConfirm: () => closeConfirm(),
           });
@@ -409,29 +450,29 @@ export default function LeaveHistory() {
   const visibleRows = useMemo(() => {
     const sorted = [...filteredRows].sort((a, b) => {
       switch (sortOrder) {
-        case 'employee_id_asc':
+        case "employee_id_asc":
           return compareText(a?.id, b?.id);
-        case 'employee_id_desc':
+        case "employee_id_desc":
           return compareText(b?.id, a?.id);
-        case 'name_az':
+        case "name_az":
           return compareText(a?.name, b?.name);
-        case 'name_za':
+        case "name_za":
           return compareText(b?.name, a?.name);
-        case 'leave_type_az':
+        case "leave_type_az":
           return compareText(a?.type, b?.type);
-        case 'leave_type_za':
+        case "leave_type_za":
           return compareText(b?.type, a?.type);
-        case 'leave_date_newest':
+        case "leave_date_newest":
           return compareDate(b?.startDateRaw, a?.startDateRaw);
-        case 'leave_date_oldest':
+        case "leave_date_oldest":
           return compareDate(a?.startDateRaw, b?.startDateRaw);
-        case 'status_az':
+        case "status_az":
           return compareText(a?.status, b?.status);
-        case 'status_za':
+        case "status_za":
           return compareText(b?.status, a?.status);
-        case 'requested_newest':
+        case "requested_newest":
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
-        case 'requested_oldest':
+        case "requested_oldest":
           return (a?.createdAtTs || 0) - (b?.createdAtTs || 0);
         default:
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
@@ -458,43 +499,38 @@ export default function LeaveHistory() {
   };
 
   const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport = (startDate || endDate)
-      ? filterRowsByDateRange(visibleRows, (r) => r?.startDateRaw, startDate, endDate)
-      : visibleRows;
+    const rowsForExport =
+      startDate || endDate
+        ? filterRowsByDateRange(visibleRows, (r) => r?.startDateRaw, startDate, endDate)
+        : visibleRows;
 
     const stamp = new Date().toISOString().slice(0, 10);
-    const isCsv = fileType === 'CSV';
-    const filename = `leave-history-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+    const isCsv = fileType === "CSV";
+    const filename = `leave-history-${stamp}.${isCsv ? "csv" : "xlsx"}`;
 
-    // best-effort audit log
-    post('/audit-logs/reports', {
-      report_name: 'Leave History Report',
+    post("/audit-logs/reports", {
+      report_name: "Leave History Report",
       filename,
       start_date: startDate || null,
       end_date: endDate || null,
       row_count: rowsForExport.length,
-      source: 'leave-history',
-    }).catch(() => {
-      // ignore
-    });
+      source: "leave-history",
+    }).catch(() => {});
 
     const columns = [
-      { header: 'Employee ID', value: (r) => r?.id || '' },
-      { header: 'Name', value: (r) => r?.name || '' },
-      { header: 'Position', value: (r) => r?.position || '' },
-      { header: 'Leave Type', value: (r) => r?.type || '' },
-      { header: 'Start Date', value: (r) => r?.startDateRaw || '' },
-      { header: 'End Date', value: (r) => r?.endDateRaw || '' },
-      { header: 'Status', value: (r) => r?.status || '' },
-      { header: 'Date Requested', value: (r) => r?.dateRequested || '' },
-      { header: 'Updated By', value: (r) => r?.updatedBy || '' },
+      { header: "Employee ID", value: (r) => r?.id || "" },
+      { header: "Name", value: (r) => r?.name || "" },
+      { header: "Position", value: (r) => r?.position || "" },
+      { header: "Leave Type", value: (r) => r?.type || "" },
+      { header: "Start Date", value: (r) => r?.startDateRaw || "" },
+      { header: "End Date", value: (r) => r?.endDateRaw || "" },
+      { header: "Status", value: (r) => r?.status || "" },
+      { header: "Date Requested", value: (r) => r?.dateRequested || "" },
+      { header: "Updated By", value: (r) => r?.updatedBy || "" },
     ];
 
-    if (isCsv) {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    } else {
-      exportRowsToXlsx({ filename, sheetName: 'Leave History', columns, rows: rowsForExport });
-    }
+    if (isCsv) exportRowsToCsv({ filename, columns, rows: rowsForExport });
+    else exportRowsToXlsx({ filename, sheetName: "Leave History", columns, rows: rowsForExport });
 
     setReportOpen(false);
   };
@@ -508,24 +544,75 @@ export default function LeaveHistory() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
-            <DropDownFilter
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={[
-                { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-                { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-                { value: 'name_az', label: 'Name: A - Z' },
-                { value: 'name_za', label: 'Name: Z - A' },
-                { value: 'leave_type_az', label: 'Leave Type: A - Z' },
-                { value: 'leave_type_za', label: 'Leave Type: Z - A' },
-                { value: 'leave_date_newest', label: 'Date: Newest' },
-                { value: 'leave_date_oldest', label: 'Date: Oldest' },
-                { value: 'status_az', label: 'Status: A - Z' },
-                { value: 'status_za', label: 'Status: Z - A' },
-                { value: 'requested_newest', label: 'Date Requested: Newest' },
-                { value: 'requested_oldest', label: 'Date Requested: Oldest' },
-              ]}
-            />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+
+              {filtersOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">Filters</p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftSortOrder === opt.value}
+                            onClick={() => setDraftSortOrder(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyDraftFilters}
+                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
@@ -594,29 +681,30 @@ export default function LeaveHistory() {
                   </td>
                 </tr>
               ) : (
-              currentRows.map((row) => (
-                <tr key={row.leave_request_id ?? row.id} className="tr-style">
-                  <td className="td-style font-medium">{row.id}</td>
-                  <td className="td-style">{row.name}</td>
-                  <td className="td-style">{row.type}</td>
-                  <td className="td-style">{row.date}</td>
-                  <td className="td-style">
-                    <StatusPill status={row.status} />
-                  </td>
-                  <td className="td-style">
-                    <button
-                      type="button"
-                      className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-                      onClick={() => {
-                        setSelectedRow(row);
-                        setDetailsOpen(true);
-                      }}
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))) }
+                currentRows.map((row) => (
+                  <tr key={row.leave_request_id ?? row.id} className="tr-style">
+                    <td className="td-style font-medium">{row.id}</td>
+                    <td className="td-style">{row.name}</td>
+                    <td className="td-style">{row.type}</td>
+                    <td className="td-style">{row.date}</td>
+                    <td className="td-style">
+                      <StatusPill status={row.status} />
+                    </td>
+                    <td className="td-style">
+                      <button
+                        type="button"
+                        className="bg-[#990100] text-white text-sm px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                        onClick={() => {
+                          setSelectedRow(row);
+                          setDetailsOpen(true);
+                        }}
+                      >
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
 
@@ -624,10 +712,12 @@ export default function LeaveHistory() {
 
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
-              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> record{visibleRows.length !== 1 ? "s" : ""}
+              Showing <b>{currentRows.length}</b> of <b>{visibleRows.length}</b> record
+              {visibleRows.length !== 1 ? "s" : ""}
               {pageCount ? (
                 <>
-                  {" "}| Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
                 </>
               ) : null}
             </p>
@@ -679,10 +769,10 @@ export default function LeaveHistory() {
         open={confirmState.open}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
-        onCancel={confirmBusy ? undefined : (confirmState.onCancel || closeConfirm)}
+        onCancel={confirmBusy ? undefined : confirmState.onCancel || closeConfirm}
         confirmDisabled={Boolean(confirmState.confirmDisabled || confirmBusy)}
       />
     </div>
