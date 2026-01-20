@@ -706,7 +706,7 @@ export default function Departments() {
 
   const defaultSort = "department_name_az";
 
-  const clearDraftFilters = () => {
+  const clearFilters = () => {
     setDraftSortOrder(defaultSort);
   };
 
@@ -762,7 +762,6 @@ export default function Departments() {
               {filtersOpen && (
                 <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                   <div className="flex flex-col">
-                    {/* HEADER */}
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-bold text-[#990100]">
                         Filters
@@ -797,7 +796,7 @@ export default function Departments() {
                     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
                       <button
                         type="button"
-                        onClick={clearDraftFilters}
+                        onClick={clearFilters}
                         className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
                       >
                         Clear all

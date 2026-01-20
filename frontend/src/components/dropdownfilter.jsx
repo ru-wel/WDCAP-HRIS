@@ -1,98 +1,70 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from 'react';
 
-export default function ChipFilterPanel({
-  // current applied values from parent
-  applied = { personnelType: "", sort: "" },
-  // chip options
-  personnelTypeOptions = ["All", "Regular", "Contractual", "OJT"],
-  sortOptions = ["Name: A–Z", "Name: Z–A"],
-  // actions
-  onApply,
-  onClearAll,
-  onClose,
+function DropDownFilter({
+  label = 'Sort By',
+  value,
+  onChange,
+  options,
+  disabled = false,
 }) {
-  // local draft state (so Apply works like your screenshot)
-  const [draft, setDraft] = useState(applied);
+  const resolvedOptions = useMemo(() => {
+    const fallback = [
+      { value: 'az', label: 'A - Z' },
+      { value: 'za', label: 'Z - A' },
+    ];
+    return Array.isArray(options) && options.length ? options : fallback;
+  }, [options]);
 
-  const setChip = (key, val) => {
-    setDraft((p) => ({ ...p, [key]: p[key] === val ? "" : val })); // tap again = deselect
-  };
-
-  const clearAll = () => {
-    const cleared = { personnelType: "", sort: "" };
-    setDraft(cleared);
-    onClearAll?.();
-  };
-
-  const apply = () => {
-    onApply?.(draft);
-    onClose?.();
-  };
+  const selectedLabel = useMemo(() => {
+    const opt = resolvedOptions.find((o) => o.value === value);
+    return opt ? opt.label : null;
+  }, [resolvedOptions, value]);
 
   return (
     <div className="w-full">
-      {/* CHIP GROUP: Personnel Type */}
-      <div className="mb-5">
-        <div className="text-sm font-semibold mb-2">Personnel Type</div>
-        <div className="flex flex-wrap gap-2">
-          {personnelTypeOptions.map((opt) => {
-            const active = draft.personnelType === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setChip("personnelType", opt === "All" ? "" : opt)}
-                className={`px-3 py-1.5 text-xs rounded-full border transition
-                  ${active ? "bg-[#FFA500] text-white border-[#FFA500]" : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"}
-                `}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
+      {/* Header row (keeps the "label" behavior similar to dropdown) */}
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <p className="text-xs md:text-sm text-gray-600">{label}</p>
+        <p className="text-xs md:text-sm text-[#990100] font-medium truncate">
+          {selectedLabel || ''}
+        </p>
       </div>
 
-      {/* CHIP GROUP: Sort */}
-      <div className="mb-6">
-        <div className="text-sm font-semibold mb-2">Sort</div>
-        <div className="flex flex-wrap gap-2">
-          {sortOptions.map((opt) => {
-            const active = draft.sort === opt;
-            return (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setChip("sort", opt)}
-                className={`px-3 py-1.5 text-xs rounded-full border transition
-                  ${active ? "bg-[#FFA500] text-white border-[#FFA500]" : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"}
-                `}
-              >
-                {opt}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {/* Chips */}
+      <div
+        className={`flex flex-wrap items-center gap-2 ${
+          disabled ? 'opacity-60 pointer-events-none' : ''
+        }`}
+        role="listbox"
+        aria-disabled={disabled}
+      >
+        {resolvedOptions.map((opt) => {
+          const isActive = value === opt.value;
 
-      {/* FOOTER: Clear all + Apply */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-        <button
-          type="button"
-          onClick={clearAll}
-          className="text-[#C60000] font-semibold hover:underline"
-        >
-          Clear all
-        </button>
-
-        <button
-          type="button"
-          onClick={apply}
-          className="bg-[#C60000] text-white px-6 py-2 rounded-md hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out"
-        >
-          Apply
-        </button>
+          return (
+            <button
+              key={String(opt.value)}
+              type="button"
+              role="option"
+              aria-selected={isActive}
+              disabled={disabled}
+              onClick={() => onChange?.(opt.value)}
+              className={[
+                'rounded-full border px-4 py-2 text-xs md:text-sm',
+                'transition duration-200 ease-in-out cursor-pointer',
+                'hover:scale-105',
+                isActive
+                  ? 'bg-[#990100] border-[#990100] text-white shadow-sm'
+                  : 'bg-white border-[#990100] text-[#990100] hover:bg-[#990100]/5',
+              ].join(' ')}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
+
+export default DropDownFilter;

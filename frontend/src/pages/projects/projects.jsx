@@ -1,34 +1,35 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar";
-import DropDownFilter from "../../components/dropdownfilter";
 import { get, post, put, del } from "../../services/api.js";
 import { PROJECT_STATUSES } from "../../constants/config.js";
-import ReactPaginate from 'react-paginate';
+import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { compareDate, compareText } from "../../utils/sort";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
-import ReportModal from '../../components/report-modal.jsx';
-import { filterRowsByDateRange } from '../../utils/reporting.js';
-import { exportReportToPdf } from '../../utils/pdf.js';
+import ReportModal from "../../components/report-modal.jsx";
+import { filterRowsByDateRange } from "../../utils/reporting.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 
 function ViewProjectCard({ project, index, onClick }) {
-  // format dates for display
   const formatDate = (dateString) => {
-    if (!dateString) return '';
+    if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
-  }
+    return date.toLocaleDateString("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
+    });
+  };
 
   const dateRange = `${formatDate(project.start_date)} to ${formatDate(project.end_date)}`;
 
-  // change format according to status
   const statusStyle = (status) => {
-    switch(status) {
+    switch (status) {
       case PROJECT_STATUSES.ACTIVE:
-        return "bg-[#C8C8FF] text-[#0000FF]"; 
-              case PROJECT_STATUSES.COMPLETED:
+        return "bg-[#C8C8FF] text-[#0000FF]";
+      case PROJECT_STATUSES.COMPLETED:
         return "text-[#198C19] bg-[#198C19]/25";
       case PROJECT_STATUSES.ON_HOLD:
         return "bg-[#FFA500]/25 text-[#FFA500]";
@@ -52,26 +53,22 @@ function ViewProjectCard({ project, index, onClick }) {
           </h2>
 
           <div className="flex items-center text-base mb-2 gap-2">
-            <img
-              src="icons/red-location.png"
-              alt="location"
-              className="w-4 h-4"
-            />
+            <img src="icons/red-location.png" alt="location" className="w-4 h-4" />
             <span>{project.site_location}</span>
           </div>
 
           <div className="flex items-center text-base gap-2">
-            <img
-              src="icons/red-leave.png"
-              alt="calendar"
-              className="w-4 h-4"
-            />
+            <img src="icons/red-leave.png" alt="calendar" className="w-4 h-4" />
             <span>{dateRange}</span>
           </div>
         </div>
 
         <div className="mt-4">
-          <span className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(project.status)}`}>
+          <span
+            className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(
+              project.status
+            )}`}
+          >
             {project.status}
           </span>
         </div>
@@ -87,9 +84,9 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
 
   const handleSaveClick = async () => {
     await onSave(project);
-  }
+  };
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
@@ -97,14 +94,11 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
         {project.project_name || `Project #${index + 1}`}
       </h2>
 
-      {/* PROJECT NAME INPUT */}
       <div className="mb-3">
-        <label className="block text-sm font-semibold mb-1">
-          Project Name
-        </label>
+        <label className="block text-sm font-semibold mb-1">Project Name</label>
         <input
           type="text"
-          value={project.project_name || ''}
+          value={project.project_name || ""}
           onChange={(e) => handleChange("project_name", e.target.value)}
           className="w-full project-field"
           placeholder="Enter project name"
@@ -113,14 +107,10 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
       </div>
 
       <div className="mb-3 flex items-center gap-2">
-        <img
-          src="icons/red-location.png"
-          alt="location"
-          className="w-4 h-4 mt-[2px]"
-        />
+        <img src="icons/red-location.png" alt="location" className="w-4 h-4 mt-[2px]" />
         <input
           type="text"
-          value={project.site_location || ''}
+          value={project.site_location || ""}
           onChange={(e) => handleChange("site_location", e.target.value)}
           className="flex-1 project-field"
           placeholder="Location"
@@ -129,14 +119,10 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
       </div>
 
       <div className="mb-3 flex items-center gap-2">
-        <img
-          src="icons/red-leave.png"
-          alt="calendar"
-          className="w-4 h-4 mt-[2px]"
-        />
+        <img src="icons/red-leave.png" alt="calendar" className="w-4 h-4 mt-[2px]" />
         <input
           type="date"
-          value={project.start_date || ''}
+          value={project.start_date || ""}
           onChange={(e) => handleChange("start_date", e.target.value)}
           className="project-field w-[40%]"
           max={project.end_date || today}
@@ -145,7 +131,7 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
         <span className="text-sm">to</span>
         <input
           type="date"
-          value={project.end_date || ''}
+          value={project.end_date || ""}
           onChange={(e) => handleChange("end_date", e.target.value)}
           className="project-field w-[40%]"
           min={project.start_date || today}
@@ -168,29 +154,22 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
         </select>
       </div>
 
-      {/* BALIKAN MO TO */}
-
       <div className="flex justify-center items-center gap-4 ">
         <button
           onClick={handleSaveClick}
           disabled={loading}
           className="bg-[#22C55E] text-white px-6 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#16A34A] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Save'}
+          {loading ? "Saving..." : "Save"}
         </button>
 
-       <button
+        <button
           onClick={() => onDelete(project.id)}
           className="bg-[#CC0000] text-white lg:px-6 px-5 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
         >
           Delete Project
         </button>
-      {/* BALIKAN MO TO */}
       </div>
-      
-      {/*<div className="flex justify-center">
-       
-      </div>*/}
     </div>
   );
 }
@@ -202,18 +181,13 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
 
   return (
     <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
-      <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">
-        {`New Project`}
-      </h2>
+      <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">{`New Project`}</h2>
 
-      {/* PROJECT NAME INPUT */}
       <div className="mb-3">
-        <label className="block text-sm font-semibold mb-1">
-          Project Name
-        </label>
+        <label className="block text-sm font-semibold mb-1">Project Name</label>
         <input
           type="text"
-          value={values.project_name || ''}
+          value={values.project_name || ""}
           onChange={(e) => handleChange("project_name", e.target.value)}
           className="w-full border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
           placeholder="Enter project name"
@@ -222,14 +196,10 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
       </div>
 
       <div className="mb-3 flex items-center gap-2">
-        <img
-          src="icons/red-location.png"
-          alt="location"
-          className="w-4 h-4 mt-[2px]"
-        />
+        <img src="icons/red-location.png" alt="location" className="w-4 h-4 mt-[2px]" />
         <input
           type="text"
-          value={values.site_location || ''}
+          value={values.site_location || ""}
           onChange={(e) => handleChange("site_location", e.target.value)}
           className="flex-1 border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white"
           placeholder="Location"
@@ -238,14 +208,10 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
       </div>
 
       <div className="mb-3 flex items-center gap-2">
-        <img
-          src="icons/red-leave.png"
-          alt="calendar"
-          className="w-4 h-4 mt-[2px]"
-        />
+        <img src="icons/red-leave.png" alt="calendar" className="w-4 h-4 mt-[2px]" />
         <input
           type="date"
-          value={values.start_date || ''}
+          value={values.start_date || ""}
           onChange={(e) => handleChange("start_date", e.target.value)}
           className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
           placeholder="Start Date"
@@ -255,7 +221,7 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
         <span className="text-sm">to</span>
         <input
           type="date"
-          value={values.end_date || ''}
+          value={values.end_date || ""}
           onChange={(e) => handleChange("end_date", e.target.value)}
           className="border border-gray-400 rounded-sm px-2 py-1 text-sm bg-white w-[40%]"
           placeholder="End Date"
@@ -285,7 +251,7 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
           disabled={loading || !values.project_name || !values.site_location}
           className="bg-[#16A34A] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Creating ...' : 'Create Project'}
+          {loading ? "Creating ..." : "Create Project"}
         </button>
       </div>
     </div>
@@ -301,17 +267,70 @@ function Projects() {
   const [draftProject, setDraftProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortOrder, setSortOrder] = useState('project_name_az');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
   const [showUpdateActions, setShowUpdateActions] = useState(false);
+
+  // ✅ Employees-style filter UI state (design only)
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  useEffect(() => {
+    setDraftSortOrder(sortOrder);
+  }, [sortOrder]);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: "project_name_az", label: "Project Name: A - Z" },
+      { value: "project_name_za", label: "Project Name: Z - A" },
+      { value: "site_location_az", label: "Site Location: A - Z" },
+      { value: "site_location_za", label: "Site Location: Z - A" },
+      { value: "status_az", label: "Status: A - Z" },
+      { value: "status_za", label: "Status: Z - A" },
+      { value: "start_date_newest", label: "Start Date: Newest" },
+      { value: "start_date_oldest", label: "Start Date: Oldest" },
+      { value: "end_date_newest", label: "End Date: Newest" },
+      { value: "end_date_oldest", label: "End Date: Oldest" },
+    ],
+    []
+  );
+
+  const activeFiltersCount = useMemo(() => {
+    return draftSortOrder ? 1 : 0;
+  }, [draftSortOrder]);
+
+  const clearFilters = () => {
+    setDraftSortOrder("project_name_az");
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+        active
+          ? "bg-[#990100] text-white border-[#990100]"
+          : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+
   const [confirmState, setConfirmState] = useState({
     open: false,
-    title: 'Confirmation',
-    message: '',
-    confirmText: 'OK',
-    cancelText: 'Cancel',
+    title: "Confirmation",
+    message: "",
+    confirmText: "OK",
+    cancelText: "Cancel",
     onConfirm: null,
   });
 
@@ -320,10 +339,10 @@ function Projects() {
   const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
     setConfirmState({
       open: true,
-      title: title || 'Confirmation',
-      message: message || '',
-      confirmText: confirmText || 'OK',
-      cancelText: cancelText ?? 'Cancel',
+      title: title || "Confirmation",
+      message: message || "",
+      confirmText: confirmText || "OK",
+      cancelText: cancelText ?? "Cancel",
       onConfirm: onConfirm || null,
     });
   };
@@ -363,16 +382,16 @@ function Projects() {
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== '';
+        const wasConfirmation = snapshot.cancelText != null && snapshot.cancelText !== "";
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null };
         }
 
         return {
           open: true,
-          title: 'Success',
-          message: 'Action completed successfully.',
-          confirmText: 'OK',
+          title: "Success",
+          message: "Action completed successfully.",
+          confirmText: "OK",
           cancelText: null,
           onConfirm: null,
         };
@@ -380,9 +399,9 @@ function Projects() {
     } catch (e) {
       setConfirmState({
         open: true,
-        title: 'Error',
-        message: e?.message || 'Action failed.',
-        confirmText: 'OK',
+        title: "Error",
+        message: e?.message || "Action failed.",
+        confirmText: "OK",
         cancelText: null,
         onConfirm: null,
       });
@@ -399,40 +418,38 @@ function Projects() {
     status: PROJECT_STATUSES.ACTIVE,
   });
 
-  //REACT-PAGINATE
   const [itemOffset, setItemOffset] = useState(0);
-
 
   const filteredProjects = useMemo(() => {
     const q = searchTerm.trim().toLowerCase();
     const filtered = !q
       ? projects
       : projects.filter((p) => {
-          const haystack = `${p.project_name || ''} ${p.site_location || ''} ${p.status || ''}`.toLowerCase();
+          const haystack = `${p.project_name || ""} ${p.site_location || ""} ${p.status || ""}`.toLowerCase();
           return haystack.includes(q);
         });
 
     return [...filtered].sort((a, b) => {
       switch (sortOrder) {
-        case 'project_name_za':
+        case "project_name_za":
           return compareText(b.project_name, a.project_name);
-        case 'site_location_az':
+        case "site_location_az":
           return compareText(a.site_location, b.site_location);
-        case 'site_location_za':
+        case "site_location_za":
           return compareText(b.site_location, a.site_location);
-        case 'status_az':
+        case "status_az":
           return compareText(a.status, b.status);
-        case 'status_za':
+        case "status_za":
           return compareText(b.status, a.status);
-        case 'start_date_newest':
+        case "start_date_newest":
           return compareDate(b.start_date, a.start_date);
-        case 'start_date_oldest':
+        case "start_date_oldest":
           return compareDate(a.start_date, b.start_date);
-        case 'end_date_newest':
+        case "end_date_newest":
           return compareDate(b.end_date, a.end_date);
-        case 'end_date_oldest':
+        case "end_date_oldest":
           return compareDate(a.end_date, b.end_date);
-        case 'project_name_az':
+        case "project_name_az":
         default:
           return compareText(a.project_name, b.project_name);
       }
@@ -442,16 +459,13 @@ function Projects() {
   let cardDescriptors;
 
   if (mode === "add") {
-    cardDescriptors = [
-      { type: "new" },
-      ...filteredProjects.map((p) => ({ type: "view", project: p })),
-    ];
+    cardDescriptors = [{ type: "new" }, ...filteredProjects.map((p) => ({ type: "view", project: p }))];
   } else if (mode === "edit") {
     cardDescriptors = filteredProjects.map((p) => {
       if (editingProjectId && String(p.id) === String(editingProjectId) && draftProject) {
-        return { type: 'edit', project: draftProject };
+        return { type: "edit", project: draftProject };
       }
-      return { type: 'view', project: p };
+      return { type: "view", project: p };
     });
   } else {
     cardDescriptors = filteredProjects.map((p) => ({
@@ -465,9 +479,9 @@ function Projects() {
   const currentProj = cardDescriptors.slice(itemOffset, endOffset);
   const pageCount = Math.ceil(cardDescriptors.length / itemsPerPage);
   const multiPages = pageCount > 1;
-      
+
   const handlePageClick = (event) => {
-    const newOffset = (event.selected * itemsPerPage);
+    const newOffset = event.selected * itemsPerPage;
     setItemOffset(newOffset);
   };
 
@@ -480,7 +494,7 @@ function Projects() {
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== 'edit') {
+    if (mode !== "edit") {
       setEditingProjectId(null);
       setDraftProject(null);
     }
@@ -489,33 +503,32 @@ function Projects() {
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
-      setError('');
-      const response = await get('/projects');
+      setError("");
+      const response = await get("/projects");
 
-      if (response.success){
+      if (response.success) {
         setProjects(response.data);
       }
     } catch (error) {
-      console.error('Failed to fetch projects:', error);
-      setError(error.message || 'Failed to load projects');
+      console.error("Failed to fetch projects:", error);
+      setError(error.message || "Failed to load projects");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // fetch projects from backend
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
 
   const handleEditClick = () => {
     openConfirm({
-      title: 'Edit projects',
-      message: 'Enter edit mode? You can update or delete projects.',
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      title: "Edit projects",
+      message: "Enter edit mode? You can update or delete projects.",
+      confirmText: "OK",
+      cancelText: "Cancel",
       onConfirm: () => {
-        setMode('edit');
+        setMode("edit");
         setEditingProjectId(null);
         setDraftProject(null);
       },
@@ -533,37 +546,36 @@ function Projects() {
     setMode("add");
   };
 
-  // create new project
   const handleCreateProject = async () => {
     if (!newProject.project_name || !newProject.site_location) {
       openConfirm({
-        title: 'Missing fields',
-        message: 'Please fill in project name and location.',
-        confirmText: 'OK',
+        title: "Missing fields",
+        message: "Please fill in project name and location.",
+        confirmText: "OK",
         cancelText: null,
       });
       return;
     }
 
     openConfirm({
-      title: 'Create project',
+      title: "Create project",
       message: `Create project "${newProject.project_name}"?`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      confirmText: "OK",
+      cancelText: "Cancel",
       onConfirm: async () => {
         try {
           setActionLoading(true);
 
-          const response = await post('/projects', {
+          const response = await post("/projects", {
             project_name: newProject.project_name,
             site_location: newProject.site_location,
             start_date: newProject.start_date || null,
             end_date: newProject.end_date || null,
-            status: newProject.status || PROJECT_STATUSES.ACTIVE
+            status: newProject.status || PROJECT_STATUSES.ACTIVE,
           });
 
           if (response.success) {
-            setProjects(prev => [...prev, response.data]);
+            setProjects((prev) => [...prev, response.data]);
             setNewProject({
               project_name: "",
               site_location: "",
@@ -571,20 +583,20 @@ function Projects() {
               end_date: "",
               status: PROJECT_STATUSES.ACTIVE,
             });
-            setMode('view');
+            setMode("view");
             openConfirm({
-              title: 'Success',
+              title: "Success",
               message: `Project "${newProject.project_name}" created successfully.`,
-              confirmText: 'OK',
+              confirmText: "OK",
               cancelText: null,
             });
           }
         } catch (error) {
-          console.error('Create project error:', error);
+          console.error("Create project error:", error);
           openConfirm({
-            title: 'Error',
-            message: error.message || 'Failed to create project',
-            confirmText: 'OK',
+            title: "Error",
+            message: error.message || "Failed to create project",
+            confirmText: "OK",
             cancelText: null,
           });
         } finally {
@@ -594,13 +606,12 @@ function Projects() {
     });
   };
 
-  // update project
   const handleSaveProject = async (project) => {
     if (!project.project_name || !project.site_location) {
       openConfirm({
-        title: 'Missing fields',
-        message: 'Please fill in project name and location.',
-        confirmText: 'OK',
+        title: "Missing fields",
+        message: "Please fill in project name and location.",
+        confirmText: "OK",
         cancelText: null,
       });
       return;
@@ -608,8 +619,8 @@ function Projects() {
 
     openConfirm({
       message: `Save changes to "${project.project_name}"?`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      confirmText: "OK",
+      cancelText: "Cancel",
       onConfirm: async () => {
         try {
           setActionLoading(true);
@@ -619,43 +630,42 @@ function Projects() {
             site_location: project.site_location,
             start_date: project.start_date || null,
             end_date: project.end_date || null,
-            status: project.status
+            status: project.status,
           });
 
           if (response.success) {
-            setProjects(prev =>
-              prev.map(p => p.id === project.id ? response.data : p)
-            );
+            setProjects((prev) => prev.map((p) => (p.id === project.id ? response.data : p)));
             setEditingProjectId(null);
             setDraftProject(null);
             openConfirm({
-              title: 'Success',
+              title: "Success",
               message: `Project "${project.project_name}" updated successfully.`,
-              confirmText: 'OK',
+              confirmText: "OK",
               cancelText: null,
             });
           }
         } catch (error) {
-          console.error('Update project error:', error);
+          console.error("Update project error:", error);
           openConfirm({
-            title: 'Error',
-            message: error.message || 'Failed to update project',
-            confirmText: 'OK',
+            title: "Error",
+            message: error.message || "Failed to update project",
+            confirmText: "OK",
             cancelText: null,
           });
-        } finally { setActionLoading(false); }
-      }
+        } finally {
+          setActionLoading(false);
+        }
+      },
     });
   };
 
-  // delete project
   const handleDeleteProject = async (id) => {
-    const project = projects.find(p => p.id === id);
+    const project = projects.find((p) => p.id === id);
     openConfirm({
-      title: 'Delete project',
+      title: "Delete project",
       message: `Are you sure you want to delete "${project?.project_name}"? This action cannot be undone. Note: projects with assigned employees may need assignments removed first.`,
-      confirmText: 'OK',
-      cancelText: 'Cancel',
+      confirmText: "OK",
+      cancelText: "Cancel",
       onConfirm: async () => {
         try {
           setActionLoading(true);
@@ -663,30 +673,31 @@ function Projects() {
           const response = await del(`/projects/${id}`);
 
           if (response.success) {
-            setProjects(prev => prev.filter(p => p.id !== id));
+            setProjects((prev) => prev.filter((p) => p.id !== id));
             openConfirm({
-              title: 'Success',
-              message: 'Project deleted successfully.',
-              confirmText: 'OK',
+              title: "Success",
+              message: "Project deleted successfully.",
+              confirmText: "OK",
               cancelText: null,
             });
           }
         } catch (error) {
-          console.error('Delete project error:', error);
+          console.error("Delete project error:", error);
           openConfirm({
-            title: 'Error',
-            message: error.message || 'Failed to delete project',
-            confirmText: 'OK',
+            title: "Error",
+            message: error.message || "Failed to delete project",
+            confirmText: "OK",
             cancelText: null,
           });
-        } finally { setActionLoading(false); }
-      }
+        } finally {
+          setActionLoading(false);
+        }
+      },
     });
   };
 
   const handleFieldChange = (id, field, value) => {
-    // In edit mode, we only allow editing a single draft project at a time.
-    if (mode === 'edit' && draftProject && String(draftProject.id) === String(id)) {
+    if (mode === "edit" && draftProject && String(draftProject.id) === String(id)) {
       setDraftProject((prev) => ({ ...(prev || {}), [field]: value }));
       return;
     }
@@ -706,44 +717,42 @@ function Projects() {
   };
 
   const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
-    const base = (startDate || endDate)
+    const base = startDate || endDate
       ? filterRowsByDateRange(filteredProjects, (p) => p?.start_date, startDate, endDate)
       : filteredProjects;
 
-    const cat = category || 'all';
+    const cat = category || "all";
     const rowsForExport = base.filter((p) => {
-      const s = String(p?.status || '');
-      if (cat === 'active') return s === PROJECT_STATUSES.ACTIVE;
-      if (cat === 'completed') return s === PROJECT_STATUSES.COMPLETED;
-      if (cat === 'on_hold') return s === PROJECT_STATUSES.ON_HOLD;
-      if (cat === 'cancelled') return s === PROJECT_STATUSES.CANCELLED;
+      const s = String(p?.status || "");
+      if (cat === "active") return s === PROJECT_STATUSES.ACTIVE;
+      if (cat === "completed") return s === PROJECT_STATUSES.COMPLETED;
+      if (cat === "on_hold") return s === PROJECT_STATUSES.ON_HOLD;
+      if (cat === "cancelled") return s === PROJECT_STATUSES.CANCELLED;
       return true;
     });
 
     const stamp = new Date().toISOString().slice(0, 10);
-    const upperType = String(fileType || 'XLSX').toUpperCase();
-    const isCsv = upperType === 'CSV';
-    const isPdf = upperType === 'PDF';
-    const ext = isPdf ? 'pdf' : isCsv ? 'csv' : 'xlsx';
+    const upperType = String(fileType || "XLSX").toUpperCase();
+    const isCsv = upperType === "CSV";
+    const isPdf = upperType === "PDF";
+    const ext = isPdf ? "pdf" : isCsv ? "csv" : "xlsx";
     const filename = `projects-report-${cat}-${stamp}.${ext}`;
 
-    post('/audit-logs/reports', {
-      report_name: 'Projects Report',
+    post("/audit-logs/reports", {
+      report_name: "Projects Report",
       filename,
       start_date: startDate || null,
       end_date: endDate || null,
       row_count: rowsForExport.length,
-      source: 'projects',
-    }).catch(() => {
-      // best-effort only
-    });
+      source: "projects",
+    }).catch(() => {});
 
     const columns = [
-      { header: 'Project Name', value: (p) => p.project_name },
-      { header: 'Site Location', value: (p) => p.site_location },
-      { header: 'Start Date', value: (p) => p.start_date },
-      { header: 'End Date', value: (p) => p.end_date },
-      { header: 'Status', value: (p) => p.status },
+      { header: "Project Name", value: (p) => p.project_name },
+      { header: "Site Location", value: (p) => p.site_location },
+      { header: "Start Date", value: (p) => p.start_date },
+      { header: "End Date", value: (p) => p.end_date },
+      { header: "Status", value: (p) => p.status },
     ];
 
     if (isPdf) {
@@ -756,21 +765,19 @@ function Projects() {
 
       exportReportToPdf({
         filename,
-        title: 'Projects Report',
+        title: "Projects Report",
         summaryLines: [
           `Category: ${cat}`,
-          startDate || endDate ? `Range: ${startDate || '…'} to ${endDate || '…'}` : 'Range: All time',
+          startDate || endDate ? `Range: ${startDate || "…"} to ${endDate || "…"}` : "Range: All time",
           `Active: ${counts[PROJECT_STATUSES.ACTIVE]} | Completed: ${counts[PROJECT_STATUSES.COMPLETED]} | On Hold: ${counts[PROJECT_STATUSES.ON_HOLD]} | Cancelled: ${counts[PROJECT_STATUSES.CANCELLED]}`,
         ],
         columns,
         rows: rowsForExport,
-      }).catch(() => {
-        // best-effort only
-      });
+      }).catch(() => {});
     } else if (isCsv) {
       exportRowsToCsv({ filename, columns, rows: rowsForExport });
     } else {
-      exportRowsToXlsx({ filename, sheetName: 'Projects', columns, rows: rowsForExport });
+      exportRowsToXlsx({ filename, sheetName: "Projects", columns, rows: rowsForExport });
     }
 
     setReportOpen(false);
@@ -794,10 +801,7 @@ function Projects() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <button
-              onClick={fetchProjects}
-              className="bg-[#990100] text-white px-4 py-2 rounded"
-            >
+            <button onClick={fetchProjects} className="bg-[#990100] text-white px-4 py-2 rounded">
               Retry
             </button>
           </div>
@@ -805,8 +809,6 @@ function Projects() {
       </div>
     );
   }
-
-  
 
   return (
     <div>
@@ -817,23 +819,82 @@ function Projects() {
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
             Projects
           </h1>
+
           <div className="flex items=center justify-end md:gap-4 gap-3">
-            <DropDownFilter
-              value={sortOrder}
-              onChange={setSortOrder}
-              options={[
-                { value: 'project_name_az', label: 'Project Name: A - Z' },
-                { value: 'project_name_za', label: 'Project Name: Z - A' },
-                { value: 'site_location_az', label: 'Site Location: A - Z' },
-                { value: 'site_location_za', label: 'Site Location: Z - A' },
-                { value: 'status_az', label: 'Status: A - Z' },
-                { value: 'status_za', label: 'Status: Z - A' },
-                { value: 'start_date_newest', label: 'Start Date: Newest' },
-                { value: 'start_date_oldest', label: 'Start Date: Oldest' },
-                { value: 'end_date_newest', label: 'End Date: Newest' },
-                { value: 'end_date_oldest', label: 'End Date: Oldest' },
-              ]}
-            />
+            {/* ✅ Employees-style Filters (same size: 320px) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+
+              {filtersOpen && (
+                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                  <div className="flex flex-col">
+                    {/* HEADER */}
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">Filters</p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    {/* CONTENT */}
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                      <div className="flex flex-wrap gap-2">
+                        {sortOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftSortOrder === opt.value}
+                            onClick={() => setDraftSortOrder(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* FOOTER */}
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyDraftFilters}
+                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
                 type="search"
@@ -872,13 +933,13 @@ function Projects() {
                 onClose={() => setReportOpen(false)}
                 onGenerate={handleGenerateReport}
                 enableDateRange={true}
-                fileTypes={['XLSX', 'CSV', 'PDF']}
+                fileTypes={["XLSX", "CSV", "PDF"]}
                 categoryOptions={[
-                  { value: 'all', label: 'All Projects' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'on_hold', label: 'On Hold' },
-                  { value: 'cancelled', label: 'Cancelled' },
+                  { value: "all", label: "All Projects" },
+                  { value: "active", label: "Active" },
+                  { value: "completed", label: "Completed" },
+                  { value: "on_hold", label: "On Hold" },
+                  { value: "cancelled", label: "Cancelled" },
                 ]}
                 defaultCategory="all"
               />
@@ -903,35 +964,26 @@ function Projects() {
             </>
           )}
 
-          {/* {mode !== "view" && (
-            <button
-              className="bg-[#16A34A] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out"
-              onClick={handleSaveChanges}
-            >
-              Save Changes
-            </button>
-          )} */}
-
           {mode === "edit" && (
             <>
               <button
                 className="bg-[#F59E0B] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#d97706] hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() =>
                   openConfirm({
-                    title: 'Cancel editing',
-                    message: 'Exit edit mode without saving pending changes?',
-                    confirmText: 'OK',
-                    cancelText: 'Cancel',
+                    title: "Cancel editing",
+                    message: "Exit edit mode without saving pending changes?",
+                    confirmText: "OK",
+                    cancelText: "Cancel",
                     onConfirm: async () => {
                       try {
-                        const response = await get('/projects');
+                        const response = await get("/projects");
                         if (response?.success) setProjects(response.data);
                       } catch {
                         // best-effort
                       } finally {
                         setEditingProjectId(null);
                         setDraftProject(null);
-                        setMode('view');
+                        setMode("view");
                       }
                     },
                   })
@@ -944,14 +996,14 @@ function Projects() {
                 className="bg-[#16A34A] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() =>
                   openConfirm({
-                    title: 'Done editing',
-                    message: 'Exit edit mode?',
-                    confirmText: 'OK',
-                    cancelText: 'Cancel',
+                    title: "Done editing",
+                    message: "Exit edit mode?",
+                    confirmText: "OK",
+                    cancelText: "Cancel",
                     onConfirm: () => {
                       setEditingProjectId(null);
                       setDraftProject(null);
-                      setMode('view');
+                      setMode("view");
                     },
                   })
                 }
@@ -1016,7 +1068,7 @@ function Projects() {
                   project={item.project}
                   index={index}
                   onClick={() => {
-                    if (mode === 'edit') {
+                    if (mode === "edit") {
                       setEditingProjectId(item.project.id);
                       setDraftProject({ ...item.project });
                       return;
@@ -1029,21 +1081,7 @@ function Projects() {
           </div>
         )}
 
-        {/*projects.length > 0 && (
-          <div className="flex items-center justify-end mt-10 space-x-2">
-            <span className="text-[#990100] hover:underline cursor-pointer mr-3">
-              &lt;
-            </span>
-            <span className="text-sm font-medium mr-3">1</span>
-            <span className="text-sm mr-3">to {Math.min(6, projects.length)}</span>
-            <span className="text-[#990100] hover:underline cursor-pointer">
-              &gt;
-            </span>
-          </div>
-        )*/}
-
         {pageCount > 1 && (
-
           <div className=" ">
             <ReactPaginate
               breakLabel="..."
@@ -1057,9 +1095,17 @@ function Projects() {
               marginPagesDisplayed={2}
               pageClassName=""
               pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-              previousClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+              previousClassName={
+                multiPages
+                  ? "cursor-pointer hover:text-gray-500 hover:underline"
+                  : "text-gray-400 cursor-not-allowed pointer-events-none"
+              }
               previousLinkClassName="page-link"
-              nextClassName={multiPages ? "cursor-pointer hover:text-gray-500 hover:underline" : "text-gray-400 cursor-not-allowed pointer-events-none"}
+              nextClassName={
+                multiPages
+                  ? "cursor-pointer hover:text-gray-500 hover:underline"
+                  : "text-gray-400 cursor-not-allowed pointer-events-none"
+              }
               nextLinkClassName="page-link"
               breakClassName="page-item"
               breakLinkClassName="page-link"
@@ -1074,7 +1120,7 @@ function Projects() {
         open={confirmState.open}
         title={confirmState.title}
         message={confirmState.message}
-        confirmText={confirmBusy ? 'Processing…' : confirmState.confirmText}
+        confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
         onCancel={confirmBusy ? undefined : closeConfirm}

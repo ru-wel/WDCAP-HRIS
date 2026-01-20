@@ -452,8 +452,6 @@ function UserAccounts() {
   const [sortOrder, setSortOrder] = useState("email_az");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Draft values used inside the Filters panel (Apply commits these)
   const [draftSortOrder, setDraftSortOrder] = useState("email_az");
   const [draftRoleFilter, setDraftRoleFilter] = useState("all");
   const [draftStatusFilter, setDraftStatusFilter] = useState("all");
@@ -484,7 +482,6 @@ function UserAccounts() {
     return n;
   }, [roleFilter, statusFilter, sortOrder]);
 
-  // When opening the panel, sync draft values to current applied values
   useEffect(() => {
     if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
@@ -757,12 +754,6 @@ function UserAccounts() {
     setStatusFilter("all");
   };
 
-  const clearDraftFilters = () => {
-    setDraftSortOrder("email_az");
-    setDraftRoleFilter("all");
-    setDraftStatusFilter("all");
-  };
-
   const applyDraftFilters = () => {
     setSortOrder(draftSortOrder);
     setRoleFilter(draftRoleFilter);
@@ -773,7 +764,6 @@ function UserAccounts() {
   return (
     <div className="">
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-        {/* HEADER */}
         <div className="md:flex justify-between items-center w-full">
           <div className="">
             <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
@@ -894,7 +884,7 @@ function UserAccounts() {
                     <div className="flex items-center justify-between pt-2">
                       <button
                         type="button"
-                        onClick={clearDraftFilters}
+                        onClick={clearFilters}
                         className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
                       >
                         Clear all

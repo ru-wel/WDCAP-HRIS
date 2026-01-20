@@ -1889,7 +1889,6 @@ const handleSendReminder = (row) => {
                                         </div>
 
                                         <div className="space-y-4">
-                                            {/* SORT */}
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -1906,7 +1905,6 @@ const handleSendReminder = (row) => {
                                                 </div>
                                             </div>
 
-                                            {/* STATUS */}
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
                                                 <div className="flex flex-wrap gap-2">
@@ -1916,7 +1914,6 @@ const handleSendReminder = (row) => {
                                                 </div>
                                             </div>
 
-                                            {/* PERSONNEL TYPE */}
                                             <div>
                                                 <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
                                                 <div className="flex flex-wrap gap-2">

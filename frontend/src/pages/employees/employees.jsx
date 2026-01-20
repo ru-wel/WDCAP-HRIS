@@ -1282,7 +1282,6 @@ function Employees() {
                   </div>
 
                   <div className="space-y-4">
-                    {/* PERSONNEL TYPE */}
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-2">
                         Personnel Type
@@ -1301,7 +1300,6 @@ function Employees() {
                       </div>
                     </div>
 
-                    {/* SORT */}
                     <div>
                       <p className="text-xs font-semibold text-gray-700 mb-2">
                         Sort
