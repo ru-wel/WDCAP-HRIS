@@ -798,9 +798,10 @@ function UserAccounts() {
                     <button
                       type="button"
                       onClick={() => setFiltersOpen(false)}
-                      className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
-                    >
-                      Close
+                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
                     </button>
                   </div>
 

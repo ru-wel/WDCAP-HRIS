@@ -48,15 +48,17 @@ function PersonnelTypePickModal({ open, onClose, onPickStandard, onPickProjectBa
 
     return (
         <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-3 bg-[#990100] flex items-center justify-between">
+            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl  overflow-hidden">
+                <div className="px-5 py-3 m-4 rounded-lg bg-[#990100] flex items-center justify-between">
                     <h2 className="text-white text-sm font-semibold">Select Personnel Category</h2>
-                    <button type="button" onClick={onClose} className="text-white/90 hover:text-white text-sm font-medium cursor-pointer">
-                        Close
+                    <button type="button" onClick={onClose} className="text-white text-md hover:opacity-80 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ✕
                     </button>
                 </div>
 
-                <div className="px-5 py-5">
+                <div className="px-5 pt-2 pb-5">
                     <p className="text-sm text-gray-700">Choose one to auto-fill the Personnel Type.</p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3">

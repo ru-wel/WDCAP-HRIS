@@ -57,7 +57,6 @@ export default function Sidenav({
 
   const closeMobile = () => setMobileOpen?.(false);
 
-  // ✅ Key fix: when mobile menu is open, always show labels (like “expanded”)
   const showLabels = isHovered || (isMobile && mobileOpen);
 
   const desktopWidthClass = isHovered ? "md:w-44" : "md:w-20";
@@ -300,7 +299,7 @@ export default function Sidenav({
 
       <aside
         className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px]
-        transition-all duration-300 ease-in-out w-64 md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        transition-all duration-300 ease-in-out w-64 lg:[zoom:0.9] md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
         onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
       >
@@ -728,7 +727,7 @@ export function NavSide({ children, mobileOpen, setMobileOpen }) {
       <Sidenav mobileOpen={effectiveOpen} setMobileOpen={effectiveSetOpen} />
 
       <main className="md:pl-20">
-        <div className="md:hidden sticky top-0 z-10 bg-white border-b border-gray-200">
+        <div className="md:hidden sticky top-0 z-11 bg-white border-b border-gray-200">
           <div className="flex items-center gap-3 px-4 py-3">
             <button
               type="button"

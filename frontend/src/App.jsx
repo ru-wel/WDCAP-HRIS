@@ -317,7 +317,7 @@ function App() {
   );
 }
 
-function ProtectedLayoutWithSidebar() {
+/*function ProtectedLayoutWithSidebar() {
   return (
     <div className="flex min-h-screen">
       <NavSide />
@@ -325,6 +325,19 @@ function ProtectedLayoutWithSidebar() {
         <Outlet />
       </div>
     </div>
+  );
+}*/
+
+function ProtectedLayoutWithSidebar() {
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <ProtectedRoute>
+      <NavSide mobileOpen={mobileOpen} setMobileOpen={setMobileOpen}>
+        <Outlet />
+      </NavSide>
+    </ProtectedRoute>
   );
 }
 

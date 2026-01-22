@@ -402,7 +402,7 @@ function ModalEmployees({
       >
         <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
           <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
-            Information of {data.employee_id} {data.last_name}
+            Information of {data.employee_id}
           </h1>
           <button
             className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
@@ -429,7 +429,7 @@ function ModalEmployees({
         <div className="px-3" ref={detailsRef}>
           <div className="md:grid md:grid-cols-2 gap-4 items-center lg:pt-5 pt-3 text-left">
             <div className="pr-2 md:pb-0 pb-3">
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3">
                 <div className="w-16 h-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
                   {photoLoading ? (
                     <div className="text-[10px] text-gray-500">Loading…</div>
@@ -445,7 +445,7 @@ function ModalEmployees({
                     </div>
                   )}
                 </div>
-                <div>
+                <div className="flex flex-col ">
                   <p className="lg:text-sm text-xs">
                     <b>Employee ID:</b> {data.employee_id}
                   </p>
@@ -819,7 +819,7 @@ function Employees() {
   const personnelTypeOptions = useMemo(
     () => [
       { value: "ALL", label: "All" },
-      { value: "STANDARD", label: "Standard" },
+      { value: "STANDARD", label: "Probationary/Regular" },
       { value: "PROJECT_BASED", label: "Project-Based" },
     ],
     []
@@ -1267,7 +1267,7 @@ function Employees() {
               </button>
 
               {filtersOpen ? (
-                <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
+                <div className="absolute md:right-0  mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-sm font-semibold text-[#111827]">
                       Filters
@@ -1275,9 +1275,10 @@ function Employees() {
                     <button
                       type="button"
                       onClick={() => setFiltersOpen(false)}
-                      className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
-                    >
-                      Close
+                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                        aria-label="Close"
+                      >
+                        ×
                     </button>
                   </div>
 
@@ -1432,7 +1433,7 @@ function Employees() {
                 currentEmp.map((row) => (
                   <tr key={row.id} className="tr-style">
                     <td className="td-style font-medium">{row.employee_id}</td>
-                    <td className="td-style">
+                    <td className="td-style text-left">
                       {row.first_name} {row.last_name}
                     </td>
                     <td className="td-style">{row.position_title}</td>

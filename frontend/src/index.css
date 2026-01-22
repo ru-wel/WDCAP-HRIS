@@ -102,11 +102,11 @@
   }
 
   .thead-style{
-    @apply bg-[#990100] text-white;
+    @apply bg-[#990100] text-white z-0;
   }
 
   .th-style{
-    @apply px-5 py-3 text-xs tracking-wider uppercase sticky top-0 bg-[#990100] z-10 whitespace-normal break-words;
+    @apply px-5 py-3 text-xs tracking-wider text-center uppercase sticky top-0 bg-[#990100] z-10 whitespace-normal break-words;
   }
 
   .tbody-style{
@@ -118,7 +118,7 @@
   }
 
   .td-style{
-    @apply px-5 py-3 lg:text-sm text-xs text-gray-900 align-middle whitespace-normal break-words;
+    @apply px-5 py-3 lg:text-sm text-xs text-gray-900 align-middle whitespace-normal break-words text-center;
   }
 
   .td-style-nobtn{

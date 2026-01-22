@@ -575,15 +575,11 @@ export default function DepartmentEmployees() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          setPersonnelTypeFilter(draftPersonnelType);
-                          setSortOrder(draftSortOrder);
-                          setFiltersOpen(false);
-                        }}
+                        onClick={applyDraftFilters}
                         className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
                       >
                         Apply
-                      </button>
+                    </button>
                     </div>
                   </div>
                 </div>

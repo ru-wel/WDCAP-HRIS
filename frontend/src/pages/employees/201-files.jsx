@@ -1391,6 +1391,13 @@ export default function OnboardingFiles() {
     const [statusFilter, setStatusFilter] = useState('all');
     const [personnelTypeFilter, setPersonnelTypeFilter] = useState('all');
 
+    const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setRoleFilter(draftRoleFilter);
+    setStatusFilter(draftStatusFilter);
+    setFiltersOpen(false);
+    };
+
     const [filtersOpen, setFiltersOpen] = useState(false);
 
     const activeFilterCount = useMemo(() => {
@@ -1436,7 +1443,7 @@ export default function OnboardingFiles() {
         message: '',
         row: null,
     });
-const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+    const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
         setConfirmState({
             open: true,
             title: title || 'Confirmation',
@@ -1882,9 +1889,10 @@ const handleSendReminder = (row) => {
                                             <button
                                                 type="button"
                                                 onClick={() => setFiltersOpen(false)}
-                                                className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer"
+                                                className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                                                aria-label="Close"
                                             >
-                                                Close
+                                                ×
                                             </button>
                                         </div>
 
