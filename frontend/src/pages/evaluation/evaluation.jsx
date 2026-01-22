@@ -613,7 +613,25 @@ export default function Evaluation() {
     });
   };
 
+  const openConfirm = ({ title, message, confirmText, cancelText, onConfirm }) => {
+    setConfirmState({
+      open: true,
+      title: title || 'Confirm',
+      message: message || '',
+      confirmText: confirmText || 'OK',
+      cancelText: cancelText || null,
+      onConfirm: onConfirm || null,
+    });
+  };
+
   const closeConfirm = () => setConfirmState((p) => ({ ...p, open: false, onConfirm: null }));
+
+  const handleConfirm = () => {
+    if (confirmState.onConfirm) {
+      confirmState.onConfirm();
+    }
+    closeConfirm();
+  };
 
   const closePreview = () => {
     setPreviewState((p) => {
@@ -1138,7 +1156,7 @@ export default function Evaluation() {
         message={confirmState.message}
         confirmText={confirmState.confirmText}
         cancelText={confirmState.cancelText}
-        onConfirm={closeConfirm}
+        onConfirm={handleConfirm}
         onCancel={closeConfirm}
       />
 
