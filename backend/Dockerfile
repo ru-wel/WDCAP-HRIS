@@ -4,14 +4,14 @@ FROM node:20-slim
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from backend directory
+COPY backend/package*.json ./
 
 # Install production dependencies only
 RUN npm ci --only=production
 
-# Copy application code
-COPY . .
+# Copy application code from backend directory
+COPY backend/ .
 
 # Expose port (Cloud Run will set PORT env variable)
 EXPOSE 3000
