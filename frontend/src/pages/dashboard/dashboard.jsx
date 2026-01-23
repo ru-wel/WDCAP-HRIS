@@ -660,8 +660,6 @@ function Dashboard() {
                   Events for the Week
               </h2>
 
-              {/* DESIGN 1 */}
-
               <div className="px-2">
                 <div className="border-b border-[#f0dede] py-3">
                   <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">Jan 12 | Monday</p>
@@ -673,17 +671,7 @@ function Dashboard() {
                   </div>
                 </div>
 
-                {/* DESIGN 2 */}
-
-                <div className="flex items-center border-b border-[#f0dede] py-3 gap-4">
-                  <p className="font-bold lg:text-lg md:text-md text-sm">MON</p>
-
-                  <div className="md:text-sm text-xs">
-                    <p className="pb-1.5">Birthday of Reuel Christian Sundiam!</p>
-                    
-                    <p className="pb-1.5">Meeting of the Executives with HAU</p>
-                  </div>
-                </div>
+                
               </div>
 
               
