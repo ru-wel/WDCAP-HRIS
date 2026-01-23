@@ -33,6 +33,8 @@ function SectionCard({ title, subtitle, children, right }) {
   );
 }
 
+
+
 function Analytics() {
   const [summary, setSummary] = useState({
     totalEmployees: 0,
@@ -53,6 +55,7 @@ function Analytics() {
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSearch, setReportSearch] = useState("");
   const [excelExportOpen, setExcelExportOpen] = useState(false);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -154,6 +157,16 @@ function Analytics() {
     if (Number.isNaN(d.getTime())) return String(value);
     return d.toLocaleDateString();
   };
+
+    if (_loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading Analytics...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

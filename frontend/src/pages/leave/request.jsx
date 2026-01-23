@@ -797,6 +797,17 @@ function LeaveRequest() {
     });
   };
 
+  if (loading) {
+    return (
+      <div>
+        
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading leave requests...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">

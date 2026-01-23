@@ -108,6 +108,15 @@ export default function Profile() {
     ? [employeeDetails.first_name, employeeDetails.middle_name, employeeDetails.last_name].filter(Boolean).join(' ')
     : '';
 
+    if (loadingProfile) {
+      return (
+        <div>
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-600">Loading My Profile...</p>
+          </div>
+        </div>
+      );
+    }
   return (
     <div className=''>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">

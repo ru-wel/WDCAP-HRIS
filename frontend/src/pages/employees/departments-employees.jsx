@@ -490,10 +490,23 @@ export default function DepartmentEmployees() {
     });
   };
 
+  if (loading) {
+    return (
+      <div>
+        
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading {departmentName} Department Employees...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
+
       <Navbar />
 
+  
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
           <div className="flex items-center gap-3">
@@ -613,11 +626,7 @@ export default function DepartmentEmployees() {
 
         <hr className="text-[#990100] mt-6" />
 
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <p className="text-gray-600">Loading...</p>
-          </div>
-        )}
+        
 
         {error && !loading && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -639,7 +648,7 @@ export default function DepartmentEmployees() {
                   <button
                     type="button"
                     onClick={() => resetPaginationOnSearchOrTab("employees")}
-                    className={`px-8 py-3 font-medium rounded-t-lg transition ${
+                    className={`lg:px-4 lg:py-2 px-2.5 py-1.5 font-medium rounded-t-lg transition duration-300 cursor-pointer md:text-sm text-xs ${
                       tab === "employees"
                         ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
                         : "bg-[#D9D9D9] text-black z-10"
@@ -651,7 +660,7 @@ export default function DepartmentEmployees() {
                   <button
                     type="button"
                     onClick={() => resetPaginationOnSearchOrTab("positions")}
-                    className={`px-8 py-3 font-medium rounded-t-lg transition ${
+                    className={`lg:px-4 lg:py-2 px-2.5 py-1.5 font-medium rounded-t-lg transition duration-300 cursor-pointer md:text-sm text-xs ${
                       tab === "positions"
                         ? "bg-[#B63A3A] text-white z-20 -mb-[1px]"
                         : "bg-[#D9D9D9] text-black z-10"
@@ -665,9 +674,7 @@ export default function DepartmentEmployees() {
                   <button
                     type="button"
                     onClick={onAddPosition}
-                    className="cursor-pointer bg-[#B63A3A] text-white px-6 py-3 rounded-lg
-                               shadow-md hover:opacity-90 hover:scale-105
-                               transition duration-300 ease-in-out"
+                    className="generate-report-button mb-4 font-medium"
                   >
                     Add Position
                   </button>
@@ -748,9 +755,7 @@ export default function DepartmentEmployees() {
                                 <button
                                   type="button"
                                   onClick={() => onViewPosition(p)}
-                                  className="cursor-pointer bg-[#990100] text-white px-6 py-2 rounded-lg
-                                         hover:opacity-90 hover:scale-105
-                                         transition duration-300 ease-in-out"
+                                  className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                 >
                                   View Details
                                 </button>
@@ -795,29 +800,29 @@ export default function DepartmentEmployees() {
             data-lenis-prevent
           >
             <div className="p-5">
-              <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
-                <h2 className="text-white text-2xl font-bold">Add Position</h2>
+              <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
+                <h2 className="text-white text-lg font-medium lg:text-lg text-sm">Add New Position</h2>
 
                 <button
                   type="button"
                   onClick={closeAdd}
                   aria-label="Close"
-                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                  className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
                   disabled={positionSaving}
                 >
-                  ×
+                  ✕
                 </button>
               </div>
 
-              <div className="py-10">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-5">
-                  <span className="font-bold text-lg">Position Title:</span>
+              <div className="lg:py-10 py-7">
+                <div className="lg:mx-15 md:mx-30 mx-15">
+                  <span className=" text-left font-bold lg:text-lg text-sm">Position Title:</span>
 
-                  <div className="flex flex-col w-full sm:w-auto">
+                  <div className="flex flex-col w-full sm:w-auto pt-1.5">
                     <input
                       value={addPositionTitleDraft}
                       onChange={(e) => setAddPositionTitleDraft(e.target.value)}
-                      className="w-full sm:w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      className="w-full px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
                       disabled={positionSaving}
                     />
                     {positionError && (
@@ -828,14 +833,12 @@ export default function DepartmentEmployees() {
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-8 mt-10">
+                <div className="flex justify-center gap-4 mt-10">
                   <button
                     type="button"
                     onClick={onCreatePosition}
                     disabled={positionSaving}
-                    className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
-                               shadow-md hover:bg-green-600 hover:scale-105
-                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="green-button"
                   >
                     {positionSaving ? "Saving..." : "Save Position"}
                   </button>
@@ -844,9 +847,7 @@ export default function DepartmentEmployees() {
                     type="button"
                     onClick={closeAdd}
                     disabled={positionSaving}
-                    className="bg-gray-600 text-white px-8 py-3 rounded-lg cursor-pointer
-                               shadow-md hover:bg-gray-500 hover:scale-105
-                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="bg-gray-500 hover:bg-gray-400 green-button"
                   >
                     Cancel
                   </button>

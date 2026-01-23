@@ -204,6 +204,16 @@ function ReportsLogs() {
     setReportOpen(false);
   };
 
+  if (loading) {
+      return (
+        <div>
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-600">Loading Reports Audit Logs...</p>
+          </div>
+        </div>
+      );
+    }
+
   return (
     <div className="">
       <Navbar />

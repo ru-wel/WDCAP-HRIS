@@ -737,7 +737,7 @@ export default function Departments() {
       <Navbar />
       {loading && (
           <div className="flex items-center justify-center min-h-screen">
-            <p className="text-gray-600">Loading departments...</p>
+            <p className="text-gray-600">Loading Departments...</p>
           </div>
         )}
 
@@ -870,14 +870,13 @@ export default function Departments() {
               {isWorking ? (
                 <div className="flex gap-3">
                   <button
-                    className="cursor-pointer bg-[#990100] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-[15px] text-xs rounded-md
-                           hover:bg-[#ad3332] hover:scale-105
-                           transition duration-300 ease-in-out"
+                    className="cursor-pointer bg-[#990100] text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                     onClick={cancelWorking}
                     disabled={saving}
                   >
                     Cancel
                   </button>
+
                   {mode === "add" && (
                     <button
                       className="green-button"
@@ -892,16 +891,9 @@ export default function Departments() {
                 <>
                   {!showUpdateActions ? (
                     <button
-                      className="bg-[#990100] text-white lg:px-5 py-[7px] px-4 lg:text-[15px] rounded-md hover:bg-[#ad3332] lg:text-[15px] text-xs hover:scale-105 transition duration-300 ease-in-out"
+                      className="green-button"
                       onClick={() =>
-                        openConfirm({
-                          title: "Update departments",
-                          message:
-                            "Enter edit mode? You can update departments.",
-                          confirmText: "OK",
-                          cancelText: "Cancel",
-                          onConfirm: () => setShowUpdateActions(true),
-                        })
+                        setShowUpdateActions(true)
                       }
                     >
                       Update Department
@@ -936,6 +928,8 @@ export default function Departments() {
                     onChange={setNewDeptName}
                   />
                 ) : (
+
+                  
                   <DepartmentCard
                     key={dept.id}
                     id={dept.id}

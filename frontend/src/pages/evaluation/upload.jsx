@@ -775,6 +775,17 @@ export default function EvaluationUpload() {
   const breakdownFilled = Boolean(breakdownFile || currentDocs?.breakdown?.fileName);
   const finalFilled = Boolean(finalFile || currentDocs?.final?.fileName);
 
+  if (loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading Upload Result...</p>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div className="p-7 lg:mx-[4.5rem] md:mx-10">
       <div className="flex items-center justify-between">

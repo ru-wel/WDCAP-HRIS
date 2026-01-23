@@ -766,7 +766,7 @@ function UserAccounts() {
       <div>
 
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600">Loading user accounts...</p>
+          <p className="text-gray-600">Loading User Accounts...</p>
         </div>
       </div>
     );

@@ -133,6 +133,7 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
     }
   };
 
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
@@ -242,6 +243,8 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
   }, [evaluations]);
 
   if (!open) return null;
+
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -850,6 +853,17 @@ export default function EvaluationHistory() {
     }
   };
 
+    if (loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading Evaluation History...</p>
+        </div>
+      </div>
+    );
+  }
+
+  
   return (
     <div className="p-7 lg:mx-[4.5rem] md:mx-10">
       <div className="flex justify-between items-center w-full">

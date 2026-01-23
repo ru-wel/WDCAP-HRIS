@@ -786,7 +786,7 @@ function Projects() {
       <div>
         <Navbar />
         <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600">Loading projects...</p>
+          <p className="text-gray-600">Loading Projects...</p>
         </div>
       </div>
     );

@@ -55,7 +55,7 @@ export default function ConfirmModal({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-5 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                  className="px-5 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
                 >
                   {cancelText}
                 </button>
@@ -64,7 +64,7 @@ export default function ConfirmModal({
                 type="button"
                 onClick={onConfirm}
                 disabled={confirmDisabled}
-                className={`px-6 py-2 rounded-full text-sm text-white transition cursor-pointer ${
+                className={`px-6 py-2 rounded-lg text-sm text-white transition cursor-pointer ${
                   confirmDisabled ? 'bg-[#ad3332]/60 cursor-not-allowed' : 'bg-[#990100] hover:bg-[#ad3332]'
                 }`}
               >
@@ -77,7 +77,7 @@ export default function ConfirmModal({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
                 >
                   {cancelText}
                 </button>
@@ -86,7 +86,7 @@ export default function ConfirmModal({
                 type="button"
                 onClick={onConfirm}
                 disabled={confirmDisabled}
-                className={`px-5 py-2 rounded-full text-sm text-white transition cursor-pointer ${
+                className={`px-5 py-2 rounded-lg text-sm text-white transition cursor-pointer ${
                   confirmDisabled
                     ? "bg-[#ad3332]/60 cursor-not-allowed"
                     : "bg-[#990100] hover:bg-[#ad3332]"

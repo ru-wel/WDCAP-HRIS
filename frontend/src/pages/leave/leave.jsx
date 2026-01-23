@@ -79,7 +79,7 @@ function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel })
       <div ref={ref} className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style={{ width: CARD_W, height: CARD_H, left, top }}>
           <div className="relative p-3 flex justify-end gap-2 border-b">
             {canCancel ? (
-              <button className="gc-icon-btn" title="Cancel Leave" onClick={() => onCancelClick?.(data)}>Cancel</button>
+              <button className="gc-icon-cancel" title="Cancel Leave" onClick={() => onCancelClick?.(data)}>Cancel</button>
             ) : null}
             <button className="gc-icon-btn" title="Close" onClick={onClose}>✕</button>
           </div>
@@ -418,11 +418,15 @@ export default function Leave() {
     return Math.max(1, diff + 1);
   };
 
-  {_loading && (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-gray-600">Loading departments...</p>
-    </div>
-  )}
+  if (_loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading Leave Calendar...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
 

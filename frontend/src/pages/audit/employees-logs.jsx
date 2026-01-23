@@ -452,6 +452,16 @@ function EmployeesLogs() {
     setReportOpen(false);
   };
 
+  if (loading) {
+      return (
+        <div>
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-600">Loading Employees Audit Logs...</p>
+          </div>
+        </div>
+      );
+    }
+
   return (
     <div>
       <Navbar />
