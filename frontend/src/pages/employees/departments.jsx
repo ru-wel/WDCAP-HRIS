@@ -735,6 +735,11 @@ export default function Departments() {
   return (
     <div>
       <Navbar />
+      {loading && (
+          <div className="flex items-center justify-center min-h-screen">
+            <p className="text-gray-600">Loading departments...</p>
+          </div>
+        )}
 
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center">
@@ -832,11 +837,7 @@ export default function Departments() {
 
         <hr className="text-[#990100] mt-6" />
 
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <p className="text-gray-600">Loading departments...</p>
-          </div>
-        )}
+        
 
         {error && !loading && (
           <div className="flex items-center justify-center py-20">
@@ -869,7 +870,7 @@ export default function Departments() {
               {isWorking ? (
                 <div className="flex gap-3">
                   <button
-                    className="cursor-pointer bg-[#990100] text-white px-4 py-2 rounded-md
+                    className="cursor-pointer bg-[#990100] text-white lg:px-5 md:py-[7px] px-4 py-[5px] lg:text-[15px] text-xs rounded-md
                            hover:bg-[#ad3332] hover:scale-105
                            transition duration-300 ease-in-out"
                     onClick={cancelWorking}
@@ -891,7 +892,7 @@ export default function Departments() {
                 <>
                   {!showUpdateActions ? (
                     <button
-                      className="bg-[#990100] text-white px-4 py-2 rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                      className="bg-[#990100] text-white lg:px-5 py-[7px] px-4 lg:text-[15px] rounded-md hover:bg-[#ad3332] lg:text-[15px] text-xs hover:scale-105 transition duration-300 ease-in-out"
                       onClick={() =>
                         openConfirm({
                           title: "Update departments",
@@ -915,7 +916,7 @@ export default function Departments() {
                       </button>
                       <button
                         type="button"
-                        className="cursor-pointer bg-[#990100] text-white px-4 py-2 rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                        className="cursor-pointer bg-[#990100] text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                         onClick={() => setShowUpdateActions(false)}
                       >
                         Cancel

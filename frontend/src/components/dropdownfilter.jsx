@@ -21,11 +21,11 @@ function DropDownFilter({
   }, [resolvedOptions, value]);
 
   return (
-    <div className="w-full">
+    <div className="left-align">
       {/* Header row (keeps the "label" behavior similar to dropdown) */}
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-xs md:text-sm text-gray-600">{label}</p>
-        <p className="text-xs md:text-sm text-[#990100] font-medium truncate">
+      <div className="mb-2 flex items-center gap-3">
+        <p className="text-xs md:text-sm text-gray-600">{label}: </p>
+        <p className="text-xs md:text-sm text-[#990100] font-medium truncate uppercase">
           {selectedLabel || ''}
         </p>
       </div>

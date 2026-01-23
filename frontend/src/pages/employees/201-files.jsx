@@ -1853,6 +1853,17 @@ const handleSendReminder = (row) => {
         setPersonnelTypeFilter('all');
     };
 
+    if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading 201 Files...</p>
+        </div>
+      </div>
+    );
+  }
+
     return (
         <div>
             <Navbar />
@@ -1976,7 +1987,7 @@ const handleSendReminder = (row) => {
 
                 {isEmployee ? (
                     <div className="div-table">
-                        {loading && <div className="text-sm text-gray-600 mb-3">Loading your 201 Files…</div>}
+                        
 
                         {rows.length === 0 ? (
                             <div className="text-sm text-gray-600">No 201 files found.</div>
@@ -2079,7 +2090,7 @@ const handleSendReminder = (row) => {
                                                                 />
                                                             </div>
 
-                                                            {tooltipLines.length ? (
+                                                            {/*{tooltipLines.length ? (
                                                                 <div className="absolute left-0 top-0 -translate-y-[110%] z-50 hidden group-hover:block">
                                                                     <div className="max-w-xs rounded-lg border border-gray-200 bg-white shadow-lg px-3 py-2 text-[11px] text-gray-800">
                                                                         {tooltipLines.map((line, idx) => (
@@ -2089,7 +2100,7 @@ const handleSendReminder = (row) => {
                                                                         ))}
                                                                     </div>
                                                                 </div>
-                                                            ) : null}
+                                                            ) : null}*/}
                                                         </div>
                                                     </td>
                                                     <td className="td-style">

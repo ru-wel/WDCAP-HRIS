@@ -49,16 +49,16 @@ function PersonnelTypePickModal({ open, onClose, onPickStandard, onPickProjectBa
     return (
         <div className="fixed inset-0 z-1000 flex items-center justify-center bg-black/40 px-4" role="dialog" aria-modal="true">
             <div className="w-full max-w-md rounded-2xl bg-white shadow-xl  overflow-hidden">
-                <div className="px-5 py-3 m-4 rounded-lg bg-[#990100] flex items-center justify-between">
+                <div className="px-4 py-3 m-4 rounded-lg bg-[#990100] flex items-center justify-between">
                     <h2 className="text-white text-sm font-semibold">Select Personnel Category</h2>
-                    <button type="button" onClick={onClose} className="text-white text-md hover:opacity-80 text-lg leading-none"
+                    <button type="button" onClick={onClose} className="text-white text-md hover:opacity-80 text-lg leading-none hover:scale-110 transition"
                         aria-label="Close"
                       >
                         ✕
                     </button>
                 </div>
 
-                <div className="px-5 pt-2 pb-5">
+                <div className="px-7 pt-2 pb-5">
                     <p className="text-sm text-gray-700">Choose one to auto-fill the Personnel Type.</p>
 
                     <div className="mt-4 grid grid-cols-1 gap-3">
@@ -697,7 +697,7 @@ function Onboarding(){
     if (loadingData) {
         return (
             <div className="absolute inset-0 flex items-center justify-center">
-                <p className="text-md text-gray-600">Loading…</p>
+                <p className="text-md text-gray-600">Loading Onboarding Form…</p>
             </div>
         );
     }

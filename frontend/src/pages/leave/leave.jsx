@@ -121,13 +121,15 @@ export default function Leave() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
-  const [_loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(true);
   const [rawEvents, setRawEvents] = useState([]);
 
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
   const [duePending, setDuePending] = useState([]);
 
   const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
+
+  
 
   useEffect(() => {
     if (!canManage) {
@@ -416,27 +418,44 @@ export default function Leave() {
     return Math.max(1, diff + 1);
   };
 
+  {_loading && (
+    <div className="flex items-center justify-center min-h-screen">
+      <p className="text-gray-600">Loading departments...</p>
+    </div>
+  )}
+
   return (
+
+    
     <div>
       <div className="p-4 sm:p-6 lg:p-7 md:mx-10 lg:mx-[4.5rem]">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#990100]">Leave</h1>
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <DropDownFilter
-              label="Leave Type"
-              value={leaveTypeFilter}
-              onChange={setLeaveTypeFilter}
-              options={leaveTypeOptions}
-            />
+        <div className="flex flex-col lg:flex-row  justify-between gap-4 mb-4">
+        <h1 className="text-2xl lg:text-3xl font-bold text-[#990100] text-left lg:self-center">Leave</h1>
+
+        <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto items-start md:items-end">
+          <DropDownFilter
+            label="Leave Type"
+            value={leaveTypeFilter}
+            onChange={setLeaveTypeFilter}
+            options={leaveTypeOptions}
+          />
+
+          <div className="relative flex items-center border border-[#990100] rounded-lg h-10 w-full md:w-56">
             <input
               type="search"
               placeholder="Search"
-              className="border border-[#990100] rounded-lg px-3 h-9 text-sm w-full sm:w-auto"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-full w-full px-3 pr-8 rounded-lg text-sm focus:outline-none"
+            />
+            <img
+              src="/icons/red-search.png"
+              alt="search"
+              className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2"
             />
           </div>
         </div>
+      </div>
 
         <hr className="border-[#990100] mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

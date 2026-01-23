@@ -28,7 +28,7 @@ export default function ConfirmModal({
   const showCancel = typeof onCancel === "function" && cancelText != null && cancelText !== "";
 
   const containerClass = variant === 'form' ? 'w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden' : 'w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden';
-  const contentClass = variant === 'form' ? 'px-6 py-5' : 'px-4 sm:px-5 py-4';
+  const contentClass = variant === 'form' ? 'px-6 py-5' : 'px-4 sm:px-5 pt-3 pb-4';
 
   return (
     <div
@@ -38,15 +38,15 @@ export default function ConfirmModal({
       aria-label={title || "Confirmation"}
     >
       <div className={containerClass}>
-        <div className="px-4 sm:px-5 py-3 bg-[#990100]">
+        <div className="px-3 sm:px-4 py-3 bg-[#990100] m-4 rounded-lg">
           <h2 className="text-white text-sm font-semibold tracking-wide">{title || "Confirmation"}</h2>
         </div>
 
         <div className={contentClass}>
           {content ? (
-            <div className="text-sm text-gray-800">{content}</div>
+            <div className="text-sm px-2 text-gray-800">{content}</div>
           ) : (
-            <p className="text-sm text-gray-800 whitespace-pre-line">{message}</p>
+            <p className="text-sm text-gray-800 px-2 whitespace-pre-line">{message}</p>
           )}
 
           {variant === 'form' ? (
@@ -72,7 +72,7 @@ export default function ConfirmModal({
               </button>
             </div>
           ) : (
-            <div className="mt-5 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
+            <div className="mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
               {showCancel && (
                 <button
                   type="button"

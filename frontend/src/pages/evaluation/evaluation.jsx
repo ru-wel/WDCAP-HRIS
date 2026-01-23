@@ -970,18 +970,28 @@ export default function Evaluation() {
   return (
     <div>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-3xl font-bold text-[#990100]">Evaluation</h1>
+        <div className="flex flex-col lg:flex-row  justify-between gap-4 mb-4">
+          <h1 className="text-2xl lg:text-3xl font-bold text-[#990100] text-left lg:self-center">Evaluation</h1>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto items-start md:items-end">
+
             <DropDownFilter label="Type" value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
-            <input
-              type="search"
-              placeholder="Search"
-              className="border border-[#990100] rounded-lg px-3 h-9 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+
+            <div className="relative flex items-center border border-[#990100] rounded-lg h-10 w-full md:w-56">
+              <input
+                type="search"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-full px-3 pr-8 rounded-lg text-sm focus:outline-none w-full"
+              />
+              <img
+                src="/icons/red-search.png"
+                alt="search"
+                className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2"
+              />
+            </div>
+
           </div>
         </div>
 
