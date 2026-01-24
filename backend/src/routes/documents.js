@@ -1,10 +1,10 @@
 import express from 'express';
 import multer from 'multer';
 import * as documentsController from '../controllers/document.controller.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorizeRoles } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import * as documentsValidation from '../validations/document.validation.js';
-import { FILE_VALIDATION } from '../config/constants.js';
+import { ROLES, FILE_VALIDATION } from '../config/constants.js';
 
 const router = express.Router();
 
@@ -32,13 +32,10 @@ router.post('/upload', upload.single('file'), validate(documentsValidation.uploa
 // get all documents for employee
 router.get('/:employee_id', validate(documentsValidation.getDocumentsByEmployeeSchema), documentsController.getDocumentsByEmployee);
 
-// download document (employees can download their own)
-router.get('/:document_id/download', validate(documentsValidation.documentIdSchema), documentsController.downloadDocument);
+// download document - HR/Executive only
+router.get('/:document_id/download', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(documentsValidation.documentIdSchema), documentsController.downloadDocument);
 
-// preview document (returns a preview URL)
-router.get('/:document_id/preview', validate(documentsValidation.documentIdSchema), documentsController.previewDocument);
-
-// delete document - HR/Admin only
-router.delete('/:document_id', validate(documentsValidation.documentIdSchema), documentsController.deleteDocument);
+// delete document - HR/Executive only
+router.delete('/:document_id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(documentsValidation.documentIdSchema), documentsController.deleteDocument);
 
 export default router;

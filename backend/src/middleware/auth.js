@@ -125,11 +125,11 @@ export const verifyEmployeeOwnership = async (req, res, next) => {
     // regular employees, verify they're accessing their own data
     const { employeeId } = req.params;
 
-    if (!req.user.employee_id) {
+    if (!req.user.employee_db_id) {
       throw new ForbiddenError('You do not have an associated employee profile');
     }
 
-    if (req.user.employee_id !== employeeId) {
+    if (req.user.employee_db_id !== employeeId) {
       throw new ForbiddenError('You can only access your own employee data');
     }
 

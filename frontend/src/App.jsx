@@ -36,6 +36,7 @@ import Evaluation from './pages/evaluation/evaluation.jsx';
 import EmployeeProjects from './pages/employees/self/employee-projects.jsx';
 import EmployeeProjectMembers from './pages/employees/self/employee-project-members.jsx';
 import CalendarPage from './pages/calendar/calendar.jsx';
+import MyDocuments from './pages/employees/self/employee-documents.jsx';
 
 function TitleManager() {
   const location = useLocation();
@@ -55,6 +56,7 @@ function TitleManager() {
         '/employees/onboarding': 'ARISE | ONBOARDING',
         '/employees/user-accounts': 'ARISE | USER ACCOUNTS',
         '/employees/201-files': 'ARISE | 201 FILES',
+        '/employees/my-documents': 'ARISE | MY DOCUMENTS',
         '/employees/departments': 'ARISE | DEPARTMENTS',
 
         '/projects': 'ARISE | PROJECTS',
@@ -202,6 +204,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
                 <OnboardingFiles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employees/my-documents"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
+                <MyDocuments />
               </ProtectedRoute>
             }
           />

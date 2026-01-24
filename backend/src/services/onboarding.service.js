@@ -844,21 +844,21 @@ const canonicalizeItemKey = (value) => ITEM_KEY_ALIASES.get(normalizeItemKey(val
 // Default 201 checklist items (both Regular and Project-Based share these).
 // Note: business rule here is "lahat kailangan" (everything listed is required).
 const DEFAULT_201_ONBOARDING_ITEMS = [
-  { name: DOCUMENT_TYPES.EMPLOYEE_CONTRACT, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.RESUME_CV, requiredByDefault: true },
   { name: DOCUMENT_TYPES.APPLICATION_FOR_EMPLOYMENT, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.PRE_EMPLOYMENT_EXAM, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.EMPLOYEE_CONTRACT, requiredByDefault: true },
   { name: DOCUMENT_TYPES.PERSONAL_DATA_SHEET, requiredByDefault: true },
   { name: DOCUMENT_TYPES.EMPLOYEE_PHOTO, requiredByDefault: true },
   { name: DOCUMENT_TYPES.SINUMPAANG_SALAYSAY, requiredByDefault: true },
   { name: DOCUMENT_TYPES.WAIVER_OF_MEDICAL_EXAMINATION, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.NDA, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.DIPLOMA, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.TOR, requiredByDefault: true },
   { name: DOCUMENT_TYPES.SSS, requiredByDefault: true },
   { name: DOCUMENT_TYPES.PHILHEALTH, requiredByDefault: true },
   { name: DOCUMENT_TYPES.PAG_IBIG, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.RESUME_CV, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.DIPLOMA, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.TOR, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.NDA, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.DRIVERS_LICENSE, requiredByDefault: true },
-  { name: DOCUMENT_TYPES.PRC_ID, requiredByDefault: true },
+  { name: DOCUMENT_TYPES.VALID_ID, requiredByDefault: true },
 ];
 
 async function ensureDefault201OnboardingItems() {
@@ -908,12 +908,6 @@ async function ensureDefault201OnboardingItems() {
     if (Object.keys(patch).length) updates.push({ id: existing.id, patch });
   }
 
-  // Ensure "Others" is not required by default.
-  const othersExisting = existingByKey.get(canonicalizeItemKey(DOCUMENT_TYPES.OTHERS));
-  if (othersExisting && othersExisting.is_required_by_default) {
-    updates.push({ id: othersExisting.id, patch: { is_required_by_default: false } });
-  }
-
   if (inserts.length) {
     const { error: insertError } = await supabase.from('onboarding_items').insert(inserts);
     if (insertError) throw new InternalServerError(insertError.message);
@@ -925,16 +919,6 @@ async function ensureDefault201OnboardingItems() {
     );
     const firstError = results.find(r => r?.error)?.error;
     if (firstError) throw new InternalServerError(firstError.message);
-  }
-
-  // Enforce the rule: everything (except Others) is required-by-default.
-  {
-    const { error: requireAllError } = await supabase
-      .from('onboarding_items')
-      .update({ is_required_by_default: true })
-      .neq('item_name', DOCUMENT_TYPES.OTHERS);
-
-    if (requireAllError) throw new InternalServerError(requireAllError.message);
   }
 
   const { data: refreshedItems, error: refreshError } = await supabase
@@ -997,28 +981,21 @@ const ensureEmployeeChecklistUpToDateWithItems = async (employeeId, actorUserId,
   for (const item of allItems) {
     if (!item?.id) continue;
 
-    const isOthers = canonicalizeItemKey(item?.item_name) === canonicalizeItemKey(DOCUMENT_TYPES.OTHERS);
     const matchingRows = rowsByChecklistItemId.get(item.id) || [];
+    const isRequiredByDefault = item.is_required_by_default !== false;
 
     if (matchingRows.length === 0) {
       // Always create missing rows so progress includes newly added onboarding items.
       inserts.push({
         employee_id: employeeId,
         checklist_item_id: item.id,
-        is_required: !isOthers,
+        is_required: isRequiredByDefault,
         status: ONBOARDING_STATUSES.PENDING
       });
       continue;
     }
 
-    if (isOthers) {
-      for (const r of matchingRows) {
-        if (r?.is_required !== false) updates.push({ id: r.id, patch: { is_required: false } });
-      }
-      continue;
-    }
-
-    // Everything else is required.
+    // Update existing rows to match the required status if needed.
     const sorted = [...matchingRows].sort((a, b) => {
       const aHasDoc = a?.document_id ? 0 : 1;
       const bHasDoc = b?.document_id ? 0 : 1;
@@ -1104,32 +1081,9 @@ export const getEmployeeChecklist = async (employeeId) => {
 
 export const getAllChecklists = async (actorUserId = null) => {
   try {
-    const { items } = await ensureDefault201OnboardingItems();
-
-    // Ensure checklists exist and include any newly added baseline items.
-    // This keeps progress totals consistent for older employees.
-    const { data: employees, error: employeesError } = await supabase
-      .from('employees')
-      .select('id');
-
-    if (employeesError) {
-      throw new InternalServerError(employeesError.message);
-    }
-
-    const employeeIds = (employees || []).map(e => e?.id).filter(Boolean);
-    const concurrency = 10;
-    let idx = 0;
-    const workers = new Array(Math.min(concurrency, employeeIds.length)).fill(null).map(async () => {
-      while (idx < employeeIds.length) {
-        const id = employeeIds[idx++];
-        try {
-          await ensureEmployeeChecklistUpToDateWithItems(id, actorUserId, items);
-        } catch (e) {
-          logger.warn(`Checklist reconcile failed for employee ${id}: ${e?.message || e}`);
-        }
-      }
-    });
-    await Promise.all(workers);
+    // Removed automatic reconciliation to preserve user customizations
+    // If you need to sync checklists for all employees (e.g., after adding new document types),
+    // create a dedicated admin endpoint that calls ensureEmployeeChecklistUpToDate manually
 
     const { data, error } = await supabase
       .from('onboarding_checklists')

@@ -83,6 +83,7 @@ export default function Sidenav({
 
     if (isEmployee) {
       if (path.startsWith("/employees/201-files")) return { main: "Employees", sub: "201 Files" };
+      if (path.startsWith("/employees/my-documents")) return { main: "Employees", sub: "My Documents" };
       if (path.startsWith("/employees/departments")) return { main: "Employees", sub: "Departments" };
     } else {
       if (path.startsWith("/employees/departments/")) return { main: "Employees", sub: "Departments" };
@@ -97,6 +98,7 @@ export default function Sidenav({
       "/employees/onboarding": { main: "Employees", sub: "Onboarding" },
       "/employees/user-accounts": { main: "Employees", sub: "User Accounts" },
       "/employees/201-files": { main: "Employees", sub: "201 Files" },
+      "/employees/my-documents": { main: "Employees", sub: "My Documents" },
       "/employees/departments": { main: "Employees", sub: "Departments" },
 
       "/projects": { main: "Projects", sub: null },
@@ -179,6 +181,7 @@ export default function Sidenav({
         { label: "Onboarding", path: "/employees/onboarding" },
         ...(isExecutive || isHr ? [{ label: "User Accounts", path: "/employees/user-accounts" }] : []),
         { label: "201 Files", path: "/employees/201-files" },
+        { label: "My Documents", path: "/employees/my-documents" },
         { label: "Departments", path: "/employees/departments" },
       ],
     },
@@ -234,6 +237,7 @@ export default function Sidenav({
           path: null,
           children: [
             { label: "201 Files", path: "/employees/201-files" },
+            { label: "My Documents", path: "/employees/my-documents" },
             { label: "Departments", path: "/employees/departments" },
             { label: "User Account", path: "/profile" },
           ],

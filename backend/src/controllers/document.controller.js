@@ -1,6 +1,5 @@
 import * as documentsService from '../services/document.service.js';
-import { ONBOARDING_STATUSES, ROLES } from '../config/constants.js';
-import { supabase } from '../config/supabase.js';
+import { ROLES } from '../config/constants.js';
 import { ForbiddenError } from '../utils/errors.js';
 
 // upload document controller
@@ -13,25 +12,9 @@ export const uploadDocument = async (req, res, next) => {
     const userEmployeeDbId = req.user.employee_db_id;
     const checklistItemId = req.body.checklist_item_id;
 
-    // employee can only upload their own documents
-    if (userRole == ROLES.EMPLOYEE && String(userEmployeeDbId ?? '') !== String(employee_id ?? '')) {
+    // employee can only upload their own documents (compare database IDs)
+    if (userRole == ROLES.EMPLOYEE && userEmployeeDbId !== employee_id) {
       throw new ForbiddenError('You can only upload documents for yourself');
-    }
-
-    // Once a checklist item is approved, employees must not replace it.
-    if (userRole === ROLES.EMPLOYEE && checklistItemId) {
-      const { data: checklistRow, error: checklistErr } = await supabase
-        .from('onboarding_checklists')
-        .select('id, status')
-        .eq('id', checklistItemId)
-        .eq('employee_id', employee_id)
-        .maybeSingle();
-
-      if (checklistErr) throw new Error(checklistErr.message);
-
-      if (checklistRow && String(checklistRow.status || '').toLowerCase() === ONBOARDING_STATUSES.APPROVED) {
-        throw new ForbiddenError('This document is already approved and cannot be changed.');
-      }
     }
 
     // prepare file data
@@ -65,8 +48,8 @@ export const getDocumentsByEmployee = async (req, res, next) => {
     const userRole = req.user.role;
     const userEmployeeDbId = req.user.employee_db_id;
 
-    // employee can only view their own documents
-    if (userRole === ROLES.EMPLOYEE && String(userEmployeeDbId ?? '') !== String(employee_id ?? '')) {
+    // employee can only view their own documents (compare database IDs)
+    if (userRole === ROLES.EMPLOYEE && userEmployeeDbId !== employee_id) {
       throw new ForbiddenError('You can only view your own documents');
     }
 
@@ -86,53 +69,20 @@ export const getDocumentsByEmployee = async (req, res, next) => {
 export const downloadDocument = async (req, res, next) => {
   try {
     const { document_id } = req.params;
-    const dispositionRaw = String(req.query?.disposition || '').trim().toLowerCase();
-    const disposition = dispositionRaw === 'inline' ? 'inline' : 'attachment';
     const userRole = req.user.role;
-    const userEmployeeDbId = req.user.employee_db_id;
 
-    // employees can only download their own documents
-    if (userRole === ROLES.EMPLOYEE) {
-      const meta = await documentsService.getDocumentById(document_id);
-      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
-        throw new ForbiddenError('You can only download your own documents');
-      }
+    // only HR/Executive can download documents
+    if (userRole === ROLES.EMPLOYEE || userRole === ROLES.MANAGER) {
+      throw new ForbiddenError('You do not have permission to download documents');
     }
 
     const result = await documentsService.downloadDocument(document_id);
 
     res.status(200).json({
       success: true,
-      message: 'Document download URL generated successfully',
+      message: 'Document download URL generated succesfully',
       data: result
     })
-  } catch (error) {
-    next(error);
-  }
-};
-
-// preview document controller (returns a preview URL)
-export const previewDocument = async (req, res, next) => {
-  try {
-    const { document_id } = req.params;
-    const userRole = req.user.role;
-    const userEmployeeDbId = req.user.employee_db_id;
-
-    // employees can only preview their own documents
-    if (userRole === ROLES.EMPLOYEE) {
-      const meta = await documentsService.getDocumentById(document_id);
-      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
-        throw new ForbiddenError('You can only preview your own documents');
-      }
-    }
-
-    const result = await documentsService.previewDocument(document_id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Preview URL generated successfully',
-      data: result
-    });
   } catch (error) {
     next(error);
   }
@@ -144,27 +94,10 @@ export const deleteDocument = async (req, res, next) => {
     const { document_id } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
-    const userEmployeeDbId = req.user.employee_db_id;
 
-    // employees can only delete their own documents
-    if (userRole === ROLES.EMPLOYEE) {
-      const meta = await documentsService.getDocumentById(document_id);
-      if (!meta || String(meta.employee_id) !== String(userEmployeeDbId ?? '')) {
-        throw new ForbiddenError('You can only delete your own documents');
-      }
-
-      // If the document is linked to an approved onboarding checklist, employees cannot delete it.
-      const { data: linkedChecklist, error: linkErr } = await supabase
-        .from('onboarding_checklists')
-        .select('id, status')
-        .eq('employee_id', userEmployeeDbId)
-        .eq('document_id', document_id)
-        .maybeSingle();
-      if (linkErr) throw new Error(linkErr.message);
-
-      if (linkedChecklist && String(linkedChecklist.status || '').toLowerCase() === ONBOARDING_STATUSES.APPROVED) {
-        throw new ForbiddenError('Approved documents cannot be deleted.');
-      }
+    // only HR/Executive can delete documents
+    if (userRole === ROLES.EMPLOYEE || userRole === ROLES.MANAGER) {
+      throw new ForbiddenError('You do not have permission to delete documents');
     }
 
     const deletedDocument = await documentsService.deleteDocument(document_id, userId);

@@ -3,63 +3,6 @@ import { NotFoundError, InternalServerError, BadRequestError } from "../utils/er
 import { AUDIT_ACTIONS, FILE_VALIDATION, ONBOARDING_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
-const sanitizeForFileName = (value) => String(value || '').replace(/[^a-zA-Z0-9]+/g, ' ').trim().replace(/\s+/g, '_');
-
-const docTypeToPrefix = (documentName) => {
-  // Example: "Employee Contract" -> "EmployeeContract", "Resume/CV" -> "ResumeCV"
-  const raw = String(documentName || 'Document').replace(/[^a-zA-Z0-9]+/g, ' ').trim();
-  if (!raw) return 'Document';
-  return raw
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => {
-      if (/^[A-Z0-9]+$/.test(w)) return w;
-      return w.charAt(0).toUpperCase() + w.slice(1);
-    })
-    .join('');
-};
-
-const getExtension = (fileName) => {
-  const raw = String(fileName || '');
-  const dot = raw.lastIndexOf('.');
-  if (dot <= 0 || dot === raw.length - 1) return '';
-  return raw.slice(dot + 1).toLowerCase();
-};
-
-const getExistingDocumentForChecklistItem = async ({ checklistItemId, employeeId }) => {
-  if (!checklistItemId) return null;
-
-  const { data: checklist, error } = await supabase
-    .from('onboarding_checklists')
-    .select('id, document_id')
-    .eq('id', checklistItemId)
-    .eq('employee_id', employeeId)
-    .maybeSingle();
-
-  if (error) throw new InternalServerError(error.message);
-  if (!checklist?.document_id) return null;
-
-  try {
-    return await getDocumentById(checklist.document_id);
-  } catch {
-    return null;
-  }
-};
-
-const getLatestDocumentForEmployeeType = async ({ employeeId, documentName }) => {
-  const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .eq('employee_id', employeeId)
-    .eq('document_name', documentName)
-    .order('uploaded_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw new InternalServerError(error.message);
-  return data || null;
-};
-
 // upload a document
 export const uploadDocument = async (fileData, userId) => {
   try {
@@ -68,7 +11,7 @@ export const uploadDocument = async (fileData, userId) => {
     // check if employee exists
     const { data: employee, error: empError } = await supabase
       .from('employees')
-      .select('id, employee_id, first_name, last_name, personnel_type')
+      .select('id, employee_id, first_name, last_name')
       .eq('id', employee_id)
       .single();
 
@@ -78,30 +21,13 @@ export const uploadDocument = async (fileData, userId) => {
 
     // validate file size
     if (file_size > FILE_VALIDATION.MAX_FILE_SIZE) {
-      const maxMb = Math.round((FILE_VALIDATION.MAX_FILE_SIZE / (1024 * 1024)) * 10) / 10;
-      throw new BadRequestError(`File size exceeds maximum limit of ${maxMb} MB`);
+      throw new BadRequestError(`File size exceeds maximum limit of 10 MB`);
     }
 
     // validate file type
     if (!FILE_VALIDATION.ALLOWED_MIME_TYPES.includes(file_type)) {
       throw new BadRequestError(`File type ${file_type} is not allowed. Allowed types: ${FILE_VALIDATION.ALLOWED_EXTENSIONS.join(', ')}`);
     }
-
-    // Special rule: Employee Photo must be JPEG only.
-    if (String(document_name || '').trim().toLowerCase() === 'employee photo' && String(file_type || '').toLowerCase() !== 'image/jpeg') {
-      throw new BadRequestError('Employee Photo must be a JPEG image (.jpg/.jpeg) only.');
-    }
-
-    // If this upload comes from an onboarding checklist item, prefer replacing its existing document.
-    // Otherwise, replace the latest document for the same employee+document_name to prevent duplicates.
-    const existingForChecklist = await getExistingDocumentForChecklistItem({
-      checklistItemId: checklist_item_id,
-      employeeId: employee_id
-    });
-    const existingDocument = existingForChecklist || (await getLatestDocumentForEmployeeType({
-      employeeId: employee_id,
-      documentName: document_name
-    }));
 
     // generate unique file path: employee_id/timestamp_filename
     const timestamp = Date.now();
@@ -114,90 +40,36 @@ export const uploadDocument = async (fileData, userId) => {
         cacheControl: '3600',
         upsert: false,
         contentType: file_type
-      });
+      })
 
     if (uploadError) {
       logger.error('File upload error:', uploadError);
       throw new InternalServerError('Failed to upload file to storage: ' + uploadError.message);
     }
 
-    const storedPathOrId = uploadData.path;
-    const uploadedStorageHandle = uploadData.path;
+    // insert document metadata into database
+    const { data: newDocument, error: insertError } = await supabase
+      .from('documents')
+      .insert({
+        employee_id,
+        document_name,
+        file_path: uploadData.path,
+        file_name,
+        file_type,
+        file_size,
+        uploaded_by: userId,
+        uploaded_at: new Date().toISOString()
+      })
+      .select()
+      .single();
 
-    const nowIso = new Date().toISOString();
-    const oldDocument = existingDocument || null;
+    if (insertError) {
+      // rollback/delete uploaded file if database insert fails
+      await supabase.storage
+        .from(process.env.STORAGE_BUCKET_DOCUMENTS)
+        .remove([uploadData.path]);
 
-    // Update existing record (reupload) or insert new.
-    let savedDocument;
-    if (oldDocument) {
-      const { data: updated, error: updateError } = await supabase
-        .from('documents')
-        .update({
-          file_path: storedPathOrId,
-          file_name,
-          file_type,
-          file_size,
-          uploaded_by: userId,
-          uploaded_at: nowIso
-        })
-        .eq('id', oldDocument.id)
-        .select()
-        .single();
-
-      if (updateError) {
-        // rollback newly uploaded object
-        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
-        throw new InternalServerError('Failed to update document: ' + updateError.message);
-      }
-
-      // Best-effort cleanup of old storage object to avoid duplicates
-      if (oldDocument.file_path && oldDocument.file_path !== storedPathOrId) {
-        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([oldDocument.file_path]);
-      }
-
-      savedDocument = updated;
-
-      await supabase.from('audit_logs').insert({
-        user_id: userId,
-        action_type: AUDIT_ACTIONS.UPDATE,
-        table_name: 'documents',
-        record_id: savedDocument.id,
-        old_values: oldDocument,
-        new_values: savedDocument,
-        timestamp: nowIso
-      });
-    } else {
-      const { data: created, error: insertError } = await supabase
-        .from('documents')
-        .insert({
-          employee_id,
-          document_name,
-          file_path: storedPathOrId,
-          file_name,
-          file_type,
-          file_size,
-          uploaded_by: userId,
-          uploaded_at: nowIso
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        // rollback/delete uploaded file if database insert fails
-        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
-        throw new InternalServerError('Failed to save document metadata: ' + insertError.message);
-      }
-
-      savedDocument = created;
-
-      await supabase.from('audit_logs').insert({
-        user_id: userId,
-        action_type: AUDIT_ACTIONS.CREATE,
-        table_name: 'documents',
-        record_id: savedDocument.id,
-        new_values: savedDocument,
-        timestamp: nowIso
-      });
+      throw new InternalServerError('Failed to save document metadata:', insertError.message);
     }
 
     if (checklist_item_id) {
@@ -206,7 +78,7 @@ export const uploadDocument = async (fileData, userId) => {
         const { error: checklistError } = await supabase
           .from('onboarding_checklists')
           .update({
-            document_id: savedDocument.id,
+            document_id: newDocument.id,
             status: ONBOARDING_STATUSES.SUBMITTED,
             submitted_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -217,16 +89,26 @@ export const uploadDocument = async (fileData, userId) => {
         if (checklistError) {
           logger.error('Failed to update checklist item:', checklistError);
         } else {
-          logger.info(`Checklist item ${checklist_item_id} updated with document ${savedDocument.id}`);
+          logger.info(`Checklist item ${checklist_item_id} updated with document ${newDocument.id}`);
         }
       } catch (checklistUpdateError) {
         logger.error('Error updating checklist:', checklistUpdateError);
       }
     }
 
-    logger.info(`Document uploaded: ${document_name} for employee ${employee.employee_id} by user ${userId}`);
+    // log to audit
+    await supabase.from('audit_logs').insert({
+      user_id: userId,
+      action_type: AUDIT_ACTIONS.CREATE,
+      table_name: 'documents',
+      record_id: newDocument.id,
+      new_values: newDocument,
+      timestamp: new Date().toISOString()
+    });
 
-    return savedDocument;
+    logger.info(`Document uploaded: ${document_name} for employee ${employee.employee_id} by yser ${userId}`);
+
+    return newDocument;
 
   } catch (error) {
     logger.error('Error uploading document:', error);
@@ -295,7 +177,6 @@ export const downloadDocument = async (documentId, userId) => {
 
     return {
       document,
-      provider: 'supabase',
       signedUrl: signedUrlData.signedUrl
     };
 
@@ -305,46 +186,11 @@ export const downloadDocument = async (documentId, userId) => {
   }
 };
 
-export const previewDocument = async (documentId) => {
-  const document = await getDocumentById(documentId);
-
-  const { data: signedUrlData, error: urlError } = await supabase.storage
-    .from(process.env.STORAGE_BUCKET_DOCUMENTS)
-    .createSignedUrl(document.file_path, 3600);
-
-  if (urlError) {
-    throw new InternalServerError('Failed to generate preview URL: ' + urlError.message);
-  }
-
-  return {
-    document,
-    provider: 'supabase',
-    url: signedUrlData.signedUrl,
-    fileName: document.file_name,
-    mimeType: document.file_type
-  };
-};
-
 // delete a document
 export const deleteDocument = async (documentId, userId) => {
   try {
     // fetch existing document
     const document = await getDocumentById(documentId);
-
-    // unlink from onboarding checklist (if this document was uploaded via checklist)
-    try {
-      await supabase
-        .from('onboarding_checklists')
-        .update({
-          document_id: null,
-          status: ONBOARDING_STATUSES.PENDING,
-          submitted_at: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('document_id', documentId);
-    } catch (e) {
-      logger.warn('Failed to unlink onboarding checklist document:', e?.message || e);
-    }
 
     // delete file from storage
     const { error: storageError } = await supabase.storage
@@ -384,4 +230,4 @@ export const deleteDocument = async (documentId, userId) => {
     logger.error(`Error deleting document ${documentId}`, error);
     throw error;
   }
-};
+}

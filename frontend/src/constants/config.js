@@ -31,9 +31,10 @@ export const PROJECT_STATUSES = {
 
 // document types
 export const DOCUMENT_TYPES = {
-  EMPLOYEE_CONTRACT: 'Employee Contract',
   RESUME_CV: 'Resume/CV',
   APPLICATION_FOR_EMPLOYMENT: 'Application for Employment',
+  PRE_EMPLOYMENT_EXAM: 'Pre-Employment Exam',
+  EMPLOYEE_CONTRACT: 'Employee Contract',
   PERSONAL_DATA_SHEET: 'Personal Data Sheet',
   EMPLOYEE_PHOTO: 'Employee Photo',
   SINUMPAANG_SALAYSAY: 'Sinumpaang Salaysay',
@@ -44,9 +45,15 @@ export const DOCUMENT_TYPES = {
   SSS: 'SSS',
   PHILHEALTH: 'PhilHealth',
   PAG_IBIG: 'Pag-IBIG',
-  DRIVERS_LICENSE: "Driver's License",
-  PRC_ID: 'PRC ID',
-  OTHERS: 'Others'
+  VALID_ID: 'Valid ID',
+};
+
+// onboarding statuses
+export const ONBOARDING_STATUSES =  {
+  PENDING: 'pending',
+  SUBMITTED: 'submitted',
+  APPROVED: 'approved',
+  REJECTED: 'rejected'
 };
 
 // local storage keys

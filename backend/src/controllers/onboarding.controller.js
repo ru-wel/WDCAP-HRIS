@@ -18,9 +18,6 @@ export const getEmployeeChecklist = async (req, res, next) => {
   try {
     const { employeeId } = req.params;
 
-    // Reconcile checklist so older employees get newly added baseline items (e.g., Photo, Sinumpaang Salaysay).
-    await onboardingService.ensureEmployeeChecklistUpToDate(employeeId, req.user?.id);
-
     let checklist = await onboardingService.getEmployeeChecklist(employeeId);
     if (!checklist || checklist.length === 0) {
       await onboardingService.createChecklistForEmployee(employeeId, req.user?.id);
@@ -52,10 +49,6 @@ export const getMyChecklist = async (req, res, next) => {
       await onboardingService.createChecklistForEmployee(employeeDbId, req.user.id);
       checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
     }
-
-    // Also reconcile so the employee sees the latest required items.
-    await onboardingService.ensureEmployeeChecklistUpToDate(employeeDbId, req.user?.id);
-    checklist = await onboardingService.getEmployeeChecklist(employeeDbId);
 
     res.status(200).json({
       success: true,

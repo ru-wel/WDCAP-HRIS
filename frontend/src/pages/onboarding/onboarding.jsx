@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { get, post } from "../../services/api.js";
 import { ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from "../../constants/config.js";
 import ConfirmModal from "../../components/confirm-modal.jsx";
+import ChecklistConfig from "../../components/checklist-config.jsx";
 
 function normalizePhMobile(input) {
     const digits = String(input || '').replace(/\D/g, '');
@@ -399,6 +400,10 @@ function Onboarding(){
     const [positions, setPositions] = useState([]);
     const [loadingData, setLoadingData] = useState(true);
 
+    // checklist configuration
+    const [isChecklistConfigOpen, setChecklistConfigOpen] = useState(false);
+    const [createdEmployee, setCreatedEmployee] = useState(null);
+
     const [confirmState, setConfirmState] = useState({
         open: false,
         title: 'Confirmation',
@@ -425,6 +430,16 @@ function Onboarding(){
 
     const closeConfirm = () => {
         setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null, content: null }));
+    };
+
+    const handleCloseChecklistConfig = () => {
+        setChecklistConfigOpen(false);
+        setCreatedEmployee(null);
+        navigate('/employees');
+    };
+
+    const handleChecklistConfigUpdate = () => {
+        // refresh happens on the 201 files page
     };
 
     const handleConfirm = async () => {
@@ -612,10 +627,39 @@ function Onboarding(){
                 return 'Email: sent';
             })();
 
+            // created employee data for checklist configuration
+            const employeeData = response?.data?.employee;
+            setCreatedEmployee(employeeData);
+
             openConfirm({
                 title: 'Success',
                 message: ['Employee onboarded successfully!', emailStatus].filter(Boolean).join('\n'),
-                confirmText: 'OK',
+                content: employeeData ? (
+                    <div className="mt-4 text-sm text-gray-700">
+                        <p>Do you want to configure the onboarding checklist requirements now?</p>
+                        <div className="flex gap-2 mt-3">
+                            <button
+                                onClick={() => {
+                                    closeConfirm();
+                                    setChecklistConfigOpen(true);
+                                }}
+                                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                            >
+                                Configure Checklist
+                            </button>
+                            <button
+                                onClick={() => {
+                                    closeConfirm();
+                                    navigate('/employees');
+                                }}
+                                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition"
+                            >
+                                Skip
+                            </button>
+                        </div>
+                    </div>
+                ) : null,
+                confirmText: employeeData ? null : 'OK',
                 cancelText: null,
                 onConfirm: () => navigate('/employees'),
             });
@@ -804,6 +848,23 @@ function Onboarding(){
                 onCancel={confirmBusy ? undefined : closeConfirm}
                 confirmDisabled={loading || confirmBusy}
             />
+
+            {/* Checklist Configuration Modal */}
+            {isChecklistConfigOpen && createdEmployee && (
+                <div className="fixed inset-0 flex items-center justify-center z-1000 bg-black/50 p-4">
+                    <div
+                        className="bg-white rounded-lg shadow-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto"
+                        data-lenis-prevent
+                    >
+                        <ChecklistConfig
+                            employeeId={createdEmployee.id}
+                            employeeName={`${createdEmployee.first_name} ${createdEmployee.last_name}`}
+                            onClose={handleCloseChecklistConfig}
+                            onUpdate={handleChecklistConfigUpdate}
+                        />
+                    </div>
+                </div>
+            )}
         </div>
         
     );
