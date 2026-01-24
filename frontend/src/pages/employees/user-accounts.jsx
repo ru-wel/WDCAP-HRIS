@@ -800,118 +800,120 @@ function UserAccounts() {
                 <span className="text-xs">▾</span>
               </button>
 
-              {filtersOpen ? (
-                <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-[#111827]">
-                      Filters
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setFiltersOpen(false)}
-                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                        aria-label="Close"
-                      >
-                        ×
-                    </button>
-                  </div>
+{filtersOpen ? (
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    {/* Backdrop */}
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={() => setFiltersOpen(false)}
+    />
 
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Sort
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortOptions.map((opt) => (
-                          <ChipButton
-                            key={opt.value}
-                            active={draftSortOrder === opt.value}
-                            onClick={() => setDraftSortOrder(opt.value)}
-                            title={opt.label}
-                          >
-                            {opt.label}
-                          </ChipButton>
-                        ))}
-                      </div>
-                    </div>
+    {/* Modal */}
+    <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl p-4 z-10">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-[#111827]">Filters</p>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(false)}
+          className="text-[#990100] hover:opacity-70 text-lg leading-none"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
 
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Role
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <ChipButton
-                          active={draftRoleFilter === "all"}
-                          onClick={() => setDraftRoleFilter("all")}
-                        >
-                          All
-                        </ChipButton>
-                        <ChipButton
-                          active={draftRoleFilter === "admin"}
-                          onClick={() => setDraftRoleFilter("admin")}
-                        >
-                          Admin
-                        </ChipButton>
-                        <ChipButton
-                          active={draftRoleFilter === "hr"}
-                          onClick={() => setDraftRoleFilter("hr")}
-                        >
-                          HR
-                        </ChipButton>
-                        <ChipButton
-                          active={draftRoleFilter === "employee"}
-                          onClick={() => setDraftRoleFilter("employee")}
-                        >
-                          Employee
-                        </ChipButton>
-                      </div>
-                    </div>
+      <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
+          <div className="flex flex-wrap gap-2">
+            {sortOptions.map((opt) => (
+              <ChipButton
+                key={opt.value}
+                active={draftSortOrder === opt.value}
+                onClick={() => setDraftSortOrder(opt.value)}
+                title={opt.label}
+              >
+                {opt.label}
+              </ChipButton>
+            ))}
+          </div>
+        </div>
 
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Status
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        <ChipButton
-                          active={draftStatusFilter === "all"}
-                          onClick={() => setDraftStatusFilter("all")}
-                        >
-                          All
-                        </ChipButton>
-                        <ChipButton
-                          active={draftStatusFilter === "active"}
-                          onClick={() => setDraftStatusFilter("active")}
-                        >
-                          Active
-                        </ChipButton>
-                        <ChipButton
-                          active={draftStatusFilter === "inactive"}
-                          onClick={() => setDraftStatusFilter("inactive")}
-                        >
-                          Inactive
-                        </ChipButton>
-                      </div>
-                    </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Role</p>
+          <div className="flex flex-wrap gap-2">
+            <ChipButton
+              active={draftRoleFilter === "all"}
+              onClick={() => setDraftRoleFilter("all")}
+            >
+              All
+            </ChipButton>
+            <ChipButton
+              active={draftRoleFilter === "admin"}
+              onClick={() => setDraftRoleFilter("admin")}
+            >
+              Admin
+            </ChipButton>
+            <ChipButton
+              active={draftRoleFilter === "hr"}
+              onClick={() => setDraftRoleFilter("hr")}
+            >
+              HR
+            </ChipButton>
+            <ChipButton
+              active={draftRoleFilter === "employee"}
+              onClick={() => setDraftRoleFilter("employee")}
+            >
+              Employee
+            </ChipButton>
+          </div>
+        </div>
 
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        type="button"
-                        onClick={clearFilters}
-                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                      >
-                        Clear all
-                      </button>
-                      <button
-                        type="button"
-                        onClick={applyDraftFilters}
-                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
+          <div className="flex flex-wrap gap-2">
+            <ChipButton
+              active={draftStatusFilter === "all"}
+              onClick={() => setDraftStatusFilter("all")}
+            >
+              All
+            </ChipButton>
+            <ChipButton
+              active={draftStatusFilter === "active"}
+              onClick={() => setDraftStatusFilter("active")}
+            >
+              Active
+            </ChipButton>
+            <ChipButton
+              active={draftStatusFilter === "inactive"}
+              onClick={() => setDraftStatusFilter("inactive")}
+            >
+              Inactive
+            </ChipButton>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-4">
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+        >
+          Clear all
+        </button>
+
+        <button
+          type="button"
+          onClick={applyDraftFilters}
+          className="bg-[#990100] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  </div>
+) : null}
             </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg ">

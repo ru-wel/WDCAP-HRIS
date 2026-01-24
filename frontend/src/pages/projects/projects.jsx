@@ -272,12 +272,10 @@ function Projects() {
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
   const [showUpdateActions, setShowUpdateActions] = useState(false);
-  const [filtersOpen, setFiltersOpen] = useState(false);
-  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
-  useEffect(() => {
-    setDraftSortOrder(sortOrder);
-  }, [sortOrder]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const defaultSort = "project_name_az";
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
   const sortOptions = useMemo(
     () => [
@@ -296,11 +294,27 @@ function Projects() {
   );
 
   const activeFiltersCount = useMemo(() => {
-    return draftSortOrder ? 1 : 0;
-  }, [draftSortOrder]);
+    let n = 0;
+    if (sortOrder !== defaultSort) n += 1;
+    return n;
+  }, [sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraftSortOrder(sortOrder);
+  }, [filtersOpen, sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
 
   const clearFilters = () => {
-    setDraftSortOrder("project_name_az");
+    setDraftSortOrder(defaultSort);
   };
 
   const applyDraftFilters = () => {
@@ -423,7 +437,9 @@ function Projects() {
     const filtered = !q
       ? projects
       : projects.filter((p) => {
-          const haystack = `${p.project_name || ""} ${p.site_location || ""} ${p.status || ""}`.toLowerCase();
+          const haystack = `${p.project_name || ""} ${p.site_location || ""} ${
+            p.status || ""
+          }`.toLowerCase();
           return haystack.includes(q);
         });
 
@@ -457,7 +473,10 @@ function Projects() {
   let cardDescriptors;
 
   if (mode === "add") {
-    cardDescriptors = [{ type: "new" }, ...filteredProjects.map((p) => ({ type: "view", project: p }))];
+    cardDescriptors = [
+      { type: "new" },
+      ...filteredProjects.map((p) => ({ type: "view", project: p })),
+    ];
   } else if (mode === "edit") {
     cardDescriptors = filteredProjects.map((p) => {
       if (editingProjectId && String(p.id) === String(editingProjectId) && draftProject) {
@@ -715,9 +734,10 @@ function Projects() {
   };
 
   const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
-    const base = startDate || endDate
-      ? filterRowsByDateRange(filteredProjects, (p) => p?.start_date, startDate, endDate)
-      : filteredProjects;
+    const base =
+      startDate || endDate
+        ? filterRowsByDateRange(filteredProjects, (p) => p?.start_date, startDate, endDate)
+        : filteredProjects;
 
     const cat = category || "all";
     const rowsForExport = base.filter((p) => {
@@ -814,15 +834,13 @@ function Projects() {
 
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
-          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">
-            Projects
-          </h1>
+          <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Projects</h1>
 
           <div className="flex items=center justify-end md:gap-4 gap-3">
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setFiltersOpen((p) => !p)}
+                onClick={() => setFiltersOpen(true)}
                 className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
                 aria-haspopup="dialog"
                 aria-expanded={filtersOpen}
@@ -838,9 +856,14 @@ function Projects() {
                 <span className="text-xs">▾</span>
               </button>
 
-              {filtersOpen && (
-                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                  <div className="flex flex-col">
+              {filtersOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setFiltersOpen(false)}
+                  />
+
+                  <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-bold text-[#990100]">Filters</p>
                       <button
@@ -853,7 +876,7 @@ function Projects() {
                       </button>
                     </div>
 
-                    <div className="px-4 py-3">
+                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
                       <div className="flex flex-wrap gap-2">
                         {sortOptions.map((opt) => (
@@ -886,7 +909,7 @@ function Projects() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">

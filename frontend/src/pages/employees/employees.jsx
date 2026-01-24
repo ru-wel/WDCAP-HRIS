@@ -783,6 +783,37 @@ function Employees() {
 
   const filtersWrapRef = useRef(null);
 
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 767px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e) => setIsMobile(Boolean(e.matches));
+
+    if (mq.addEventListener) mq.addEventListener('change', handler);
+    else mq.addListener(handler);
+
+    setIsMobile(mq.matches);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', handler);
+      else mq.removeListener(handler);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filtersOpen || !isMobile) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen, isMobile]);
+
   useEffect(() => {
     const onDocMouseDown = (e) => {
       if (!filtersOpen) return;
@@ -1252,7 +1283,16 @@ function Employees() {
             >
               <button
                 type="button"
-                onClick={() => setFiltersOpen((p) => !p)}
+                onClick={() => {
+                  setFiltersOpen((p) => {
+                    const next = !p;
+                    if (next) {
+                      setDraftPersonnelType(personnelTypeFilter);
+                      setDraftSortOrder(sortOrder);
+                    }
+                    return next;
+                  });
+                }}                
                 className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
                 aria-haspopup="dialog"
                 aria-expanded={filtersOpen}
@@ -1267,59 +1307,64 @@ function Employees() {
               </button>
 
               {filtersOpen ? (
-                <div className="absolute md:right-0  mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-[#111827]">
-                      Filters
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setFiltersOpen(false)}
-                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setFiltersOpen(false)}
+                  />
+
+                  <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl p-4 z-10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-sm font-semibold text-[#111827]">Filters</p>
+                      <button
+                        type="button"
+                        onClick={() => setFiltersOpen(false)}
+                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
                         aria-label="Close"
                       >
                         ×
-                    </button>
-                  </div>
+                      </button>
+                    </div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Personnel Type
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {personnelTypeOptions.map((opt) => (
-                          <ChipButton
-                            key={opt.value}
-                            active={draftPersonnelType === opt.value}
-                            onClick={() => setDraftPersonnelType(opt.value)}
-                            title={opt.label}
-                          >
-                            {opt.label}
-                          </ChipButton>
-                        ))}
+                    <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-2">
+                          Personnel Type
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {personnelTypeOptions.map((opt) => (
+                            <ChipButton
+                              key={opt.value}
+                              active={draftPersonnelType === opt.value}
+                              onClick={() => setDraftPersonnelType(opt.value)}
+                              title={opt.label}
+                            >
+                              {opt.label}
+                            </ChipButton>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-2">
+                          Sort
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sortOptions.map((opt) => (
+                            <ChipButton
+                              key={opt.value}
+                              active={draftSortOrder === opt.value}
+                              onClick={() => setDraftSortOrder(opt.value)}
+                              title={opt.label}
+                            >
+                              {opt.label}
+                            </ChipButton>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">
-                        Sort
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortOptions.map((opt) => (
-                          <ChipButton
-                            key={opt.value}
-                            active={draftSortOrder === opt.value}
-                            onClick={() => setDraftSortOrder(opt.value)}
-                            title={opt.label}
-                          >
-                            {opt.label}
-                          </ChipButton>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
+                    <div className="flex items-center justify-between pt-4">
                       <button
                         type="button"
                         onClick={() => {
@@ -1330,6 +1375,7 @@ function Employees() {
                       >
                         Clear all
                       </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -1337,7 +1383,7 @@ function Employees() {
                           setSortOrder(draftSortOrder);
                           setFiltersOpen(false);
                         }}
-                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                        className="bg-[#990100] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
                       >
                         Apply
                       </button>

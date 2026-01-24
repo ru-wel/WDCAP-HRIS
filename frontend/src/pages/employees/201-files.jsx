@@ -32,6 +32,7 @@ function ChipButton({ active, children, onClick, title }) {
 
 const SECTION_BREAKS = new Set([DOCUMENT_TYPES.SSS, DOCUMENT_TYPES.PHILHEALTH, DOCUMENT_TYPES.PAG_IBIG]);
 
+const normalizeDocName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 const isProjectBased = (personnelType) => normalizeDocName(personnelType) === normalizeDocName('Project-Based');
 
 const isOthersItem = (itemName) => normalizeDocName(itemName) === normalizeDocName(DOCUMENT_TYPES.OTHERS);
@@ -59,7 +60,6 @@ const dedupeChecklistItems = (items = []) => {
     return out;
 };
 
-// Business rule: everything listed is required (except "Others").
 const getRequiredChecklistItems = (items = []) => dedupeChecklistItems(items);
 
 const computeRowProgress = ({ checklistItems = [] } = {}) => {
@@ -85,8 +85,6 @@ const computeRowProgress = ({ checklistItems = [] } = {}) => {
     return { uploaded, total, approved, missing, needsReupload, completion };
 };
 
-const normalizeDocName = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-
 const sanitizeForFileName = (value) =>
     String(value || '')
         .replace(/[^a-zA-Z0-9_-]+/g, '_')
@@ -106,25 +104,15 @@ const allowedDocumentTypeByNormalized = new Map(
     Object.values(DOCUMENT_TYPES).map((value) => [normalizeDocName(value), value])
 );
 
-// Allow common wording variants coming from DB onboarding item names.
 const ITEM_NAME_ALIASES = new Map([
-    // Some DB rows use "Sinumpaang Salaysay" while the UI constant uses "Sinumpaang Salaysay".
     [normalizeDocName('Sinumpaang Salaysay'), DOCUMENT_TYPES.SINUMPAANG_SALAYSAY],
 ]);
-
-const mapItemNameToDocumentName = (itemName) => {
-    const normalized = normalizeDocName(itemName);
-    const alias = ITEM_NAME_ALIASES.get(normalized);
-    if (alias) return alias;
-    return allowedDocumentTypeByNormalized.get(normalized) || DOCUMENT_TYPES.OTHERS;
-};
 
 const getDocumentNameForUpload = (itemName) => {
     const raw = String(itemName || '').trim();
     if (!raw) return '';
     const normalized = normalizeDocName(raw);
     const alias = ITEM_NAME_ALIASES.get(normalized);
-    // Prefer canonical built-in document type when it matches, otherwise allow dynamic onboarding item names.
     return alias || allowedDocumentTypeByNormalized.get(normalized) || raw;
 };
 
@@ -192,7 +180,6 @@ const previewDocument = async (documentId, fallbackName = 'document', notify, on
                 previewUrl.includes('/download') &&
                 previewUrl.includes('disposition=inline');
 
-            // Prefer opening an in-app modal. If no handler is provided, fall back to new tab.
             if (typeof onPreview === 'function') {
                 if (isAuthenticatedStream) {
                     const token = localStorage.getItem('access_token');
@@ -297,7 +284,6 @@ const downloadDocumentToDisk = async (documentId, fallbackName = 'document', not
         const cd = res.headers.get('content-disposition') || '';
         const headerName = extractFileNameFromContentDisposition(cd);
 
-        // Supabase provider returns JSON with signed URL.
         if (ct.includes('application/json')) {
             const json = await res.json();
             const signedUrl = json?.data?.url || '';
@@ -310,7 +296,6 @@ const downloadDocumentToDisk = async (documentId, fallbackName = 'document', not
             return;
         }
 
-        // Drive provider streams the file directly.
         const blob = await res.blob();
         triggerBlobDownload(blob, headerName || fallbackName);
     } catch (e) {
@@ -573,7 +558,6 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
     useEffect(() => {
         if (!isOpen) return;
-        // Always start in view mode when the modal opens.
         setEditData(false);
         setConfirmBusy(false);
         setConfirmState({
@@ -609,8 +593,6 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
         }
 
         try {
-            // Close the current dialog first to prevent "sticky" modals and
-            // avoid racing state updates when the action opens its own dialog.
             closeConfirm();
             setConfirmBusy(true);
             await fn?.();
@@ -786,7 +768,6 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
     if (!isOpen || !employeeFiles) return null;
 
     const isInline = variant === 'inline';
-
     const canHrEdit = !isEmployee && editData;
 
     const shouldAppendChecklistItemId = (item) => {
@@ -875,376 +856,376 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
 
                 <div className="flex-1 overflow-auto md:p-6 px-3 py-2" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="overflow-x-auto">
-                    <table className="table-style text-center">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th className="px-6 py-3 text-sm">File</th>
-                                <th className="px-6 py-3 text-sm">Status</th>
-                                <th className="px-6 py-3 text-sm">Comments</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {currentChecklist.map((it) => (
-                                <React.Fragment key={it.id}>
-                                    {SECTION_BREAKS.has(it.item_name) && renderSectionHeaderRow('BENEFITS')}
-                                    <tr>
-                                        <td className="text-left font-semibold pb-5 px-3 lg:text-sm text-xs whitespace-normal wrap-break-word">{it.item_name}</td>
-                                        <td className="pb-5 px-3">
-                                            {it.document_id ? (
-                                                <div className="flex flex-col gap-2">
-                                                    <button
-                                                        type="button"
-                                                        className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
-                                                        onClick={() => {
-                                                            const isApproved = String(it.status || '').toLowerCase() === 'approved';
-                                                            const locked = !!isEmployee && isApproved;
-                                                            setPreviewState({
-                                                                open: true,
-                                                                title: it.file_name || 'document',
-                                                                fileName: withEmployeePrefix(employeeFiles?.id, it.file_name || 'document'),
-                                                                url: '',
-                                                                downloadUrl: '',
-                                                                mimeType: '',
-                                                                revokeOnClose: false,
-                                                                loading: true,
-                                                                documentId: it.document_id,
-                                                                checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
-                                                                employeeDbId: employeeFiles.employee_id,
-                                                                documentName: getDocumentNameForUpload(it.item_name),
-                                                                locked,
-                                                            });
-
-                                                            previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
-                                                                setPreviewState((prev) => ({
-                                                                    ...prev,
+                        <table className="table-style text-center">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th className="px-6 py-3 text-sm">File</th>
+                                    <th className="px-6 py-3 text-sm">Status</th>
+                                    <th className="px-6 py-3 text-sm">Comments</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {currentChecklist.map((it) => (
+                                    <React.Fragment key={it.id}>
+                                        {SECTION_BREAKS.has(it.item_name) && renderSectionHeaderRow('BENEFITS')}
+                                        <tr>
+                                            <td className="text-left font-semibold pb-5 px-3 lg:text-sm text-xs whitespace-normal wrap-break-word">{it.item_name}</td>
+                                            <td className="pb-5 px-3">
+                                                {it.document_id ? (
+                                                    <div className="flex flex-col gap-2">
+                                                        <button
+                                                            type="button"
+                                                            className="border px-4 py-1 rounded-lg shadow-md w-full lg:text-sm text-xs overflow-hidden cursor-pointer hover:border-gray-400 hover:text-[#990100] hover:underline"
+                                                            onClick={() => {
+                                                                const isApproved = String(it.status || '').toLowerCase() === 'approved';
+                                                                const locked = !!isEmployee && isApproved;
+                                                                setPreviewState({
                                                                     open: true,
-                                                                    title: fileName || it.file_name || 'document',
-                                                                    fileName: withEmployeePrefix(employeeFiles?.id, fileName || it.file_name || 'document'),
-                                                                    url: url || '',
-                                                                    downloadUrl: url || '',
-                                                                    mimeType: mimeType || '',
-                                                                    revokeOnClose: !!revokeUrlOnClose,
-                                                                    loading: false,
+                                                                    title: it.file_name || 'document',
+                                                                    fileName: withEmployeePrefix(employeeFiles?.id, it.file_name || 'document'),
+                                                                    url: '',
+                                                                    downloadUrl: '',
+                                                                    mimeType: '',
+                                                                    revokeOnClose: false,
+                                                                    loading: true,
                                                                     documentId: it.document_id,
                                                                     checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
                                                                     employeeDbId: employeeFiles.employee_id,
                                                                     documentName: getDocumentNameForUpload(it.item_name),
-                                                                }));
-                                                            }).catch(() => {
-                                                                setPreviewState((prev) => ({ ...prev, loading: false }));
-                                                            });
-                                                        }}
-                                                    >
-                                                        Preview
-                                                    </button>
+                                                                    locked,
+                                                                });
 
-                                                    {isEmployee && mapStatusToUi(statusById[it.id] || it.status) === 'disapproved' ? (
-                                                        <div className="pt-2 flex flex-col items-center gap-1">
-                                                            <input
-                                                                id={`file-${it.id}`}
-                                                                type="file"
-                                                                className="hidden"
-                                                                disabled={uploadingId === it.id}
-                                                                accept={acceptForChecklistItem(it.item_name)}
-                                                                onChange={async (e) => {
-                                                                    const f = e.target.files?.[0];
-                                                                    if (!f) return;
+                                                                previewDocument(it.document_id, it.file_name || 'document', notify, ({ url, fileName, mimeType, revokeUrlOnClose }) => {
+                                                                    setPreviewState((prev) => ({
+                                                                        ...prev,
+                                                                        open: true,
+                                                                        title: fileName || it.file_name || 'document',
+                                                                        fileName: withEmployeePrefix(employeeFiles?.id, fileName || it.file_name || 'document'),
+                                                                        url: url || '',
+                                                                        downloadUrl: url || '',
+                                                                        mimeType: mimeType || '',
+                                                                        revokeOnClose: !!revokeUrlOnClose,
+                                                                        loading: false,
+                                                                        documentId: it.document_id,
+                                                                        checklistItemId: shouldAppendChecklistItemId(it) ? it.id : null,
+                                                                        employeeDbId: employeeFiles.employee_id,
+                                                                        documentName: getDocumentNameForUpload(it.item_name),
+                                                                    }));
+                                                                }).catch(() => {
+                                                                    setPreviewState((prev) => ({ ...prev, loading: false }));
+                                                                });
+                                                            }}
+                                                        >
+                                                            Preview
+                                                        </button>
 
-                                                                    const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                                    if (!ok.ok) {
-                                                                        e.target.value = '';
-                                                                        return;
-                                                                    }
+                                                        {isEmployee && mapStatusToUi(statusById[it.id] || it.status) === 'disapproved' ? (
+                                                            <div className="pt-2 flex flex-col items-center gap-1">
+                                                                <input
+                                                                    id={`file-${it.id}`}
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    disabled={uploadingId === it.id}
+                                                                    accept={acceptForChecklistItem(it.item_name)}
+                                                                    onChange={async (e) => {
+                                                                        const f = e.target.files?.[0];
+                                                                        if (!f) return;
 
-                                                                    setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                                    setSelectedFileById((p) => ({ ...p, [it.id]: f }));
+                                                                        const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                                        if (!ok.ok) {
+                                                                            e.target.value = '';
+                                                                            return;
+                                                                        }
 
-                                                                    if (f.size > 10 * 1024 * 1024) {
-                                                                        notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                        return;
-                                                                    }
+                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
+                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: f }));
 
-                                                                    openConfirm({
-                                                                        title: 'Confirm upload',
-                                                                        message: 'Upload this file?',
-                                                                        confirmText: 'OK',
-                                                                        cancelText: 'Cancel',
-                                                                        onConfirm: async () => {
-                                                                            try {
-                                                                                setUploadingId(it.id);
-                                                                                const fd = new FormData();
-                                                                                fd.append('file', f);
-                                                                                fd.append('employee_id', employeeFiles.employee_id);
-                                                                                fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                                if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                                await postFormWithProgress(
-                                                                                    '/documents/upload',
-                                                                                    fd,
-                                                                                    () => {}
-                                                                                );
-                                                                                await refresh();
-                                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                                e.target.value = '';
-                                                                            } catch (err) {
-                                                                                console.error('Reupload failed:', err);
-                                                                                notify({ title: 'Upload failed', message: err?.message || 'Reupload failed' });
-                                                                            } finally {
-                                                                                setUploadingId(null);
-                                                                            }
-                                                                        },
-                                                                    });
-                                                                }}
-                                                            />
+                                                                        if (f.size > 10 * 1024 * 1024) {
+                                                                            notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
+                                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                            setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                            e.target.value = '';
+                                                                            return;
+                                                                        }
 
-                                                            <div className="flex items-center gap-2 w-full justify-center">
-                                                                <label
-                                                                    htmlFor={`file-${it.id}`}
-                                                                    className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                        uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                                    }`}
-                                                                >
-                                                                    {uploadingId === it.id ? 'Uploading…' : 'Reupload File'}
-                                                                </label>
-                                                                <span className="text-xs text-gray-600 truncate max-w-44">
-                                                                    {selectedFileNameById[it.id] || 'No file selected'}
-                                                                </span>
+                                                                        openConfirm({
+                                                                            title: 'Confirm upload',
+                                                                            message: 'Upload this file?',
+                                                                            confirmText: 'OK',
+                                                                            cancelText: 'Cancel',
+                                                                            onConfirm: async () => {
+                                                                                try {
+                                                                                    setUploadingId(it.id);
+                                                                                    const fd = new FormData();
+                                                                                    fd.append('file', f);
+                                                                                    fd.append('employee_id', employeeFiles.employee_id);
+                                                                                    fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                                    if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
+                                                                                    await postFormWithProgress(
+                                                                                        '/documents/upload',
+                                                                                        fd,
+                                                                                        () => {}
+                                                                                    );
+                                                                                    await refresh();
+                                                                                    setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                                    setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                                    e.target.value = '';
+                                                                                } catch (err) {
+                                                                                    console.error('Reupload failed:', err);
+                                                                                    notify({ title: 'Upload failed', message: err?.message || 'Reupload failed' });
+                                                                                } finally {
+                                                                                    setUploadingId(null);
+                                                                                }
+                                                                            },
+                                                                        });
+                                                                    }}
+                                                                />
+
+                                                                <div className="flex items-center gap-2 w-full justify-center">
+                                                                    <label
+                                                                        htmlFor={`file-${it.id}`}
+                                                                        className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                                            uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
+                                                                        }`}
+                                                                    >
+                                                                        {uploadingId === it.id ? 'Uploading…' : 'Reupload File'}
+                                                                    </label>
+                                                                    <span className="text-xs text-gray-600 truncate max-w-44">
+                                                                        {selectedFileNameById[it.id] || 'No file selected'}
+                                                                    </span>
+                                                                </div>
+
+                                                                <div className="w-full max-w-xs">
+                                                                    <LocalFilePreview file={selectedFileById[it.id]} />
+                                                                </div>
                                                             </div>
+                                                        ) : null}
+                                                    </div>
+                                                ) : isEmployee ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <input
+                                                            id={`file-${it.id}`}
+                                                            type="file"
+                                                            className="hidden"
+                                                            disabled={uploadingId === it.id}
+                                                            accept={acceptForChecklistItem(it.item_name)}
+                                                            onChange={async (e) => {
+                                                                const f = e.target.files?.[0];
+                                                                if (!f) return;
 
-                                                            <div className="w-full max-w-xs">
-                                                                <LocalFilePreview file={selectedFileById[it.id]} />
-                                                            </div>
+                                                                const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                                if (!ok.ok) {
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
+                                                                setSelectedFileById((p) => ({ ...p, [it.id]: f }));
+
+                                                                if (f.size > 10 * 1024 * 1024) {
+                                                                    notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
+                                                                    setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                    setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                openConfirm({
+                                                                    title: 'Confirm upload',
+                                                                    message: 'Upload this file?',
+                                                                    confirmText: 'OK',
+                                                                    cancelText: 'Cancel',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            setUploadingId(it.id);
+                                                                            const fd = new FormData();
+                                                                            fd.append('file', f);
+                                                                            fd.append('employee_id', employeeFiles.employee_id);
+                                                                            fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                            if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
+                                                                            await postFormWithProgress(
+                                                                                '/documents/upload',
+                                                                                fd,
+                                                                                () => {}
+                                                                            );
+                                                                            await refresh();
+                                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                            setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                            e.target.value = '';
+                                                                        } catch (err) {
+                                                                            console.error('Upload failed:', err);
+                                                                            notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
+                                                                        } finally {
+                                                                            setUploadingId(null);
+                                                                        }
+                                                                    },
+                                                                });
+                                                            }}
+                                                        />
+
+                                                        <div className="flex items-center gap-2 w-full justify-center">
+                                                            <label
+                                                                htmlFor={`file-${it.id}`}
+                                                                className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                                    uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
+                                                                }`}
+                                                            >
+                                                                {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
+                                                            </label>
+                                                            <span className="text-xs text-gray-600 truncate max-w-44">
+                                                                {selectedFileNameById[it.id] || 'No file selected'}
+                                                            </span>
                                                         </div>
-                                                    ) : null}
-                                                </div>
-                                            ) : isEmployee ? (
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <input
-                                                        id={`file-${it.id}`}
-                                                        type="file"
-                                                        className="hidden"
-                                                        disabled={uploadingId === it.id}
-                                                        accept={acceptForChecklistItem(it.item_name)}
-                                                        onChange={async (e) => {
-                                                            const f = e.target.files?.[0];
-                                                            if (!f) return;
 
-                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                            if (!ok.ok) {
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                            setSelectedFileById((p) => ({ ...p, [it.id]: f }));
-
-                                                            if (f.size > 10 * 1024 * 1024) {
-                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            openConfirm({
-                                                                title: 'Confirm upload',
-                                                                message: 'Upload this file?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        setUploadingId(it.id);
-                                                                        const fd = new FormData();
-                                                                        fd.append('file', f);
-                                                                        fd.append('employee_id', employeeFiles.employee_id);
-                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                        await postFormWithProgress(
-                                                                            '/documents/upload',
-                                                                            fd,
-                                                                            () => {}
-                                                                        );
-                                                                        await refresh();
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                    } catch (err) {
-                                                                        console.error('Upload failed:', err);
-                                                                        notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
-                                                                    } finally {
-                                                                        setUploadingId(null);
-                                                                    }
-                                                                },
-                                                            });
-                                                        }}
-                                                    />
-
-                                                    <div className="flex items-center gap-2 w-full justify-center">
-                                                        <label
-                                                            htmlFor={`file-${it.id}`}
-                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                            }`}
-                                                        >
-                                                            {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
-                                                        </label>
-                                                        <span className="text-xs text-gray-600 truncate max-w-44">
-                                                            {selectedFileNameById[it.id] || 'No file selected'}
-                                                        </span>
+                                                        <div className="w-full max-w-xs">
+                                                            <LocalFilePreview file={selectedFileById[it.id]} />
+                                                        </div>
                                                     </div>
+                                                ) : canHrEdit ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <input
+                                                            id={`file-hr-${it.id}`}
+                                                            type="file"
+                                                            className="hidden"
+                                                            disabled={uploadingId === it.id}
+                                                            accept={acceptForChecklistItem(it.item_name)}
+                                                            onChange={async (e) => {
+                                                                const f = e.target.files?.[0];
+                                                                if (!f) return;
 
-                                                    <div className="w-full max-w-xs">
-                                                        <LocalFilePreview file={selectedFileById[it.id]} />
+                                                                const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
+                                                                if (!ok.ok) {
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
+                                                                setSelectedFileById((p) => ({ ...p, [it.id]: f }));
+
+                                                                if (f.size > 10 * 1024 * 1024) {
+                                                                    notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
+                                                                    setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                    setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                    e.target.value = '';
+                                                                    return;
+                                                                }
+
+                                                                openConfirm({
+                                                                    title: 'Confirm upload',
+                                                                    message: 'Upload this file?',
+                                                                    confirmText: 'OK',
+                                                                    cancelText: 'Cancel',
+                                                                    onConfirm: async () => {
+                                                                        try {
+                                                                            setUploadingId(it.id);
+                                                                            const fd = new FormData();
+                                                                            fd.append('file', f);
+                                                                            fd.append('employee_id', employeeFiles.employee_id);
+                                                                            fd.append('document_name', getDocumentNameForUpload(it.item_name));
+                                                                            if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
+                                                                            await postFormWithProgress('/documents/upload', fd, () => {});
+                                                                            await refresh();
+                                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
+                                                                            setSelectedFileById((p) => ({ ...p, [it.id]: null }));
+                                                                            e.target.value = '';
+                                                                        } catch (err) {
+                                                                            console.error('Upload failed:', err);
+                                                                            notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
+                                                                        } finally {
+                                                                            setUploadingId(null);
+                                                                        }
+                                                                    },
+                                                                });
+                                                            }}
+                                                        />
+
+                                                        <div className="flex items-center gap-2 w-full justify-center">
+                                                            <label
+                                                                htmlFor={`file-hr-${it.id}`}
+                                                                className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
+                                                                    uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
+                                                                }`}
+                                                            >
+                                                                {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
+                                                            </label>
+                                                            <span className="text-xs text-gray-600 truncate max-w-44">
+                                                                {selectedFileNameById[it.id] || 'No file selected'}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="w-full max-w-xs">
+                                                            <LocalFilePreview file={selectedFileById[it.id]} />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ) : canHrEdit ? (
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <input
-                                                        id={`file-hr-${it.id}`}
-                                                        type="file"
-                                                        className="hidden"
-                                                        disabled={uploadingId === it.id}
-                                                        accept={acceptForChecklistItem(it.item_name)}
-                                                        onChange={async (e) => {
-                                                            const f = e.target.files?.[0];
-                                                            if (!f) return;
-
-                                                            const ok = validateSelectedFileForChecklistItem({ itemName: it.item_name, file: f, notify });
-                                                            if (!ok.ok) {
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            setSelectedFileNameById((p) => ({ ...p, [it.id]: f.name }));
-                                                            setSelectedFileById((p) => ({ ...p, [it.id]: f }));
-
-                                                            if (f.size > 10 * 1024 * 1024) {
-                                                                notify({ title: 'File too large', message: 'File is too large. Maximum size is 10MB.' });
-                                                                setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                e.target.value = '';
-                                                                return;
-                                                            }
-
-                                                            openConfirm({
-                                                                title: 'Confirm upload',
-                                                                message: 'Upload this file?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: async () => {
-                                                                    try {
-                                                                        setUploadingId(it.id);
-                                                                        const fd = new FormData();
-                                                                        fd.append('file', f);
-                                                                        fd.append('employee_id', employeeFiles.employee_id);
-                                                                        fd.append('document_name', getDocumentNameForUpload(it.item_name));
-                                                                        if (shouldAppendChecklistItemId(it)) fd.append('checklist_item_id', it.id);
-                                                                        await postFormWithProgress('/documents/upload', fd, () => {});
-                                                                        await refresh();
-                                                                        setSelectedFileNameById((p) => ({ ...p, [it.id]: '' }));
-                                                                        setSelectedFileById((p) => ({ ...p, [it.id]: null }));
-                                                                        e.target.value = '';
-                                                                    } catch (err) {
-                                                                        console.error('Upload failed:', err);
-                                                                        notify({ title: 'Upload failed', message: err?.message || 'Upload failed' });
-                                                                    } finally {
-                                                                        setUploadingId(null);
-                                                                    }
-                                                                },
-                                                            });
-                                                        }}
-                                                    />
-
-                                                    <div className="flex items-center gap-2 w-full justify-center">
-                                                        <label
-                                                            htmlFor={`file-hr-${it.id}`}
-                                                            className={`bg-[#990100] text-white lg:text-sm text-xs px-3 py-1.5 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out cursor-pointer ${
-                                                                uploadingId === it.id ? 'opacity-60 pointer-events-none' : ''
-                                                            }`}
-                                                        >
-                                                            {uploadingId === it.id ? 'Uploading…' : 'Choose File'}
-                                                        </label>
-                                                        <span className="text-xs text-gray-600 truncate max-w-44">
-                                                            {selectedFileNameById[it.id] || 'No file selected'}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="w-full max-w-xs">
-                                                        <LocalFilePreview file={selectedFileById[it.id]} />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-500 text-xs">No file</span>
-                                            )}
-                                        </td>
-                                        <td className="pb-5 px-3">
-                                            {it.virtual ? (
-                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
-                                                    {(it.status || 'pending').replace(/^./, (c) => c.toUpperCase())}
-                                                </span>
-                                            ) : (!editData || isEmployee) ? (
-                                                <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
-                                                    {(statusById[it.id] || 'pending').replace(/^./, (c) => c.toUpperCase())}
-                                                </span>
-                                            ) : (
-                                                <select
-                                                    className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs w-full max-w-36"
-                                                    value={statusById[it.id] || 'pending'}
-                                                    disabled={isEmployee || !editData}
-                                                    onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: e.target.value }))}
-                                                    required
-                                                >
-                                                    <option value="pending">Pending</option>
-                                                    <option value="submitted">Submitted</option>
-                                                    <option value="approved">Approved</option>
-                                                    <option value="disapproved">Disapproved</option>
-                                                </select>
-                                            )}
-                                        </td>
-                                        <td className="pb-5 px-3 whitespace-normal wrap-break-word">
-                                            {it.virtual ? (
-                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{it.remarks || ''}</p>
-                                            ) : mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
-                                                <textarea
-                                                    value={remarksById[it.id] || ''}
-                                                    onChange={(e) => setRemarksById((p) => ({ ...p, [it.id]: e.target.value }))}
-                                                    placeholder="Reason"
-                                                    className="input-field w-full lg:text-sm text-xs"
-                                                    maxLength={200}
-                                                />
-                                            ) : (
-                                                <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{remarksById[it.id] || it.remarks || ''}</p>
-                                            )}
-
-                                            {!isEmployee && editData && !it.virtual && (
-                                                <div className="mt-2 flex justify-end">
-                                                    <button
-                                                        type="button"
-                                                        className="bg-[#FFA500] px-4 py-1 rounded-md text-xs text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-60 disabled:pointer-events-none"
-                                                        disabled={savingReviewId === it.id}
-                                                        onClick={() =>
-                                                            openConfirm({
-                                                                message: 'Save this item?',
-                                                                confirmText: 'OK',
-                                                                cancelText: 'Cancel',
-                                                                onConfirm: () => saveReviewForItem(it),
-                                                            })
-                                                        }
+                                                ) : (
+                                                    <span className="text-gray-500 text-xs">No file</span>
+                                                )}
+                                            </td>
+                                            <td className="pb-5 px-3">
+                                                {it.virtual ? (
+                                                    <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
+                                                        {(it.status || 'pending').replace(/^./, (c) => c.toUpperCase())}
+                                                    </span>
+                                                ) : (!editData || isEmployee) ? (
+                                                    <span className="inline-block text-xs px-2 py-1 rounded-full border border-gray-300 text-gray-700">
+                                                        {(statusById[it.id] || 'pending').replace(/^./, (c) => c.toUpperCase())}
+                                                    </span>
+                                                ) : (
+                                                    <select
+                                                        className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs w-full max-w-36"
+                                                        value={statusById[it.id] || 'pending'}
+                                                        disabled={isEmployee || !editData}
+                                                        onChange={(e) => setStatusById((p) => ({ ...p, [it.id]: e.target.value }))}
+                                                        required
                                                     >
-                                                        {savingReviewId === it.id ? 'Saving…' : 'Save'}
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+                                                        <option value="pending">Pending</option>
+                                                        <option value="submitted">Submitted</option>
+                                                        <option value="approved">Approved</option>
+                                                        <option value="disapproved">Disapproved</option>
+                                                    </select>
+                                                )}
+                                            </td>
+                                            <td className="pb-5 px-3 whitespace-normal wrap-break-word">
+                                                {it.virtual ? (
+                                                    <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{it.remarks || ''}</p>
+                                                ) : mapStatusToUi(statusById[it.id]) === 'disapproved' && !isEmployee && editData ? (
+                                                    <textarea
+                                                        value={remarksById[it.id] || ''}
+                                                        onChange={(e) => setRemarksById((p) => ({ ...p, [it.id]: e.target.value }))}
+                                                        placeholder="Reason"
+                                                        className="input-field w-full lg:text-sm text-xs"
+                                                        maxLength={200}
+                                                    />
+                                                ) : (
+                                                    <p className="lg:text-sm text-xs text-gray-700 whitespace-normal wrap-break-word">{remarksById[it.id] || it.remarks || ''}</p>
+                                                )}
+
+                                                {!isEmployee && editData && !it.virtual && (
+                                                    <div className="mt-2 flex justify-end">
+                                                        <button
+                                                            type="button"
+                                                            className="bg-[#FFA500] px-4 py-1 rounded-md text-xs text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-60 disabled:pointer-events-none"
+                                                            disabled={savingReviewId === it.id}
+                                                            onClick={() =>
+                                                                openConfirm({
+                                                                    message: 'Save this item?',
+                                                                    confirmText: 'OK',
+                                                                    cancelText: 'Cancel',
+                                                                    onConfirm: () => saveReviewForItem(it),
+                                                                })
+                                                            }
+                                                        >
+                                                            {savingReviewId === it.id ? 'Saving…' : 'Save'}
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
 
                     <div className="mt-4 lg:flex items-center lg:justify-between">
@@ -1281,22 +1262,13 @@ function ModalFiles({ isOpen, onClose, employeeFiles, isEmployee, refresh, varia
                     {!isEmployee && (
                         <div className="pt-7 flex justify-end gap-4">
                             {!editData ? (
-                                <>
-                                    {/*<button
-                                        type="button"
-                                        className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
-                                        onClick={onClose}
-                                    >
-                                        Close
-                                    </button>*/}
-                                    <button
-                                        type="button"
-                                        onClick={() => setEditData(true)}
-                                        className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
-                                    >
-                                        Update Record
-                                    </button>
-                                </>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditData(true)}
+                                    className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
+                                >
+                                    Update Record
+                                </button>
                             ) : (
                                 <>
                                     <button
@@ -1386,19 +1358,37 @@ export default function OnboardingFiles() {
 
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [sortOrder, setSortOrder] = useState('name_az');
     const [rows, setRows] = useState([]);
+
+    const [filtersOpen, setFiltersOpen] = useState(false);
+
+    const [sortOrder, setSortOrder] = useState('name_az');
     const [statusFilter, setStatusFilter] = useState('all');
     const [personnelTypeFilter, setPersonnelTypeFilter] = useState('all');
 
-    const applyDraftFilters = () => {
-    setSortOrder(draftSortOrder);
-    setRoleFilter(draftRoleFilter);
-    setStatusFilter(draftStatusFilter);
-    setFiltersOpen(false);
+    const [draftSortOrder, setDraftSortOrder] = useState('name_az');
+    const [draftStatusFilter, setDraftStatusFilter] = useState('all');
+    const [draftPersonnelType, setDraftPersonnelType] = useState('all');
+
+    useEffect(() => {
+        if (!filtersOpen) return;
+        setDraftSortOrder(sortOrder);
+        setDraftStatusFilter(statusFilter);
+        setDraftPersonnelType(personnelTypeFilter);
+    }, [filtersOpen, sortOrder, statusFilter, personnelTypeFilter]);
+
+    const clearDraftFilters = () => {
+        setDraftSortOrder('name_az');
+        setDraftStatusFilter('all');
+        setDraftPersonnelType('all');
     };
 
-    const [filtersOpen, setFiltersOpen] = useState(false);
+    const applyDraftFilters = () => {
+        setSortOrder(draftSortOrder);
+        setStatusFilter(draftStatusFilter);
+        setPersonnelTypeFilter(draftPersonnelType);
+        setFiltersOpen(false);
+    };
 
     const activeFilterCount = useMemo(() => {
         let n = 0;
@@ -1436,7 +1426,6 @@ export default function OnboardingFiles() {
     const [confirmBusy, setConfirmBusy] = useState(false);
     const [reminderBusyByEmployeeId, setReminderBusyByEmployeeId] = useState({});
 
-    
     const [sendReminderState, setSendReminderState] = useState({
         open: false,
         title: 'Send Reminder',
@@ -1721,38 +1710,38 @@ export default function OnboardingFiles() {
         setItemOffset(event.selected * itemsPerPage);
     };
 
-const handleSendReminder = (row) => {
-    const employeeDbId = row?.employee_id;
+    const handleSendReminder = (row) => {
+        const employeeDbId = row?.employee_id;
 
-    if (!employeeDbId) {
-        openConfirm({
-            title: 'Cannot send reminder',
-            message: 'Missing employee record id.',
-            confirmText: 'OK',
-            cancelText: null,
-            onConfirm: null,
+        if (!employeeDbId) {
+            openConfirm({
+                title: 'Cannot send reminder',
+                message: 'Missing employee record id.',
+                confirmText: 'OK',
+                cancelText: null,
+                onConfirm: null,
+            });
+            return;
+        }
+
+        const progress = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
+        const missing = progress.missing || [];
+        const needsReupload = progress.needsReupload || [];
+
+        const lineParts = [];
+        if (missing.length) lineParts.push(`Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? '…' : ''}`);
+        if (needsReupload.length) lineParts.push(`Needs re-upload: ${needsReupload.slice(0, 8).join(', ')}${needsReupload.length > 8 ? '…' : ''}`);
+
+        setSendReminderState({
+            open: true,
+            title: 'Send Reminder',
+            message: [
+                `Send a reminder email to ${row?.name || 'this employee'}?`,
+                lineParts.length ? lineParts.join('') : 'No missing documents detected based on current checklist.',
+            ].join(''),
+            row,
         });
-        return;
-    }
-
-    const progress = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
-    const missing = progress.missing || [];
-    const needsReupload = progress.needsReupload || [];
-
-    const lineParts = [];
-    if (missing.length) lineParts.push(`Missing: ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? '…' : ''}`);
-    if (needsReupload.length) lineParts.push(`Needs re-upload: ${needsReupload.slice(0, 8).join(', ')}${needsReupload.length > 8 ? '…' : ''}`);
-
-    setSendReminderState({
-        open: true,
-        title: 'Send Reminder',
-        message: [
-            `Send a reminder email to ${row?.name || 'this employee'}?`,
-            lineParts.length ? lineParts.join('') : 'No missing documents detected based on current checklist.',
-        ].join(''),
-        row,
-    });
-};
+    };
 
     const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
         const base = (startDate || endDate)
@@ -1784,8 +1773,7 @@ const handleSendReminder = (row) => {
             end_date: endDate || null,
             row_count: rowsForExport.length,
             source: '201-files',
-        }).catch(() => {
-        });
+        }).catch(() => {});
 
         const columns = [
             { header: 'Employee ID', value: (r) => r.id },
@@ -1825,8 +1813,7 @@ const handleSendReminder = (row) => {
                 ],
                 columns,
                 rows: rowsForExport,
-            }).catch(() => {
-            });
+            }).catch(() => {});
         } else if (isCsv) {
             exportRowsToCsv({ filename, columns, rows: rowsForExport });
         } else {
@@ -1854,15 +1841,15 @@ const handleSendReminder = (row) => {
     };
 
     if (loading) {
-    return (
-      <div>
-        <Navbar />
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600">Loading 201 Files...</p>
-        </div>
-      </div>
-    );
-  }
+        return (
+            <div>
+                <Navbar />
+                <div className="flex items-center justify-center min-h-screen">
+                    <p className="text-gray-600">Loading 201 Files...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div>
@@ -1892,75 +1879,94 @@ const handleSendReminder = (row) => {
                                     ) : null}
                                     <span className="text-xs">▾</span>
                                 </button>
+{filtersOpen ? (
+  <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div
+      className="absolute inset-0 bg-black/40"
+      onClick={() => setFiltersOpen(false)}
+    />
 
-                                {filtersOpen ? (
-                                    <div className="absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-50">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <p className="text-sm font-semibold text-[#111827]">Filters</p>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFiltersOpen(false)}
-                                                className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                                                aria-label="Close"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
+    <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl p-4 z-10">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-[#111827]">Filters</p>
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(false)}
+          className="text-[#990100] hover:opacity-70 text-lg leading-none"
+          aria-label="Close"
+        >
+          ×
+        </button>
+      </div>
 
-                                        <div className="space-y-4">
-                                            <div>
-                                                <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {sortOptions.map((opt) => (
-                                                        <ChipButton
-                                                            key={opt.value}
-                                                            active={sortOrder === opt.value}
-                                                            onClick={() => setSortOrder(opt.value)}
-                                                            title={opt.label}
-                                                        >
-                                                            {opt.label}
-                                                        </ChipButton>
-                                                    ))}
-                                                </div>
-                                            </div>
+      <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
+          <div className="flex flex-wrap gap-2">
+            {sortOptions.map((opt) => (
+              <ChipButton
+                key={opt.value}
+                active={draftSortOrder === opt.value}
+                onClick={() => setDraftSortOrder(opt.value)}
+                title={opt.label}
+              >
+                {opt.label}
+              </ChipButton>
+            ))}
+          </div>
+        </div>
 
-                                            <div>
-                                                <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <ChipButton active={statusFilter === 'all'} onClick={() => setStatusFilter('all')}>All</ChipButton>
-                                                    <ChipButton active={statusFilter === 'incomplete'} onClick={() => setStatusFilter('incomplete')}>Incomplete</ChipButton>
-                                                    <ChipButton active={statusFilter === 'complete'} onClick={() => setStatusFilter('complete')}>Complete</ChipButton>
-                                                </div>
-                                            </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Status</p>
+          <div className="flex flex-wrap gap-2">
+            <ChipButton active={draftStatusFilter === "all"} onClick={() => setDraftStatusFilter("all")}>
+              All
+            </ChipButton>
+            <ChipButton active={draftStatusFilter === "incomplete"} onClick={() => setDraftStatusFilter("incomplete")}>
+              Incomplete
+            </ChipButton>
+            <ChipButton active={draftStatusFilter === "complete"} onClick={() => setDraftStatusFilter("complete")}>
+              Complete
+            </ChipButton>
+          </div>
+        </div>
 
-                                            <div>
-                                                <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <ChipButton active={personnelTypeFilter === 'all'} onClick={() => setPersonnelTypeFilter('all')}>All</ChipButton>
-                                                    <ChipButton active={personnelTypeFilter === 'standard'} onClick={() => setPersonnelTypeFilter('standard')}>Employees</ChipButton>
-                                                    <ChipButton active={personnelTypeFilter === 'project_based'} onClick={() => setPersonnelTypeFilter('project_based')}>Project-Based</ChipButton>
-                                                </div>
-                                            </div>
-                                        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
+          <div className="flex flex-wrap gap-2">
+            <ChipButton active={draftPersonnelType === "all"} onClick={() => setDraftPersonnelType("all")}>
+              All
+            </ChipButton>
+            <ChipButton active={draftPersonnelType === "standard"} onClick={() => setDraftPersonnelType("standard")}>
+              Employees
+            </ChipButton>
+            <ChipButton active={draftPersonnelType === "project_based"} onClick={() => setDraftPersonnelType("project_based")}>
+              Project-Based
+            </ChipButton>
+          </div>
+        </div>
+      </div>
 
-                                        <div className="bg-white border-t border-gray-200 px-1 pt-4 mt-4 flex items-center justify-between">
-                                            <button
-                                                type="button"
-                                                onClick={clearFilters}
-                                                className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                                            >
-                                                Clear all
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={applyDraftFilters}
-                                                className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                                            >
-                                                Apply
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : null}
+      <div className="flex items-center justify-between pt-4">
+        <button
+          type="button"
+          onClick={clearDraftFilters}
+          className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+        >
+          Clear all
+        </button>
+
+        <button
+          type="button"
+          onClick={applyDraftFilters}
+          className="bg-[#990100] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+        >
+          Apply
+        </button>
+      </div>
+    </div>
+  </div>
+) : null}
                             </div>
                         ) : null}
 
@@ -1987,8 +1993,6 @@ const handleSendReminder = (row) => {
 
                 {isEmployee ? (
                     <div className="div-table">
-                        
-
                         {rows.length === 0 ? (
                             <div className="text-sm text-gray-600">No 201 files found.</div>
                         ) : (
@@ -2067,10 +2071,6 @@ const handleSendReminder = (row) => {
                                             const p = row?.progress || computeRowProgress({ checklistItems: row?.checklistItems || [] });
                                             const percent = p.total ? Math.round((p.uploaded / p.total) * 100) : 0;
                                             const isComplete = String(p.completion) === 'COMPLETE';
-                                            const tooltipLines = [
-                                                p.missing?.length ? `Missing: ${p.missing.join(', ')}` : null,
-                                                p.needsReupload?.length ? `Needs re-upload: ${p.needsReupload.join(', ')}` : null,
-                                            ].filter(Boolean);
 
                                             return (
                                                 <tr key={row.id} className="tr-style">
@@ -2089,18 +2089,6 @@ const handleSendReminder = (row) => {
                                                                     style={{ width: `${percent}%` }}
                                                                 />
                                                             </div>
-
-                                                            {/*{tooltipLines.length ? (
-                                                                <div className="absolute left-0 top-0 -translate-y-[110%] z-50 hidden group-hover:block">
-                                                                    <div className="max-w-xs rounded-lg border border-gray-200 bg-white shadow-lg px-3 py-2 text-[11px] text-gray-800">
-                                                                        {tooltipLines.map((line, idx) => (
-                                                                            <div key={idx} className="whitespace-normal wrap-break-word">
-                                                                                {line}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-                                                            ) : null}*/}
                                                         </div>
                                                     </td>
                                                     <td className="td-style">
@@ -2181,53 +2169,52 @@ const handleSendReminder = (row) => {
                 )}
             </div>
 
+            <SendReminderModal
+                open={sendReminderState.open}
+                title={sendReminderState.title}
+                message={sendReminderState.message}
+                sending={!!reminderBusyByEmployeeId[sendReminderState?.row?.employee_id]}
+                onClose={() => setSendReminderState((p) => ({ ...p, open: false, row: null }))}
+                onSend={async () => {
+                    const row = sendReminderState.row;
+                    const employeeDbId = row?.employee_id;
+                    if (!employeeDbId) return;
 
-<SendReminderModal
-    open={sendReminderState.open}
-    title={sendReminderState.title}
-    message={sendReminderState.message}
-    sending={!!reminderBusyByEmployeeId[sendReminderState?.row?.employee_id]}
-    onClose={() => setSendReminderState((p) => ({ ...p, open: false, row: null }))}
-    onSend={async () => {
-        const row = sendReminderState.row;
-        const employeeDbId = row?.employee_id;
-        if (!employeeDbId) return;
+                    setReminderBusyByEmployeeId((p) => ({ ...p, [employeeDbId]: true }));
+                    try {
+                        const res = await post(`/onboarding/employee/${employeeDbId}/remind-missing`);
 
-        setReminderBusyByEmployeeId((p) => ({ ...p, [employeeDbId]: true }));
-        try {
-            const res = await post(`/onboarding/employee/${employeeDbId}/remind-missing`);
+                        const emailStatus = (() => {
+                            const e = res?.data?.email;
+                            if (!e) return null;
+                            if (e.skipped) return `Email: skipped (${e.reason || 'SMTP not configured'})`;
+                            if (e.error) return `Email: failed (${e.error})`;
+                            return 'Email: sent';
+                        })();
 
-            const emailStatus = (() => {
-                const e = res?.data?.email;
-                if (!e) return null;
-                if (e.skipped) return `Email: skipped (${e.reason || 'SMTP not configured'})`;
-                if (e.error) return `Email: failed (${e.error})`;
-                return 'Email: sent';
-            })();
+                        setSendReminderState((p) => ({ ...p, open: false, row: null }));
 
-            setSendReminderState((p) => ({ ...p, open: false, row: null }));
-
-            openConfirm({
-                title: 'Reminder processed',
-                message: [
-                    `Employee: ${row?.name || ''}`.trim(),
-                    emailStatus,
-                    res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
-                    res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,
-                ].filter(Boolean).join('\n'),
-                confirmText: 'OK',
-                cancelText: null,
-                onConfirm: null,
-            });
-        } finally {
-            setReminderBusyByEmployeeId((p) => {
-                const next = { ...p };
-                delete next[employeeDbId];
-                return next;
-            });
-        }
-    }}
-/>
+                        openConfirm({
+                            title: 'Reminder processed',
+                            message: [
+                                `Employee: ${row?.name || ''}`.trim(),
+                                emailStatus,
+                                res?.data?.missing?.length ? `Missing: ${res.data.missing.join(', ')}` : null,
+                                res?.data?.needsReupload?.length ? `Needs re-upload: ${res.data.needsReupload.join(', ')}` : null,
+                            ].filter(Boolean).join('\n'),
+                            confirmText: 'OK',
+                            cancelText: null,
+                            onConfirm: null,
+                        });
+                    } finally {
+                        setReminderBusyByEmployeeId((p) => {
+                            const next = { ...p };
+                            delete next[employeeDbId];
+                            return next;
+                        });
+                    }
+                }}
+            />
 
             <ConfirmModal
                 open={confirmState.open}

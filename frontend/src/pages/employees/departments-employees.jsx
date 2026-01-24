@@ -50,13 +50,30 @@ export default function DepartmentEmployees() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
-  useEffect(() => {
-    setDraftSortOrder(sortOrder);
-  }, [sortOrder]);
+  const defaultSort = useMemo(
+    () => (tab === "positions" ? "position_title_az" : "name_az"),
+    [tab]
+  );
 
   const activeFiltersCount = useMemo(() => {
-    return draftSortOrder ? 1 : 0;
-  }, [draftSortOrder]);
+    let n = 0;
+    if (sortOrder !== defaultSort) n += 1;
+    return n;
+  }, [sortOrder, defaultSort]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraftSortOrder(sortOrder);
+  }, [filtersOpen, sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
 
   const sortOptions = useMemo(() => {
     if (tab === "positions") {
@@ -543,60 +560,60 @@ export default function DepartmentEmployees() {
                 <span className="text-xs">▾</span>
               </button>
 
-              {filtersOpen && (
-                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                  <div className="flex flex-col">
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                      <p className="text-sm font-bold text-[#990100]">Filters</p>
-                      <button
-                        type="button"
-                        onClick={() => setFiltersOpen(false)}
-                        className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                        aria-label="Close"
-                      >
-                        ×
-                      </button>
-                    </div>
+            {filtersOpen ? (
+              <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                <div
+                  className="absolute inset-0 bg-black/40"
+                  onClick={() => setFiltersOpen(false)}
+                />
 
-                    <div className="px-4 py-3">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">
-                        Sort
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortOptions.map((opt) => (
-                          <ChipButton
-                            key={opt.value}
-                            active={draftSortOrder === opt.value}
-                            onClick={() => setDraftSortOrder(opt.value)}
-                          >
-                            {opt.label}
-                          </ChipButton>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDraftPersonnelType("ALL");
-                          setDraftSortOrder("name_az");
-                        }}
-                        className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                      >
-                        Clear all
-                      </button>
-                      <button
-                        type="button"
-                        onClick={applyDraftFilters}
-                        className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                      >
-                        Apply
+                <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                    <p className="text-sm font-bold text-[#990100]">Filters</p>
+                    <button
+                      type="button"
+                      onClick={() => setFiltersOpen(false)}
+                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                      aria-label="Close"
+                    >
+                      ×
                     </button>
+                  </div>
+
+                  <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                    <div className="flex flex-wrap gap-2">
+                      {sortOptions.map((opt) => (
+                        <ChipButton
+                          key={opt.value}
+                          active={draftSortOrder === opt.value}
+                          onClick={() => setDraftSortOrder(opt.value)}
+                        >
+                          {opt.label}
+                        </ChipButton>
+                      ))}
                     </div>
                   </div>
+
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                    >
+                      Clear all
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyDraftFilters}
+                      className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                    >
+                      Apply
+                    </button>
+                  </div>
                 </div>
-              )}
+              </div>
+            ) : null}
             </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
