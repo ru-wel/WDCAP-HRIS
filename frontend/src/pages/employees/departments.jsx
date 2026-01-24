@@ -37,7 +37,8 @@ function DepartmentCard({
     <CardWrapper
       type={isClickable ? "button" : undefined}
       onClick={
-        mode === "view"
+        
+           mode === "view"
           ? onOpen
           : mode === "edit"
           ? () => onSelectEdit?.(id)
@@ -49,14 +50,13 @@ function DepartmentCard({
       `}
       style={{ minHeight: 140 }}
     >
-      {mode === "edit" && isActiveEdit ? (
+      {mode === "edit" ? (
         <>
           <input
             value={editedName}
             onChange={(e) => onNameChange(id, e.target.value)}
-            className="w-full bg-transparent text-xl font-bold outline-none
-                       text-[#990100] border-b border-transparent
-                       focus:border-[#990100]"
+            className="w-full text-xl font-bold 
+                     text-[#990100]/70 border-b-1 border-b-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400 "
             onClick={(e) => e.stopPropagation()}
           />
 
@@ -69,9 +69,7 @@ function DepartmentCard({
                   onDelete?.(id);
                 }}
                 disabled={!!saving}
-                className="cursor-pointer bg-red-700 text-white px-5 py-2 rounded-md shadow-md
-                           hover:bg-red-600 hover:scale-105
-                           transition duration-300 ease-in-out disabled:opacity-50 disabled:pointer-events-none"
+                className="bg-red-700 hover:bg-red-600 hover:scale-105 py-1.5 generate-report-button"
               >
                 Delete
               </button>
@@ -86,7 +84,7 @@ function DepartmentCard({
                   !String(editedName || "").trim() ||
                   String(editedName || "").trim() === String(name || "").trim()
                 }
-                className="green-button px-5 py-2 disabled:opacity-50 disabled:pointer-events-none"
+                className="green-button disabled:opacity-50 py-1.5 disabled:pointer-events-none"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
@@ -142,8 +140,8 @@ function NewDepartmentCard({ value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type Department Name"
-        className="w-full bg-transparent text-xl font-bold outline-none
-                   text-[#990100] placeholder:text-[#c98b8b]"
+        className="w-full text-xl font-bold 
+                     text-[#990100]/70 border-b-1 border-b-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400"
       />
 
       <div className="flex items-center gap-4 pt-4">
@@ -472,6 +470,7 @@ useEffect(() => {
   const endOffset = itemOffset + itemsPerPage;
   const currentItems = displayList.slice(itemOffset, endOffset);
   const pageCount = Math.ceil(displayList.length / itemsPerPage);
+  const multiPages = pageCount > 1;
 
   useEffect(() => {
     setItemOffset(0);
@@ -870,31 +869,22 @@ useEffect(() => {
                     onClick={cancelWorking}
                     disabled={saving}
                   >
-                    Cancel
+                    Cancel Changes
                   </button>
 
                   {mode === "add" && (
                     <button
-                      className="green-button"
+                      className="green-button disabled:opacity-50 disabled:pointer-events-none"
                       onClick={saveChanges}
                       disabled={saveDisabled || saving}
                     >
-                      Save
+                      Save Department
                     </button>
                   )}
                 </div>
               ) : (
                 <>
-                  {!showUpdateActions ? (
-                    <button
-                      className="green-button"
-                      onClick={() =>
-                        setShowUpdateActions(true)
-                      }
-                    >
-                      Update Department
-                    </button>
-                  ) : (
+                  {!showUpdateActions && (
                     <div className="flex gap-3">
                       <button className="green-button" onClick={startEdit}>
                         Edit Departments
@@ -902,13 +892,13 @@ useEffect(() => {
                       <button className="mustard-button" onClick={startAdd}>
                         Add New Department
                       </button>
-                      <button
+                      {/*}button
                         type="button"
                         className="cursor-pointer bg-[#990100] text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                         onClick={() => setShowUpdateActions(false)}
                       >
                         Cancel
-                      </button>
+                      </button>*/}
                     </div>
                   )}
                 </>
@@ -951,13 +941,33 @@ useEffect(() => {
             <div className="flex justify-end mt-6 text-[#990100]">
               {pageCount > 1 && (
                 <ReactPaginate
-                  previousLabel="<"
-                  nextLabel=">"
-                  pageCount={pageCount}
-                  forcePage={Math.floor(itemOffset / itemsPerPage)}
-                  onPageChange={handlePageClick}
-                  containerClassName="flex gap-3"
-                  activeClassName="underline font-bold"
+                    breakLabel="..."
+                    nextLabel=">"
+                    onPageChange={handlePageClick}
+                    pageRangeDisplayed={2}
+                    pageCount={pageCount}
+                    forcePage={Math.floor(itemOffset / itemsPerPage)}
+                    previousLabel="<"
+                    renderOnZeroPageCount={null}
+                    marginPagesDisplayed={2}
+                    pageClassName=""
+                    pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                    previousClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    previousLinkClassName="page-link"
+                    nextClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    nextLinkClassName="page-link"
+                    breakClassName="page-item"
+                    breakLinkClassName="page-link"
+                    containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                    activeClassName="underline font-medium"
                 />
               )}
             </div>

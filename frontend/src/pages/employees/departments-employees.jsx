@@ -366,11 +366,15 @@ export default function DepartmentEmployees() {
   const empEnd = empOffset + itemsPerPage;
   const currentEmployees = employees.slice(empOffset, empEnd);
   const empPageCount = Math.ceil(employees.length / itemsPerPage);
+  const empMultiPages = empPageCount > 1;
+  const empCurrentPage = empPageCount ? Math.floor(empOffset / itemsPerPage) + 1 : 0;
 
   const [posOffset, setPosOffset] = useState(0);
   const posEnd = posOffset + itemsPerPage;
   const currentPositions = positions.slice(posOffset, posEnd);
   const posPageCount = Math.ceil(positions.length / itemsPerPage);
+  const posMultiPages = posPageCount > 1;
+  const posCurrentPage = posPageCount ? Math.floor(posOffset / itemsPerPage) + 1 : 0;
 
   const handlePageClick = (event) => {
     if (tab === "employees") setEmpOffset(event.selected * itemsPerPage);
@@ -730,19 +734,54 @@ export default function DepartmentEmployees() {
                         </tbody>
                       </table>
                     </div>
+                    <br />
 
-                    <div className="flex justify-end mt-6 text-[#990100]">
-                      {empPageCount > 1 && (
-                        <ReactPaginate
-                          previousLabel="<"
-                          nextLabel=">"
-                          pageCount={empPageCount}
-                          onPageChange={handlePageClick}
-                          forcePage={Math.floor(empOffset / itemsPerPage)}
-                          containerClassName="flex gap-3"
-                          activeClassName="underline font-bold"
-                        />
-                      )}
+                    <div className="lg:flex items-center lg:justify-between">
+                      <p className="lg:text-md text-sm">
+                        Showing <b>{currentEmployees.length}</b> of{" "}
+                        <b>{employees.length}</b> employee
+                        {employees.length !== 1 ? "s" : ""}
+                        {empPageCount ? (
+                          <>
+                            {" "}
+                            | Page <b>{empCurrentPage}</b> of <b>{empPageCount}</b>
+                          </>
+                        ) : null}
+                      </p>
+
+                      <div className="">
+                        {empPageCount >= 1 && (
+                          <ReactPaginate
+                            breakLabel="..."
+                            nextLabel=">"
+                            onPageChange={handlePageClick}
+                            pageRangeDisplayed={2}
+                            pageCount={empPageCount}
+                            forcePage={Math.floor(empOffset / itemsPerPage)}
+                            previousLabel="<"
+                            renderOnZeroPageCount={null}
+                            marginPagesDisplayed={2}
+                            pageClassName=""
+                            pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                            previousClassName={
+                              empMultiPages
+                                ? "cursor-pointer hover:text-gray-500 hover:underline"
+                                : "text-gray-400 cursor-not-allowed pointer-events-none"
+                            }
+                            previousLinkClassName="page-link"
+                            nextClassName={
+                              empMultiPages
+                                ? "cursor-pointer hover:text-gray-500 hover:underline"
+                                : "text-gray-400 cursor-not-allowed pointer-events-none"
+                            }
+                            nextLinkClassName="page-link"
+                            breakClassName="page-item"
+                            breakLinkClassName="page-link"
+                            containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                            activeClassName="underline font-medium"
+                          />
+                        )}
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -783,18 +822,54 @@ export default function DepartmentEmployees() {
                       </table>
                     </div>
 
-                    <div className="flex justify-end mt-6 text-[#990100]">
-                      {posPageCount > 1 && (
-                        <ReactPaginate
-                          previousLabel="<"
-                          nextLabel=">"
-                          pageCount={posPageCount}
-                          onPageChange={handlePageClick}
-                          forcePage={Math.floor(posOffset / itemsPerPage)}
-                          containerClassName="flex gap-3"
-                          activeClassName="underline font-bold"
-                        />
-                      )}
+                    <br />
+
+                    <div className="lg:flex items-center lg:justify-between">
+                      <p className="lg:text-md text-sm">
+                        Showing <b>{currentPositions.length}</b> of{" "}
+                        <b>{positions.length}</b> employee
+                        {positions.length !== 1 ? "s" : ""}
+                        {posPageCount ? (
+                          <>
+                            {" "}
+                            | Page <b>{posCurrentPage}</b> of <b>{posPageCount}</b>
+                          </>
+                        ) : null}
+                      </p>
+
+                      <div className="">
+                        {posPageCount >= 1 && (
+                          <ReactPaginate
+                            breakLabel="..."
+                            nextLabel=">"
+                            onPageChange={handlePageClick}
+                            pageRangeDisplayed={2}
+                            pageCount={posPageCount}
+                            forcePage={Math.floor(posOffset / itemsPerPage)}
+                            previousLabel="<"
+                            renderOnZeroPageCount={null}
+                            marginPagesDisplayed={2}
+                            pageClassName=""
+                            pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                            previousClassName={
+                              posMultiPages
+                                ? "cursor-pointer hover:text-gray-500 hover:underline"
+                                : "text-gray-400 cursor-not-allowed pointer-events-none"
+                            }
+                            previousLinkClassName="page-link"
+                            nextClassName={
+                              posMultiPages
+                                ? "cursor-pointer hover:text-gray-500 hover:underline"
+                                : "text-gray-400 cursor-not-allowed pointer-events-none"
+                            }
+                            nextLinkClassName="page-link"
+                            breakClassName="page-item"
+                            breakLinkClassName="page-link"
+                            containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                            activeClassName="underline font-medium"
+                          />
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -832,8 +907,8 @@ export default function DepartmentEmployees() {
               </div>
 
               <div className="lg:py-10 py-7">
-                <div className="lg:mx-15 md:mx-30 mx-15">
-                  <span className=" text-left font-bold lg:text-lg text-sm">Position Title:</span>
+                <div className="lg:mx-15 md:mx-30 mx-20">
+                  <span className=" text-left font-bold lg:text-lg text-[#483D3D] text-sm uppercase">Position Title:</span>
 
                   <div className="flex flex-col w-full sm:w-auto pt-1.5">
                     <input
@@ -883,13 +958,13 @@ export default function DepartmentEmployees() {
           <div className="absolute inset-0 bg-black/25" />
 
           <div
-            className="relative w-[600px] max-w-[92vw] max-h-[50vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
+            className="relative w-[600px] max-w-[92vw] max-h-[60vh] overflow-y-auto bg-white rounded-lg border border-gray-400 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             data-lenis-prevent
           >
-            <div className="p-5">
-              <div className="bg-[#990100] rounded-lg px-8 py-5 flex items-center justify-between shadow-md">
-                <h2 className="text-white text-2xl font-bold">
+            <div className="p-5 pb-0">
+              <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3">
+                <h2 className="text-white text-lg font-medium lg:text-lg text-sm">
                   Details of {selectedPosition.title}
                 </h2>
 
@@ -897,21 +972,21 @@ export default function DepartmentEmployees() {
                   type="button"
                   onClick={closeDetails}
                   aria-label="Close"
-                  className="text-white text-4xl font-bold leading-none cursor-pointer hover:opacity-80"
+                  className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
                 >
-                  ×
+                  ✕
                 </button>
               </div>
 
-              <div className="py-10">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3 sm:gap-5">
-                  <span className="font-bold text-lg">Position Title:</span>
+              <div className="lg:py-10 py-7">
+                <div className="lg:mx-15 md:mx-30 mx-20">
+                  <span className="text-left font-bold lg:text-lg text-sm text-[#483D3D] uppercase">Position Title:</span>
 
-                  <div className="flex flex-col w-full sm:w-auto">
+                  <div className="flex flex-col w-full sm:w-auto pt-1.5">
                     <input
                       value={positionTitleDraft}
                       onChange={(e) => setPositionTitleDraft(e.target.value)}
-                      className="w-full sm:w-[280px] px-4 py-2 rounded-md border border-gray-500 focus:outline-none shadow-sm"
+                      className="w-full px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
                       readOnly={!isEditingPosition || positionSaving}
                       disabled={positionSaving}
                     />
@@ -938,9 +1013,7 @@ export default function DepartmentEmployees() {
                       onUpdatePosition();
                     }}
                     disabled={positionSaving}
-                    className="bg-green-700 text-white px-8 py-3 rounded-lg cursor-pointer
-                               shadow-md hover:bg-green-600 hover:scale-105
-                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="bg-green-700 hover:bg-green-600 generate-report-button font-medium"
                   >
                     {positionSaving
                       ? "Saving..."
@@ -953,9 +1026,7 @@ export default function DepartmentEmployees() {
                     type="button"
                     onClick={onDeletePosition}
                     disabled={positionSaving}
-                    className="bg-red-700 text-white px-8 py-3 rounded-lg cursor-pointer
-                               shadow-md hover:bg-red-600 hover:scale-105
-                               transition duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
                   >
                     {positionSaving ? "Working..." : "Delete Position"}
                   </button>
