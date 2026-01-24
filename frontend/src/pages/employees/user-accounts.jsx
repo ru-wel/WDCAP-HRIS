@@ -1013,7 +1013,7 @@ function UserAccounts() {
                 currentUserAcc.map((row) => (
                   <tr key={row.id} className="tr-style">
                     <td className="td-style-nobtn font-medium">{row.id}</td>
-                    <td className="td-style">{row.email}</td>
+                    <td className="td-style left-align">{row.email}</td>
                     <td className="td-style">{row.role}</td>
                     <td className="td-style">{row.createdAt}</td>
                     <td className="td-style">

@@ -669,7 +669,7 @@ function ModalEmployees({
           </div>
 
           <div className="items-center text-left pt-3">
-            <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
+            <p className="lg:text-sm text-xs pb-1.5 ">
               <b>Emergency Contact No.:</b>
             </p>
             <input
@@ -1479,7 +1479,7 @@ function Employees() {
                 currentEmp.map((row) => (
                   <tr key={row.id} className="tr-style">
                     <td className="td-style font-medium">{row.employee_id}</td>
-                    <td className="td-style text-left">
+                    <td className="td-style ">
                       {row.first_name} {row.last_name}
                     </td>
                     <td className="td-style">{row.position_title}</td>

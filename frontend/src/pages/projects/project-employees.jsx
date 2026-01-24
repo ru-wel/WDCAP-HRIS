@@ -112,10 +112,10 @@ function AddEmployeeModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
       <div
         className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto"
-        data-lenis-prevent
+        
       >
-        <div className="bg-[#990100] rounded-lg px-5 py-3 flex justify-between items-center">
-          <h1 className="text-white text-lg font-semibold">Add New Employee</h1>
+        <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:pb-[10px] lg:pt-[8px] py-[6px] md:px-4 px-3">
+          <h1 className="text-white text-lg font-medium lg:text-lg text-sm">Add New Employee</h1>
           <button
             onClick={onClose}
             className="text-white text-2xl font-bold hover:scale-110 transition"
@@ -124,7 +124,7 @@ function AddEmployeeModal({
           </button>
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-3">
+        <div className="mt-10 flex flex-col items-center gap-3 lg:mx-15 md:mx-25 mx-15">
           {loading ? (
             <p className="text-gray-600">Loading employees...</p>
           ) : (
@@ -135,7 +135,7 @@ function AddEmployeeModal({
                   placeholder="Search Name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 border rounded-lg px-3 py-2 text-base shadow"
+                  className="flex-1 px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
                 />
 
                 <button
@@ -145,7 +145,7 @@ function AddEmployeeModal({
                     ${
                       selectedEmployee && !addLoading
                         ? "bg-[#990100] text-white hover:bg-[#7a0100] hover:scale-105"
-                        : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                        : "bg-[#990100]/70 text-white cursor-default"
                     }`}
                 >
                   {addLoading ? "Adding ..." : "Add"}
@@ -155,7 +155,7 @@ function AddEmployeeModal({
               {filteredEmployees.length > 0 && (
                 <div
                   className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto"
-                  data-lenis-prevent
+                  
                 >
                   {filteredEmployees.map((employee) => (
                     <button
@@ -176,38 +176,38 @@ function AddEmployeeModal({
                   type="text"
                   value={`${selectedEmployee.first_name} ${selectedEmployee.last_name} (${selectedEmployee.employee_id})`}
                   readOnly
-                  className="w-full max-w-md border rounded-lg px-3 py-2 text-base shadow bg-gray-50"
+                  className="w-full max-w-md px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
                 />
               )}
 
               {selectedEmployee && (
                 <>
-                  <div className="w-full max-w-md mt-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div className="w-full max-w-md mb-5">
+                    <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
                       Assignment Date
                     </label>
                     <input
                       type="date"
                       value={assignmentDate}
                       onChange={(e) => setAssignmentDate(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 text-base shadow"
+                      className="w-full border px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm cursor-pointer"
                     />
                   </div>
 
-                  <div className="w-full max-w-md">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  {/*<div className="w-full max-w-md">
+                    <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
                       Status
                     </label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value)}
-                      className="w-full border rounded-lg px-3 py-2 text-base shadow"
+                      className="w-full px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                       <option value="Completed">Completed</option>
                     </select>
-                  </div>
+                  </div>*/}
                 </>
               )}
             </>
@@ -602,11 +602,22 @@ const applyDraftFilters = () => {
     setItemOffset(0);
   }, [searchTerm, sortOrder, projectEmployees.length]);
 
+  if (loading) {
+    return (
+      <div>
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-gray-600">Loading Employees...</p>
+        </div>
+      </div>
+    );
+  }
+
+
   return (
     <div>
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="flex items-center gap-3 md:justify-start justify-center ">
             <button
               onClick={() => navigate("/projects")}
               className="text-[#990100] hover:text-[#CC0000] transition-colors flex items-center gap-1 text-sm font-medium cursor-pointer"
@@ -614,12 +625,12 @@ const applyDraftFilters = () => {
               <span className="text-xl">←</span>Back
             </button>
             <span className="text-gray-300">|</span>
-            <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
+            <h1 className="lg:text-3xl md:text-2xl text-xl text-[#990100] font-bold">
               {projectDetails?.project_name || `Project #${projectId}`} Employees
             </h1>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-center">
             <div className="relative">
               <button
                 type="button"
@@ -714,16 +725,33 @@ const applyDraftFilters = () => {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-lg p-5">
+        <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-lg  pt-3 p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-[#990100]">
-                Project Overview
-              </h2>
 
-              <div className="mt-3 rounded-md border border-gray-200 overflow-hidden">
-                <div className="bg-[#EDEDED] px-4 py-3">
-                  <p className="text-center font-bold text-gray-900 tracking-wide uppercase">
+              <div className="flex justify-between items-center gap-3 pb-3">
+                <h2 className="text-lg font-semibold text-[#990100] text-left">
+                  Project Overview
+                </h2>
+
+                {canEditProject && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLocationEditOpen((v) => !v);
+                    }}
+                    className="generate-report-button mt-2 font-medium"
+                  >
+                    {locationEditOpen ? "Close" : "Update Location"}
+                  </button>
+                )}
+
+              </div>
+
+              <div className="flex justify-center">
+              <div className="t-3 w-full max-w-3xl rounded-md border border-gray-200 overflow-hidden mx-auto shadow-sm">
+                <div className="bg-[#990100] px-4 py-3">
+                  <p className="text-center font-bold text-white tracking-wide uppercase">
                     {(projectDetails?.project_name || `Project #${projectId}`) +
                       (projectDetails?.site_location
                         ? `, ${projectDetails.site_location}`
@@ -783,19 +811,10 @@ const applyDraftFilters = () => {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
 
-            {canEditProject && (
-              <button
-                type="button"
-                onClick={() => {
-                  setLocationEditOpen((v) => !v);
-                }}
-                className="bg-[#990100] text-white px-4 py-2 rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-              >
-                {locationEditOpen ? "Close" : "Update Location"}
-              </button>
-            )}
+            
           </div>
 
           {locationEditOpen && canEditProject && (
@@ -852,7 +871,7 @@ const applyDraftFilters = () => {
 
         {!loading && !error && (
           <div className="flex justify-end mt-5">
-            <button onClick={openAddModal} className="generate-report-button">
+            <button onClick={openAddModal} className="generate-report-button mt-2 font-medium">
               Add Employee
             </button>
           </div>

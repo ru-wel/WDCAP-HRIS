@@ -267,8 +267,6 @@ function Projects() {
 
   const [projects, setProjects] = useState([]);
   const [mode, setMode] = useState("view");
-  {/*const [editingProjectId, setEditingProjectId] = useState(null);
-  const [draftProject, setDraftProject] = useState(null);*/}
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
@@ -276,13 +274,6 @@ function Projects() {
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
   const [showUpdateActions, setShowUpdateActions] = useState(false);
-
-  {/*const handleEditCardClick = (project) => {
-    if (mode !== "edit") return;
-
-    setEditingProjectId(project.id);
-    setDraftProject({ ...project });
-  };*/}
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = "project_name_az";
@@ -544,17 +535,6 @@ function Projects() {
     setMode("edit");
   };
 
-  const handleAddClick = () => {
-    setNewProject({
-      project_name: "",
-      site_location: "",
-      start_date: "",
-      end_date: "",
-      status: PROJECT_STATUSES.ACTIVE,
-    });
-    setMode("add");
-  };
-
   const handleCreateProject = async () => {
     if (!newProject.project_name || !newProject.site_location) {
       openConfirm({
@@ -710,15 +690,42 @@ function Projects() {
     );
   };
 
+  const addProj = {
+    project_name: "",
+    site_location: "",
+    start_date: "",
+    end_date: "",
+    status: PROJECT_STATUSES.ACTIVE,
+  };
+  
+  const [initialAddData, setInitialAddData] = useState(addProj);
+  const data = newProject;
+  const initialData = initialAddData;
+
+  const handleAddClick = () => {
+    setNewProject(addProj);
+    setInitialAddData(addProj); // snapshot
+    setMode("add");
+  };
+
+  const unsavedChanges = mode === "add" && JSON.stringify(data) !== JSON.stringify(initialData);
+
   const handleCancelAdd = () => {
-    setNewProject({
-      project_name: "",
-      site_location: "",
-      start_date: "",
-      end_date: "",
-      status: PROJECT_STATUSES.ACTIVE,
+    if (!unsavedChanges) {
+      setMode("view");
+      return;
+    }
+
+    openConfirm({
+      title: "Cancel adding project",
+      message: "Leave without saving your changes?",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        setNewProject(addProj);
+        setMode("view");
+      },
     });
-    setMode("view");
   };
 
   const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
@@ -968,6 +975,7 @@ function Projects() {
                 className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() =>
                   openConfirm({
+                    
                     title: "Cancel editing",
                     message: "Exit edit mode without saving pending changes?",
                     confirmText: "OK",
