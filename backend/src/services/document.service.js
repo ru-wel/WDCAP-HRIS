@@ -2,7 +2,6 @@ import { supabase } from "../config/supabase.js";
 import { NotFoundError, InternalServerError, BadRequestError } from "../utils/errors.js";
 import { AUDIT_ACTIONS, FILE_VALIDATION, ONBOARDING_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
-import { deleteFromDrive, downloadFromDrive, ensureDriveUserAccess, getDriveWebViewLink, getOrCreateEmployeeFolder, isDriveEnabled, uploadToDrive } from './googleDrive.service.js';
 
 const sanitizeForFileName = (value) => String(value || '').replace(/[^a-zA-Z0-9]+/g, ' ').trim().replace(/\s+/g, '_');
 
@@ -104,77 +103,26 @@ export const uploadDocument = async (fileData, userId) => {
       documentName: document_name
     }));
 
-    let storedPathOrId = null;
-    let storageProvider = 'supabase';
-    let uploadedStorageHandle = null;
+    // generate unique file path: employee_id/timestamp_filename
+    const timestamp = Date.now();
+    const filePath = `${employee.employee_id}/${timestamp}_${file_name}`;
 
-    if (isDriveEnabled()) {
-      storageProvider = 'google_drive';
-
-      const employeeFolder = await getOrCreateEmployeeFolder({
-        employeeCode: employee.employee_id,
-        firstName: employee.first_name,
-        lastName: employee.last_name,
-        personnelType: employee.personnel_type
+    // upload to supabase storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(process.env.STORAGE_BUCKET_DOCUMENTS)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false,
+        contentType: file_type
       });
 
-      // Best-effort: share the employee folder + uploaded files to the employee's linked user email.
-      // This enables Drive preview links for accounts other than the Drive owner.
-      let employeeEmail = '';
-      try {
-        const { data: employeeUser } = await supabase
-          .from('users')
-          .select('email')
-          .eq('employee_id', employee.employee_id)
-          .maybeSingle();
-        employeeEmail = employeeUser?.email || '';
-      } catch (e) {
-        logger.warn('Failed to lookup employee user email for Drive sharing:', e?.message || e);
-      }
-
-      if (employeeEmail) {
-        await ensureDriveUserAccess({ fileId: employeeFolder.folderId, email: employeeEmail, role: 'reader' });
-      }
-
-      const prefix = docTypeToPrefix(document_name);
-      const empName = sanitizeForFileName(`${employee.first_name || ''} ${employee.last_name || ''}`.trim()) || sanitizeForFileName(employee.employee_id);
-      const ext = getExtension(file_name);
-      const driveName = ext ? `${prefix}_${empName}.${ext}` : `${prefix}_${empName}`;
-
-      const driveUpload = await uploadToDrive({
-        fileBuffer: file,
-        mimeType: file_type,
-        fileName: driveName,
-        parentFolderId: employeeFolder.folderId
-      });
-      storedPathOrId = driveUpload.fileId;
-      uploadedStorageHandle = driveUpload.fileId;
-
-      if (employeeEmail) {
-        await ensureDriveUserAccess({ fileId: driveUpload.fileId, email: employeeEmail, role: 'reader' });
-      }
-    } else {
-      // generate unique file path: employee_id/timestamp_filename
-      const timestamp = Date.now();
-      const filePath = `${employee.employee_id}/${timestamp}_${file_name}`;
-
-      // upload to supabase storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(process.env.STORAGE_BUCKET_DOCUMENTS)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file_type
-        });
-
-      if (uploadError) {
-        logger.error('File upload error:', uploadError);
-        throw new InternalServerError('Failed to upload file to storage: ' + uploadError.message);
-      }
-
-      storedPathOrId = uploadData.path;
-      uploadedStorageHandle = uploadData.path;
+    if (uploadError) {
+      logger.error('File upload error:', uploadError);
+      throw new InternalServerError('Failed to upload file to storage: ' + uploadError.message);
     }
+
+    const storedPathOrId = uploadData.path;
+    const uploadedStorageHandle = uploadData.path;
 
     const nowIso = new Date().toISOString();
     const oldDocument = existingDocument || null;
@@ -198,23 +146,13 @@ export const uploadDocument = async (fileData, userId) => {
 
       if (updateError) {
         // rollback newly uploaded object
-        if (storageProvider === 'supabase') {
-          await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
-        } else {
-          await deleteFromDrive(uploadedStorageHandle);
-        }
+        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
         throw new InternalServerError('Failed to update document: ' + updateError.message);
       }
 
       // Best-effort cleanup of old storage object to avoid duplicates
-      if (storageProvider === 'supabase') {
-        if (oldDocument.file_path && oldDocument.file_path !== storedPathOrId) {
-          await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([oldDocument.file_path]);
-        }
-      } else {
-        if (oldDocument.file_path && oldDocument.file_path !== storedPathOrId) {
-          await deleteFromDrive(oldDocument.file_path);
-        }
+      if (oldDocument.file_path && oldDocument.file_path !== storedPathOrId) {
+        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([oldDocument.file_path]);
       }
 
       savedDocument = updated;
@@ -246,12 +184,7 @@ export const uploadDocument = async (fileData, userId) => {
 
       if (insertError) {
         // rollback/delete uploaded file if database insert fails
-        if (storageProvider === 'supabase') {
-          await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
-        } else {
-          await deleteFromDrive(uploadedStorageHandle);
-        }
-
+        await supabase.storage.from(process.env.STORAGE_BUCKET_DOCUMENTS).remove([uploadedStorageHandle]);
         throw new InternalServerError('Failed to save document metadata: ' + insertError.message);
       }
 
@@ -349,15 +282,6 @@ export const downloadDocument = async (documentId, userId) => {
     // fetch document metadata
     const document = await getDocumentById(documentId);
 
-    if (isDriveEnabled()) {
-      // For Drive-backed documents we stream through the backend (no signed URL concept)
-      // Controller will call downloadFromDrive when serving the file.
-      return {
-        document,
-        provider: 'google_drive'
-      };
-    }
-
     // generate signed url from supabase
     const { data: signedUrlData, error: urlError } = await supabase.storage
       .from(process.env.STORAGE_BUCKET_DOCUMENTS)
@@ -383,17 +307,6 @@ export const downloadDocument = async (documentId, userId) => {
 
 export const previewDocument = async (documentId) => {
   const document = await getDocumentById(documentId);
-
-  if (isDriveEnabled()) {
-    const meta = await getDriveWebViewLink(document.file_path);
-    return {
-      document,
-      provider: 'google_drive',
-      url: meta.webViewLink,
-      fileName: meta.name,
-      mimeType: meta.mimeType
-    };
-  }
 
   const { data: signedUrlData, error: urlError } = await supabase.storage
     .from(process.env.STORAGE_BUCKET_DOCUMENTS)
@@ -434,17 +347,13 @@ export const deleteDocument = async (documentId, userId) => {
     }
 
     // delete file from storage
-    if (isDriveEnabled()) {
-      await deleteFromDrive(document.file_path);
-    } else {
-      const { error: storageError } = await supabase.storage
-        .from(process.env.STORAGE_BUCKET_DOCUMENTS)
-        .remove([document.file_path]);
+    const { error: storageError } = await supabase.storage
+      .from(process.env.STORAGE_BUCKET_DOCUMENTS)
+      .remove([document.file_path]);
 
-      if (storageError) {
-        logger.error('Document deletion error:', storageError);
-        throw new InternalServerError('Failed to delete file from supabase storage: ' + storageError.message);
-      }
+    if (storageError) {
+      logger.error('Document deletion error:', storageError);
+      throw new InternalServerError('Failed to delete file from supabase storage: ' + storageError.message);
     }
 
     // delete document record from database
@@ -475,10 +384,4 @@ export const deleteDocument = async (documentId, userId) => {
     logger.error(`Error deleting document ${documentId}`, error);
     throw error;
   }
-}
-
-export const streamDriveDocument = async (documentId) => {
-  const document = await getDocumentById(documentId);
-  const drive = await downloadFromDrive(document.file_path);
-  return { document, ...drive };
 };

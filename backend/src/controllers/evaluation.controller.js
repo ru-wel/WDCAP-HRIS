@@ -185,12 +185,6 @@ export const previewEvaluationDocument = async (req, res, next) => {
 
     const result = await evaluationService.previewEvaluationDocument({ evaluationId: evaluation_id, doc });
 
-    // For Drive-backed docs, point to our authenticated inline stream endpoint.
-    if (result?.provider === 'google_drive' || result?.provider === 'generated') {
-      const origin = `${req.protocol}://${req.get('host')}`;
-      result.url = `${origin}${req.baseUrl}/${evaluation_id}/document/download?disposition=inline&doc=${encodeURIComponent(doc || 'file')}`;
-    }
-
     res.status(200).json({ success: true, message: 'Preview URL generated successfully', data: result });
   } catch (e) {
     next(e);

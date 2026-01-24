@@ -6,10 +6,6 @@ import { sendEmail } from './mail.service.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deleteFromDrive, downloadFromDrive, ensureDriveUserAccess, getOrCreateEmployeeFolder, getOrCreateFolder, isDriveEnabled, uploadToDrive } from './googleDrive.service.js';
-import { uploadEvaluationFormToDrive } from './googleDriveEvaluation.service.js';
-import { buildEvaluationFormPdfBuffer } from './googleDriveEvaluation.service.js';
-import { Readable } from 'stream';
 
 const EVALUATION_FIELDS = `
   evaluation_id,
@@ -261,22 +257,6 @@ const getEmployeeRecipientEmail = async (employee) => {
   }
 };
 
-const ensureEvaluationFolder = async (employee) => {
-  const employeeFolder = await getOrCreateEmployeeFolder({
-    employeeCode: employee.employee_id,
-    firstName: employee.first_name,
-    lastName: employee.last_name,
-    personnelType: employee.personnel_type
-  });
-
-  const evaluationFolder = await getOrCreateFolder({
-    name: 'Evaluation',
-    parentId: employeeFolder.folderId
-  });
-
-  return { employeeFolder, evaluationFolder };
-};
-
 export const listEvaluations = async ({ employee_id, from, to } = {}) => {
   try {
     let query = supabase
@@ -352,21 +332,6 @@ export const createSchedule = async (payload, user) => {
     .single();
 
   if (empErr || !employee) throw new NotFoundError('Employee not found');
-
-  // Prepare Drive folder (best-effort) so employee has /Evaluation ready.
-  try {
-    if (isDriveEnabled()) {
-      const { employeeFolder, evaluationFolder } = await ensureEvaluationFolder(employee);
-
-      const recipientEmail = await getEmployeeRecipientEmail(employee);
-      if (recipientEmail) {
-        await ensureDriveUserAccess({ fileId: employeeFolder.folderId, email: recipientEmail, role: 'reader' });
-        await ensureDriveUserAccess({ fileId: evaluationFolder.folderId, email: recipientEmail, role: 'reader' });
-      }
-    }
-  } catch (e) {
-    logger.warn('Evaluation Drive folder prep failed (continuing):', e?.message || e);
-  }
 
   const insertPayload = {
     employee_id: payload.employee_id,
@@ -795,29 +760,6 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
       originalName: file.originalname
     });
 
-    if (isDriveEnabled()) {
-      const { evaluationFolder, employeeFolder } = await ensureEvaluationFolder(employee);
-
-      const recipientEmail = await getEmployeeRecipientEmail(employee);
-      if (recipientEmail) {
-        await ensureDriveUserAccess({ fileId: employeeFolder.folderId, email: recipientEmail, role: 'reader' });
-        await ensureDriveUserAccess({ fileId: evaluationFolder.folderId, email: recipientEmail, role: 'reader' });
-      }
-
-      const driveUpload = await uploadToDrive({
-        fileBuffer: file.buffer,
-        mimeType: file.mimetype,
-        fileName: generatedName,
-        parentFolderId: evaluationFolder.folderId
-      });
-
-      if (recipientEmail) {
-        await ensureDriveUserAccess({ fileId: driveUpload.fileId, email: recipientEmail, role: 'reader' });
-      }
-
-      return { provider: 'google_drive', fileId: driveUpload.fileId, fileName: driveUpload.name, mimeType: driveUpload.mimeType };
-    }
-
     const bucket = String(process.env.STORAGE_BUCKET_DOCUMENTS || '').trim();
     if (!bucket) throw new InternalServerError('Storage bucket is not configured');
 
@@ -887,68 +829,13 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     .single();
 
   if (error) {
-    // best-effort cleanup (Drive only for the just-uploaded files is hard to track here), so we just log.
+    // Note: uploaded files are not cleaned up on failure (would require tracking all uploaded paths).
     logger.error('Evaluation submit failed after uploads:', error);
     throw new InternalServerError(error.message);
   }
 
   // Same issue as updateSchedule: ensure relations/derived fields are present.
   const hydrated = await getEvaluationById(updated.evaluation_id);
-
-  // Upload the filled evaluation form to employee's Drive folder (best-effort)
-  if (payload?.evaluation_form && isDriveEnabled()) {
-    try {
-      const { evaluationFolder, employeeFolder } = await ensureEvaluationFolder(employee);
-
-      const recipientEmail = await getEmployeeRecipientEmail(employee);
-      if (recipientEmail) {
-        await ensureDriveUserAccess({ fileId: employeeFolder.folderId, email: recipientEmail, role: 'reader' });
-        await ensureDriveUserAccess({ fileId: evaluationFolder.folderId, email: recipientEmail, role: 'reader' });
-      }
-
-      const generatedName = buildEvaluationFileName({
-        kind: 'form',
-        employee,
-        evaluationType: payload?.evaluation_type || existing?.evaluation_type,
-        evaluationDate: existing?.evaluation_date,
-        originalName: 'Evaluation_Form.pdf'
-      });
-
-      const formUpload = await uploadEvaluationFormToDrive({
-        evaluationData: {
-          ...payload,
-          evaluation_type: payload?.evaluation_type || existing?.evaluation_type,
-          evaluation_date: existing?.evaluation_date
-        },
-        employee,
-        parentFolderId: evaluationFolder.folderId,
-        fileName: generatedName
-      });
-
-      if (recipientEmail && formUpload?.fileId) {
-        await ensureDriveUserAccess({ fileId: formUpload.fileId, email: recipientEmail, role: 'reader' });
-      }
-
-      const nextDocObj = {
-        ...(documentObj && typeof documentObj === 'object' ? documentObj : {}),
-        form: formUpload,
-        form_data: payload.evaluation_form
-      };
-
-      await supabase
-        .from('performance_evaluations')
-        .update({
-          evaluation_document_path: JSON.stringify(nextDocObj),
-          updated_at: now
-        })
-        .eq('evaluation_id', evaluationId);
-
-      logger.info(`Evaluation form uploaded to Drive: ${formUpload?.fileId}`);
-    } catch (error) {
-      logger.warn('Could not upload evaluation form to Google Drive:', error.message);
-      // Continue without Drive upload (non-critical)
-    }
-  }
 
   try {
     await supabase.from('audit_logs').insert({
@@ -1026,43 +913,8 @@ export const downloadEvaluationDocument = async ({ evaluationId, doc } = {}) => 
   const evaluation = await getEvaluationById(evaluationId);
   const obj = safeJsonParse(evaluation?.evaluation_document_path) || null;
 
-  // If form file handle is missing, generate from stored inputs.
-  if (String(doc || '').toLowerCase() === 'form' && obj?.form_data) {
-    const employee = evaluation?.employees || {};
-    const pdfBuffer = await buildEvaluationFormPdfBuffer(
-      {
-        evaluation_form: obj.form_data,
-        evaluation_type: evaluation?.evaluation_type,
-        evaluation_date: evaluation?.evaluation_date
-      },
-      employee
-    );
-
-    const fileName = buildEvaluationFileName({
-      kind: 'form',
-      employee,
-      evaluationType: evaluation?.evaluation_type,
-      evaluationDate: evaluation?.evaluation_date,
-      originalName: 'Evaluation_Form.pdf'
-    });
-
-    return {
-      provider: 'generated',
-      mimeType: 'application/pdf',
-      fileName,
-      stream: Readable.from(pdfBuffer)
-    };
-  }
-
   const handle = pickDocHandle({ evaluation, doc });
   if (!handle) throw new NotFoundError('Evaluation document not found');
-
-  // Drive
-  if (isDriveEnabled() && (handle.fileId || (typeof handle === 'string' && handle))) {
-    const fileId = handle.fileId || String(handle);
-    const dl = await downloadFromDrive(fileId);
-    return { provider: 'google_drive', ...dl };
-  }
 
   // Supabase storage
   const bucket = String(process.env.STORAGE_BUCKET_DOCUMENTS || '').trim();
@@ -1081,27 +933,8 @@ export const previewEvaluationDocument = async ({ evaluationId, doc } = {}) => {
   const evaluation = await getEvaluationById(evaluationId);
   const obj = safeJsonParse(evaluation?.evaluation_document_path) || null;
 
-  // If form file handle is missing, still allow preview via authenticated stream endpoint.
-  if (String(doc || '').toLowerCase() === 'form' && obj?.form_data) {
-    const employee = evaluation?.employees || {};
-    const fileName = buildEvaluationFileName({
-      kind: 'form',
-      employee,
-      evaluationType: evaluation?.evaluation_type,
-      evaluationDate: evaluation?.evaluation_date,
-      originalName: 'Evaluation_Form.pdf'
-    });
-
-    return { provider: 'generated', url: null, fileName, mimeType: 'application/pdf' };
-  }
-
   const handle = pickDocHandle({ evaluation, doc });
   if (!handle) throw new NotFoundError('Evaluation document not found');
-
-  if (isDriveEnabled() && (handle.fileId || (typeof handle === 'string' && handle))) {
-    // For UI we will stream via controller, but keep a webViewLink-friendly handle.
-    return { provider: 'google_drive', url: null, fileId: handle.fileId || String(handle) };
-  }
 
   const bucket = String(process.env.STORAGE_BUCKET_DOCUMENTS || '').trim();
   if (!bucket) throw new InternalServerError('Storage bucket is not configured');
@@ -1120,13 +953,6 @@ export const deleteEvaluationDocumentsBestEffort = async (evaluation) => {
   const obj = safeJsonParse(evaluation?.evaluation_document_path);
   if (!obj) return;
 
-  const items = [obj.file, obj.breakdown, obj.final].filter(Boolean);
-  for (const it of items) {
-    try {
-      if (isDriveEnabled() && it.fileId) await deleteFromDrive(it.fileId);
-      // Supabase cleanup intentionally omitted (needs bucket + remove).
-    } catch {
-      // ignore
-    }
-  }
+  // Supabase cleanup intentionally omitted (needs bucket + remove).
+  // Can be implemented when needed.
 };

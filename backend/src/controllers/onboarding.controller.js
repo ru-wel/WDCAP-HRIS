@@ -1,5 +1,4 @@
 import * as onboardingService from '../services/onboarding.service.js';
-import { ensureDriveUserAccess, getOrCreateEmployeeFolder, isDriveEnabled } from '../services/googleDrive.service.js';
 import { supabase } from '../config/supabase.js';
 
 export const createEmployeeWithAccount = async (req, res, next) => {
@@ -46,30 +45,6 @@ export const getMyChecklist = async (req, res, next) => {
         message: 'No employee profile linked to this account',
         data: []
       });
-    }
-
-    // Best-effort: ensure the employee can see their Drive folder in Google Drive.
-    // This is especially important when a new employee login account is created after 201 files were uploaded.
-    try {
-      if (isDriveEnabled() && req.user?.email) {
-        const { data: emp } = await supabase
-          .from('employees')
-          .select('employee_id, first_name, last_name, personnel_type')
-          .eq('id', employeeDbId)
-          .maybeSingle();
-
-        if (emp?.employee_id) {
-          const folder = await getOrCreateEmployeeFolder({
-            employeeCode: emp.employee_id,
-            firstName: emp.first_name,
-            lastName: emp.last_name,
-            personnelType: emp.personnel_type
-          });
-          await ensureDriveUserAccess({ fileId: folder.folderId, email: req.user.email, role: 'reader' });
-        }
-      }
-    } catch {
-      // Do not block checklist load if Drive sharing fails.
     }
 
     let checklist = await onboardingService.getEmployeeChecklist(employeeDbId);

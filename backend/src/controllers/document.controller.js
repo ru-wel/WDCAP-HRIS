@@ -101,17 +101,9 @@ export const downloadDocument = async (req, res, next) => {
 
     const result = await documentsService.downloadDocument(document_id);
 
-    if (result?.provider === 'google_drive') {
-      const streamed = await documentsService.streamDriveDocument(document_id);
-
-      res.setHeader('Content-Type', streamed.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `${disposition}; filename="${streamed.fileName || 'document'}"`);
-      return streamed.stream.pipe(res);
-    }
-
     res.status(200).json({
       success: true,
-      message: 'Document download URL generated succesfully',
+      message: 'Document download URL generated successfully',
       data: result
     })
   } catch (error) {
@@ -135,13 +127,6 @@ export const previewDocument = async (req, res, next) => {
     }
 
     const result = await documentsService.previewDocument(document_id);
-
-    // For Drive-backed docs, Drive webViewLink requires the viewer to have Drive permissions.
-    // Instead, point the UI to our authenticated inline stream endpoint.
-    if (result?.provider === 'google_drive') {
-      const origin = `${req.protocol}://${req.get('host')}`;
-      result.url = `${origin}${req.baseUrl}/${document_id}/download?disposition=inline`;
-    }
 
     res.status(200).json({
       success: true,

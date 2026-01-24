@@ -4,7 +4,6 @@ import { NotFoundError, InternalServerError, ConflictError, BadRequestError } fr
 import { AUDIT_ACTIONS, DOCUMENT_TYPES, ONBOARDING_STATUSES } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { ROLES, PERSONNEL_TYPES } from '../config/constants.js';
-import { driveFileExists, isDriveEnabled } from './googleDrive.service.js';
 import { sendEmail } from './mail.service.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -1095,69 +1094,7 @@ export const getEmployeeChecklist = async (employeeId) => {
       throw new InternalServerError(error.message);
     }
 
-    const checklist = data || [];
-
-    // Reconcile: if user deleted the Drive file externally, reset the item to pending.
-    // Note: we only do this when Drive is the active provider to avoid unexpected Drive API calls.
-    if (isDriveEnabled()) {
-      const candidates = [];
-      for (const item of checklist) {
-        const filePath = item?.documents?.file_path;
-        if (!filePath) continue;
-
-        // Supabase Storage paths typically contain '/'. Drive file IDs typically do not.
-        if (String(filePath).includes('/')) continue;
-        if (!item?.documents?.id) continue;
-
-        candidates.push({ checklistId: item.id, driveFileId: String(filePath) });
-      }
-
-      if (candidates.length) {
-        const missingChecklistIds = [];
-        // small concurrency cap to avoid hammering Drive
-        const concurrency = 5;
-        let idx = 0;
-        const workers = new Array(Math.min(concurrency, candidates.length)).fill(null).map(async () => {
-          while (idx < candidates.length) {
-            const current = candidates[idx++];
-            try {
-              const exists = await driveFileExists(current.driveFileId);
-              if (!exists) missingChecklistIds.push(current.checklistId);
-            } catch (e) {
-              logger.warn(`Drive existence check failed for checklist ${current.checklistId}: ${e?.message || e}`);
-            }
-          }
-        });
-        await Promise.all(workers);
-
-        if (missingChecklistIds.length) {
-          const nowIso = new Date().toISOString();
-          await supabase
-            .from('onboarding_checklists')
-            .update({
-              status: ONBOARDING_STATUSES.PENDING,
-              document_id: null,
-              submitted_at: null,
-              reviewed_at: null,
-              reviewed_by: null,
-              updated_at: nowIso
-            })
-            .in('id', missingChecklistIds);
-
-          for (const item of checklist) {
-            if (!missingChecklistIds.includes(item.id)) continue;
-            item.status = ONBOARDING_STATUSES.PENDING;
-            item.document_id = null;
-            item.submitted_at = null;
-            item.reviewed_at = null;
-            item.reviewed_by = null;
-            item.documents = null;
-          }
-        }
-      }
-    }
-
-    return checklist;
+    return data || [];
 
   } catch (error) {
     logger.error(`Error fetching checklist for employee ${employeeId}:`, error);
@@ -1229,66 +1166,7 @@ export const getAllChecklists = async (actorUserId = null) => {
       throw new InternalServerError(error.message);
     }
 
-    const checklists = data || [];
-
-    // Same reconciliation for the admin/HR list.
-    // Capped to reduce latency: only check a limited number of Drive-backed items per request.
-    if (isDriveEnabled()) {
-      const candidates = [];
-      for (const item of checklists) {
-        const filePath = item?.documents?.file_path;
-        if (!filePath) continue;
-        if (String(filePath).includes('/')) continue;
-        if (!item?.documents?.id) continue;
-        candidates.push({ checklistId: item.id, driveFileId: String(filePath) });
-        if (candidates.length >= 50) break;
-      }
-
-      if (candidates.length) {
-        const missingChecklistIds = [];
-        const concurrency = 5;
-        let idx = 0;
-        const workers = new Array(Math.min(concurrency, candidates.length)).fill(null).map(async () => {
-          while (idx < candidates.length) {
-            const current = candidates[idx++];
-            try {
-              const exists = await driveFileExists(current.driveFileId);
-              if (!exists) missingChecklistIds.push(current.checklistId);
-            } catch (e) {
-              logger.warn(`Drive existence check failed for checklist ${current.checklistId}: ${e?.message || e}`);
-            }
-          }
-        });
-        await Promise.all(workers);
-
-        if (missingChecklistIds.length) {
-          const nowIso = new Date().toISOString();
-          await supabase
-            .from('onboarding_checklists')
-            .update({
-              status: ONBOARDING_STATUSES.PENDING,
-              document_id: null,
-              submitted_at: null,
-              reviewed_at: null,
-              reviewed_by: null,
-              updated_at: nowIso
-            })
-            .in('id', missingChecklistIds);
-
-          for (const item of checklists) {
-            if (!missingChecklistIds.includes(item.id)) continue;
-            item.status = ONBOARDING_STATUSES.PENDING;
-            item.document_id = null;
-            item.submitted_at = null;
-            item.reviewed_at = null;
-            item.reviewed_by = null;
-            item.documents = null;
-          }
-        }
-      }
-    }
-
-    return checklists;
+    return data || [];
 
   } catch (error) {
     logger.error('Error fetching all checklists:', error);
