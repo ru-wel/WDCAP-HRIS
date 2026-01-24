@@ -326,17 +326,44 @@ export default function LeaveHistory() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("requested_newest");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
 
+  const [sortOrder, setSortOrder] = useState("requested_newest");
+
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const defaultSort = "requested_newest";
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
-  useEffect(() => {
-    setDraftSortOrder(sortOrder);
+  const activeFiltersCount = useMemo(() => {
+    let n = 0;
+    if (sortOrder !== defaultSort) n += 1;
+    return n;
   }, [sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraftSortOrder(sortOrder);
+  }, [filtersOpen, sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
+
+  const clearFilters = () => {
+    setDraftSortOrder(defaultSort);
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
 
   const sortOptions = useMemo(
     () => [
@@ -355,19 +382,6 @@ export default function LeaveHistory() {
     ],
     []
   );
-
-  const activeFiltersCount = useMemo(() => {
-    return draftSortOrder ? 1 : 0;
-  }, [draftSortOrder]);
-
-  const clearFilters = () => {
-    setDraftSortOrder("requested_newest");
-  };
-
-  const applyDraftFilters = () => {
-    setSortOrder(draftSortOrder);
-    setFiltersOpen(false);
-  };
 
   const ChipButton = ({ active, onClick, children }) => (
     <button
@@ -547,7 +561,7 @@ export default function LeaveHistory() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setFiltersOpen((p) => !p)}
+                onClick={() => setFiltersOpen(true)}
                 className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
                 aria-haspopup="dialog"
                 aria-expanded={filtersOpen}
@@ -563,9 +577,14 @@ export default function LeaveHistory() {
                 <span className="text-xs">▾</span>
               </button>
 
-              {filtersOpen && (
-                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                  <div className="flex flex-col">
+              {filtersOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setFiltersOpen(false)}
+                  />
+
+                  <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-bold text-[#990100]">Filters</p>
                       <button
@@ -578,7 +597,7 @@ export default function LeaveHistory() {
                       </button>
                     </div>
 
-                    <div className="px-4 py-3">
+                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
                       <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
                       <div className="flex flex-wrap gap-2">
                         {sortOptions.map((opt) => (
@@ -611,7 +630,7 @@ export default function LeaveHistory() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
