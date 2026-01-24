@@ -12,7 +12,7 @@ import ReportModal from "../../components/report-modal.jsx";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
 import { exportReportToPdf } from "../../utils/pdf.js";
 
-function ViewProjectCard({ project, index, onClick }) {
+function ViewProjectCard({ project, index, onClick, disabled }) {
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -42,9 +42,13 @@ function ViewProjectCard({ project, index, onClick }) {
 
   return (
     <button
-      type="button"
-      onClick={onClick}
-      className="text-left w-full hover:scale-105 transition duration-300 ease-in-out"
+      onClick={disabled ? undefined : onClick}
+      className={[
+        "text-left w-full transition duration-300 ease-in-out",
+        disabled
+          ? "cursor-default opacity-70"
+          : "hover:scale-105 cursor-pointer",
+      ].join(" ")}
     >
       <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
         <div>
@@ -89,13 +93,13 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#990100] mb-2">
         {project.project_name || `Project #${index + 1}`}
       </h2>
 
       <div className="mb-3">
-        <label className="block text-sm font-semibold mb-1">Project Name</label>
+        <label className="block text-sm font-semibold mb-1 text-[#483D3D] uppercase">Project Name</label>
         <input
           type="text"
           value={project.project_name || ""}
@@ -158,14 +162,14 @@ function EditableProjectCard({ project, index, onChange, onDelete, onSave, loadi
         <button
           onClick={handleSaveClick}
           disabled={loading}
-          className="bg-[#22C55E] text-white px-6 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#16A34A] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
+          className="bg-[#22C55E] hover:bg-[#16A34A] green-button disabled:opacity-50 py-1.5 disabled:pointer-events-none"
         >
           {loading ? "Saving..." : "Save"}
         </button>
 
         <button
           onClick={() => onDelete(project.id)}
-          className="bg-[#CC0000] text-white lg:px-6 px-5 py-2 rounded-full lg:text-sm text-xs font-medium hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50"
+          className="bg-[#CC0000] hover:bg-[#aa0000]  green-button py-1.5 disabled:pointer-events-none disabled:opacity-50"
         >
           Delete Project
         </button>
@@ -180,11 +184,11 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
   };
 
   return (
-    <div className="bg-[#EDEDED] rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
+    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
       <h2 className="text-xl font-bold text-[#c4bcbc] mb-2">{`New Project`}</h2>
 
       <div className="mb-3">
-        <label className="block text-sm font-semibold mb-1">Project Name</label>
+        <label className="block text-sm font-semibold mb-1 text-[#483D3D] uppercase">Project Name</label>
         <input
           type="text"
           value={values.project_name || ""}
@@ -248,8 +252,8 @@ function NewProjectCard({ values, onChange, onSave, loading }) {
       <div className="flex justify-center mt-3">
         <button
           onClick={onSave}
-          disabled={loading || !values.project_name || !values.site_location}
-          className="bg-[#16A34A] text-white px-6 py-2 rounded-full text-sm font-medium hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={loading || !values.project_name || !values.site_location || !values.start_date || !values.end_date || !values.status }
+          className="bg-[#16A34A] hover:bg-[#15803D] disabled:opacity-50 green-button py-1.5 disabled:pointer-events-none"
         >
           {loading ? "Creating ..." : "Create Project"}
         </button>
@@ -263,8 +267,8 @@ function Projects() {
 
   const [projects, setProjects] = useState([]);
   const [mode, setMode] = useState("view");
-  const [editingProjectId, setEditingProjectId] = useState(null);
-  const [draftProject, setDraftProject] = useState(null);
+  {/*const [editingProjectId, setEditingProjectId] = useState(null);
+  const [draftProject, setDraftProject] = useState(null);*/}
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
@@ -272,6 +276,13 @@ function Projects() {
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
   const [showUpdateActions, setShowUpdateActions] = useState(false);
+
+  {/*const handleEditCardClick = (project) => {
+    if (mode !== "edit") return;
+
+    setEditingProjectId(project.id);
+    setDraftProject({ ...project });
+  };*/}
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = "project_name_az";
@@ -478,12 +489,10 @@ function Projects() {
       ...filteredProjects.map((p) => ({ type: "view", project: p })),
     ];
   } else if (mode === "edit") {
-    cardDescriptors = filteredProjects.map((p) => {
-      if (editingProjectId && String(p.id) === String(editingProjectId) && draftProject) {
-        return { type: "edit", project: draftProject };
-      }
-      return { type: "view", project: p };
-    });
+    cardDescriptors = filteredProjects.map((p) => ({
+      type: "edit",
+      project: p,
+    }));
   } else {
     cardDescriptors = filteredProjects.map((p) => ({
       type: "view",
@@ -510,13 +519,6 @@ function Projects() {
     setShowUpdateActions(false);
   }, [mode]);
 
-  useEffect(() => {
-    if (mode !== "edit") {
-      setEditingProjectId(null);
-      setDraftProject(null);
-    }
-  }, [mode]);
-
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -539,17 +541,7 @@ function Projects() {
   }, [fetchProjects]);
 
   const handleEditClick = () => {
-    openConfirm({
-      title: "Edit projects",
-      message: "Enter edit mode? You can update or delete projects.",
-      confirmText: "OK",
-      cancelText: "Cancel",
-      onConfirm: () => {
-        setMode("edit");
-        setEditingProjectId(null);
-        setDraftProject(null);
-      },
-    });
+    setMode("edit");
   };
 
   const handleAddClick = () => {
@@ -652,7 +644,6 @@ function Projects() {
 
           if (response.success) {
             setProjects((prev) => prev.map((p) => (p.id === project.id ? response.data : p)));
-            setEditingProjectId(null);
             setDraftProject(null);
             openConfirm({
               title: "Success",
@@ -714,12 +705,9 @@ function Projects() {
   };
 
   const handleFieldChange = (id, field, value) => {
-    if (mode === "edit" && draftProject && String(draftProject.id) === String(id)) {
-      setDraftProject((prev) => ({ ...(prev || {}), [field]: value }));
-      return;
-    }
-
-    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+    setProjects((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
+    );
   };
 
   const handleCancelAdd = () => {
@@ -961,14 +949,7 @@ function Projects() {
                 defaultCategory="all"
               />
 
-              {!showUpdateActions ? (
-                <button
-                  className="bg-[#990100] text-white px-4 py-2 rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-                  onClick={() => setShowUpdateActions(true)}
-                >
-                  Update Projects
-                </button>
-              ) : (
+              {!showUpdateActions && (
                 <div className="flex gap-3">
                   <button className="green-button" onClick={handleEditClick}>
                     Edit Projects
@@ -984,7 +965,7 @@ function Projects() {
           {mode === "edit" && (
             <>
               <button
-                className="bg-[#F59E0B] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#d97706] hover:scale-105 transition duration-300 ease-in-out"
+                className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() =>
                   openConfirm({
                     title: "Cancel editing",
@@ -998,15 +979,13 @@ function Projects() {
                       } catch {
                         // best-effort
                       } finally {
-                        setEditingProjectId(null);
-                        setDraftProject(null);
                         setMode("view");
                       }
                     },
                   })
                 }
               >
-                Cancel Editing
+                Cancel Changes
               </button>
 
               <button
@@ -1014,12 +993,10 @@ function Projects() {
                 onClick={() =>
                   openConfirm({
                     title: "Done editing",
-                    message: "Exit edit mode?",
+                    message: "Would you like to exit the edit mode?",
                     confirmText: "OK",
                     cancelText: "Cancel",
                     onConfirm: () => {
-                      setEditingProjectId(null);
-                      setDraftProject(null);
                       setMode("view");
                     },
                   })
@@ -1032,10 +1009,10 @@ function Projects() {
 
           {mode === "add" && (
             <button
-              className="bg-[#CC0000] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#aa0000] hover:scale-105 transition duration-300 ease-in-out"
+              className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
               onClick={handleCancelAdd}
             >
-              Cancel
+              Cancel Changes
             </button>
           )}
         </div>
@@ -1081,17 +1058,10 @@ function Projects() {
 
               return (
                 <ViewProjectCard
-                  key={item.project.id}
                   project={item.project}
                   index={index}
-                  onClick={() => {
-                    if (mode === "edit") {
-                      setEditingProjectId(item.project.id);
-                      setDraftProject({ ...item.project });
-                      return;
-                    }
-                    navigate(`/projects/${item.project.id}`);
-                  }}
+                  disabled={mode === "edit"}
+                  onClick={() => navigate(`/projects/${item.project.id}`)}
                 />
               );
             })}
@@ -1099,7 +1069,7 @@ function Projects() {
         )}
 
         {pageCount > 1 && (
-          <div className=" ">
+          <div className=" flex justify-end mt-6 text-[#990100]">
             <ReactPaginate
               breakLabel="..."
               nextLabel=">"

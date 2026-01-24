@@ -865,7 +865,7 @@ useEffect(() => {
               {isWorking ? (
                 <div className="flex gap-3">
                   <button
-                    className="cursor-pointer bg-[#990100] text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
+                    className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
                     onClick={cancelWorking}
                     disabled={saving}
                   >
