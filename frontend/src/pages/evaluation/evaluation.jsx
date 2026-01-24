@@ -568,6 +568,11 @@ export default function Evaluation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
+
+  const [draftTypeFilter, setDraftTypeFilter] = useState('all');
+  const [draftSearchTerm, setDraftSearchTerm] = useState('');
+
   const [duePending, setDuePending] = useState([]);
   const [duePendingLoading, setDuePendingLoading] = useState(false);
   const [duePendingError, setDuePendingError] = useState('');
@@ -838,6 +843,30 @@ export default function Evaluation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee, canManage]);
 
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraftTypeFilter(typeFilter);
+    setDraftSearchTerm(searchTerm);
+  }, [filtersOpen, typeFilter, searchTerm]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setFiltersOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [filtersOpen]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen]);
+
   const autoDueEvents = useMemo(() => {
     if (!canManage) return [];
     const rows = Array.isArray(duePending) ? duePending : [];
@@ -879,6 +908,26 @@ export default function Evaluation() {
 
     return [{ value: 'all', label: 'All' }, ...types.map((t) => ({ value: t, label: t }))];
   }, [effectiveEvents]);
+
+  const defaultType = 'all';
+
+  const activeFiltersCount = useMemo(() => {
+    let n = 0;
+    if (typeFilter !== defaultType) n += 1;
+    if (String(searchTerm || '').trim()) n += 1;
+    return n;
+  }, [typeFilter, searchTerm]);
+
+  const clearFilters = () => {
+    setDraftTypeFilter(defaultType);
+    setDraftSearchTerm('');
+  };
+
+  const applyDraftFilters = () => {
+    setTypeFilter(draftTypeFilter);
+    setSearchTerm(draftSearchTerm);
+    setFiltersOpen(false);
+  };
 
   const filteredEvents = useMemo(() => {
     let list = effectiveEvents;
@@ -985,7 +1034,25 @@ export default function Evaluation() {
 
           <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto items-start md:items-end">
 
-            <DropDownFilter label="Type" value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((p) => !p)}
+                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                aria-haspopup="dialog"
+                aria-expanded={filtersOpen}
+              >
+                <span className="font-medium">Filters</span>
+
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+
+                <span className="text-xs">▾</span>
+              </button>
+            </div>
 
             <div className="relative flex items-center border border-[#990100] rounded-lg h-10 w-full md:w-56">
               <input
@@ -1001,8 +1068,47 @@ export default function Evaluation() {
                 className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2"
               />
             </div>
-
           </div>
+          {filtersOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setFiltersOpen(false)} />
+
+              <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-bold text-[#990100]">Filters</p>
+                  <button
+                    type="button"
+                    onClick={() => setFiltersOpen(false)}
+                    className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="px-4 py-4 max-h-[65vh] overflow-y-auto space-y-4">
+                  <DropDownFilter label="Type" value={draftTypeFilter} onChange={setDraftTypeFilter} options={typeOptions} />
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyDraftFilters}
+                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <hr className="border-[#990100] mb-6" />
