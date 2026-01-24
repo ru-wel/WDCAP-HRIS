@@ -872,6 +872,27 @@ useEffect(() => {
                     Cancel Changes
                   </button>
 
+                  { mode === "edit"&& (
+                    <button
+                      className="green-button disabled:opacity-50 disabled:pointer-events-none"
+                      onClick={() =>
+                        openConfirm({
+                          title: "Done editing",
+                          message: "Would you like to exit the edit mode?",
+                          confirmText: "OK",
+                          cancelText: "Cancel",
+                          onConfirm: () => {
+                            setMode("view");
+                          },
+                        })
+                      }
+                    >
+                      Done Editing
+                    </button>
+                  )
+
+                  }
+
                   {mode === "add" && (
                     <button
                       className="green-button disabled:opacity-50 disabled:pointer-events-none"
