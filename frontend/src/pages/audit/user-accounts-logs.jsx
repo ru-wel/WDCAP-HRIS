@@ -20,8 +20,27 @@ function UserAccountsLogs() {
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
   useEffect(() => {
+    if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
-  }, [sortOrder]);
+  }, [filtersOpen, sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [filtersOpen]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen]);
 
   const sortOptions = useMemo(
     () => [
@@ -39,12 +58,16 @@ function UserAccountsLogs() {
     []
   );
 
+  const defaultSort = "timestamp_newest";
+
   const activeFiltersCount = useMemo(() => {
-    return draftSortOrder ? 1 : 0;
-  }, [draftSortOrder]);
+    let n = 0;
+    if (sortOrder !== defaultSort) n += 1;
+    return n;
+  }, [sortOrder]);
 
   const clearFilters = () => {
-    setDraftSortOrder("timestamp_newest");
+    setDraftSortOrder(defaultSort);
   };
 
   const applyDraftFilters = () => {
@@ -243,13 +266,13 @@ function UserAccountsLogs() {
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen((p) => !p)}
-                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
-                aria-haspopup="dialog"
-                aria-expanded={filtersOpen}
-              >
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((p) => !p)}
+              className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+              aria-haspopup="dialog"
+              aria-expanded={filtersOpen}
+            >
                 <span className="font-medium">Filters</span>
 
                 {activeFiltersCount ? (
@@ -261,9 +284,14 @@ function UserAccountsLogs() {
                 <span className="text-xs">▾</span>
               </button>
 
-              {filtersOpen && (
-                <div className="absolute right-0 mt-2 z-50 w-[320px] bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-                  <div className="flex flex-col">
+              {filtersOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                  <div
+                    className="absolute inset-0 bg-black/40"
+                    onClick={() => setFiltersOpen(false)}
+                  />
+
+                  <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                       <p className="text-sm font-bold text-[#990100]">Filters</p>
                       <button
@@ -276,10 +304,8 @@ function UserAccountsLogs() {
                       </button>
                     </div>
 
-                    <div className="px-4 py-3">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">
-                        Sort
-                      </p>
+                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
                       <div className="flex flex-wrap gap-2">
                         {sortOptions.map((opt) => (
                           <ChipButton
@@ -311,7 +337,7 @@ function UserAccountsLogs() {
                     </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
