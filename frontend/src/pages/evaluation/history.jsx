@@ -648,6 +648,9 @@ export default function EvaluationHistory() {
   const endOffset = itemOffset + itemsPerPage;
   const currentRows = visible.slice(itemOffset, endOffset);
   const pageCount = Math.ceil(visible.length / itemsPerPage);
+  const multiPages = pageCount > 1;
+  const currentPage = Math.floor(itemOffset / itemsPerPage) + 1;
+  
 
   useEffect(() => {
     setItemOffset(0);
@@ -1028,23 +1031,62 @@ export default function EvaluationHistory() {
                 )}
               </tbody>
             </table>
+
+            <br />
+
+            <div className="lg:flex items-center lg:justify-between">
+              <p className="lg:text-md text-sm">
+                Showing <b>{currentRows.length}</b> of <b>{visible.length}</b> log
+                {visible.length !== 1 ? "s" : ""}
+                {pageCount ? (
+                <>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                </>
+              ) : null}
+              </p>
+
+              <div className="">
+                {pageCount > 0 && (
+                  <ReactPaginate
+                    breakLabel="..."
+                    nextLabel=">"
+                    onPageChange={handlePageClick}
+                    pageRangeDisplayed={2}
+                    pageCount={pageCount}
+                    forcePage={Math.floor(itemOffset / itemsPerPage)}
+                    previousLabel="<"
+                    renderOnZeroPageCount={null}
+                    marginPagesDisplayed={2}
+                    pageClassName=""
+                    pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                    previousClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    previousLinkClassName="page-link"
+                    nextClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    nextLinkClassName="page-link"
+                    breakClassName="page-item"
+                    breakLinkClassName="page-link"
+                    containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                    activeClassName="underline font-medium"
+                  />
+                )}
+              </div>
+            </div>
           </div>
+          
+
         )}
       </div>
 
-      <div className="flex justify-end mt-6 text-[#990100]">
-        {pageCount > 1 && (
-          <ReactPaginate
-            previousLabel="<"
-            nextLabel=">"
-            pageCount={pageCount}
-            forcePage={Math.floor(itemOffset / itemsPerPage)}
-            onPageChange={handlePageClick}
-            containerClassName="flex gap-3"
-            activeClassName="underline font-bold"
-          />
-        )}
-      </div>
+      
 
       <EvaluationDetailsModal
         open={detailsOpen}

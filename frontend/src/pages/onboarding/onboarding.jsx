@@ -148,19 +148,19 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
-                        <p className="text-sm pb-2"><b>First Name:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>First Name:</b></p>
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.fname))}`} placeholder="Employee's First Name" value={data.fname} onChange={(e) => setData({ ...data, fname: e.target.value })} required/>
                     </div>
 
                     <div>
-                        <p className="text-sm pb-2"><b>Last Name:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Last Name:</b></p>
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.lname))}`} placeholder="Employee's Last Name" value={data.lname} onChange={(e) => setData({ ...data, lname: e.target.value })} required/>
                     </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
-                        <p className="text-sm pb-2"><b>Department:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Department:</b></p>
                         <select className={`input-select${validFieldClass(isNonEmpty(data.department_id))} cursor-pointer`} value={data.department_id} onChange={(e) => {
                             setData({ ...data, department_id: e.target.value, position_id: "" }); // reset position when department changes
                         }} required>
@@ -174,7 +174,7 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                     </div>
 
                     <div>
-                        <p className="text-sm pb-2"><b>Position:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Position:</b></p>
                         <select className={`input-select${validFieldClass(isNonEmpty(data.department_id) && isNonEmpty(data.position_id))} cursor-pointer`} value={data.position_id} onChange={(e) => setData({ ...data, position_id: e.target.value })} required disabled={!data.department_id}>
                             <option value="">Select Position</option>
                             {positions
@@ -191,7 +191,7 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <div className="flex items-center justify-between">
-                            <p className="text-sm pb-2"><b>Personnel Type:</b></p>
+                            <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Personnel Type:</b></p>
                             <button
                                 type="button"
                                 className="text-xs text-[#990100] hover:underline cursor-pointer"
@@ -220,7 +220,7 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                     </div>
 
                     <div>
-                        <p className="text-sm pb-2"><b>Hire Date:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase" ><b>Hire Date:</b></p>
                         <input type="date" className={`input-field${validFieldClass(isHireDateValid(data.hireDate))} cursor-pointer`} value={data.hireDate} onChange={(e) => setData({ ...data, hireDate: e.target.value })} min="2019-01-01" max={maxDate} required/>
                     </div>
                 </div>
@@ -229,32 +229,32 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                     <hr className="border-[#990100]" />
                 </div>
 
-                <h2 className="text-md font-bold pb-4">Personal Information</h2>
+                <h2 className="text-md font-bold pb-4 text-[#483D3D] uppercase">Personal Information</h2>
 
                 <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                        <p className="text-sm pb-2"><b>Birth Date:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Birth Date:</b></p>
                         <input type="date" className={`input-field${validFieldClass(isBirthDateValid(data.birthDate))} cursor-pointer`} value={data.birthDate} onChange={(e) => setData({ ...data, birthDate: e.target.value })} max={maxDate} required/>
                     </div>
 
                     <div>
-                        <p className="text-sm pb-2"><b>Phone No.:</b></p>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Phone No.:</b></p>
                         <input type="tel" maxLength="12" className={`input-field${validFieldClass(isPhoneValid(data.phone))} `} value={data.phone} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
                     </div>
                 </div>
 
                 <div className="mt-4">
-                    <p className="text-sm pb-2"><b>Home Address:</b></p>
+                    <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Home Address:</b></p>
                     <input type="text"  className={`input-field w-full${validFieldClass(isAddressValid(data.address))}`} placeholder="Employee's Address" value={data.address} onChange={(e) => setData({ ...data, address: e.target.value })} required/>
                 </div>
 
                 <div className="mt-4">
-                    <p className="text-sm pb-2"><b>Emergency Contact Name:</b></p>
+                    <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Emergency Contact Name:</b></p>
                     <input type="text" className={`input-field w-full${validFieldClass(isNameValid(data.emergencyName))}`} placeholder="Emergency Contact Name" value={data.emergencyName} onChange={(e) => setData({ ...data, emergencyName: e.target.value })} required/>
                 </div>
 
                 <div className="mt-4">
-                    <p className="text-sm pb-2"><b>Emergency Contact No.:</b></p>
+                    <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Emergency Contact No.:</b></p>
                     <input type="tel" maxLength="12" className={`input-field w-full${validFieldClass(isPhoneValid(data.emergencyPhone))}`} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" value={data.emergencyPhone} onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, emergencyPhone: e.target.value })} required/>
                 </div>
 
@@ -282,7 +282,7 @@ function StepTwo({ data, setData }) {
 
             <div className="flex items-center justify-center lg:pt-5 pt-3">
                 <div className="">
-                    <p className='text-sm pb-2'><b>Role:</b></p>
+                    <p className='text-sm pb-2 text-[#483D3D] uppercase'><b>Role:</b></p>
                     <select name="role" className={`input-field ${validFieldClass(isNonEmpty(data.role))} cursor-pointer w-[250px]`} value={data.role} onChange={(e) => setData({...data, role: e.target.value})}>
                         <option value="">Select Role</option>
                         <option value={ROLES.EXECUTIVE}>{ROLES.EXECUTIVE}</option>
@@ -306,7 +306,7 @@ function StepTwo({ data, setData }) {
             ) : (
                 <div className="flex justify-center items-center text-left lg:pt-5 md:pt-3 pt-2">
                     <div className="">
-                        <p className='text-sm pb-2'><b>Email:</b></p>
+                        <p className='text-sm pb-2 text-[#483D3D] uppercase'><b>Email:</b></p>
                         <input type="email" name="email" className={`input-field ${validFieldClass(isEmailValid(data.email))} w-[250px]`} placeholder="Enter Email" value={data.email} onChange={(e) => setData({...data, email: e.target.value})} required/>
                     </div>
                 </div>
@@ -314,7 +314,7 @@ function StepTwo({ data, setData }) {
 
             <div className="flex justify-center items-center text-left lg:pt-5 pt-3">
                 <div className="w-full max-w-sm">
-                    <p className='lg:text-sm text-xs pb-2'><b>Password:</b></p>
+                    <p className='lg:text-sm text-xs pb-2 text-[#483D3D] uppercase'><b>Password:</b></p>
                     <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
                         The initial password is automatically set to the employee’s <b>Employee ID</b>.
                         The employee must log in and <b>change their password</b> after the first login.

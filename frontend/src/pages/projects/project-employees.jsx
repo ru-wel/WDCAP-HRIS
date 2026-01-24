@@ -589,9 +589,9 @@ const applyDraftFilters = () => {
   const assignedEmployeeIds = new Set(
     projectEmployees.map((a) => a.employee_id).filter(Boolean)
   );
-
   const pageCount = Math.ceil(filteredAssignments.length / itemsPerPage);
   const multiPages = pageCount > 1;
+  const currentPage = pageCount ? Math.floor(itemOffset / itemsPerPage) + 1 : 0;
 
   const handlePageClick = (event) => {
     const newOffset = event.selected * itemsPerPage;
@@ -918,11 +918,19 @@ const applyDraftFilters = () => {
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
               Showing <b>{currentProjEmp.length}</b> of{" "}
-              <b>{filteredAssignments.length}</b>
+              <b>{filteredAssignments.length}</b> log
+              {filteredAssignments.length !== 1 ? "s" : ""}
+                {pageCount ? (
+                <>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                </>
+              ) : null}
+              
             </p>
 
             <div>
-              {multiPages && (
+              {pageCount > 0 && (
                 <ReactPaginate
                   breakLabel="..."
                   nextLabel=">"

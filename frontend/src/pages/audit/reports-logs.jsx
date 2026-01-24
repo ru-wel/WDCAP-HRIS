@@ -186,6 +186,7 @@ function ReportsLogs() {
   const currentLogs = visibleLogs.slice(itemOffset, endOffset);
   const pageCount = Math.ceil(visibleLogs.length / itemsPerPage);
   const multiPages = pageCount > 1;
+  const currentPage = pageCount ? Math.floor(itemOffset / itemsPerPage) + 1 : 0;
 
   const handlePageClick = (event) => {
     const newOffset = event.selected * itemsPerPage;
@@ -426,6 +427,12 @@ function ReportsLogs() {
             <p className="lg:text-md text-sm">
               Showing <b>{currentLogs.length}</b> of <b>{visibleLogs.length}</b> log
               {visibleLogs.length !== 1 ? "s" : ""}
+              {pageCount ? (
+                <>
+                  {" "}
+                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                </>
+              ) : null}
             </p>
 
             {pageCount > 1 && (

@@ -16,8 +16,8 @@ function ModalShell({ open, title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden max-h-[95vh] flex flex-col">
-        <div className="bg-[#990100] text-white px-4 sm:px-6 py-3 sm:py-4 m-4 rounded-xl flex items-center justify-between flex-shrink-0">
-          <h2 className="text-base sm:text-lg font-semibold">{title}</h2>
+        <div className="bg-[#990100] text-white py-2 sm:py-3 px-3 sm:px-4 m-4 rounded-xl flex items-center justify-between flex-shrink-0">
+          <h2 className="text-sm sm:text-base lg:text-lg font-medium">{title}</h2>
           <button
             type="button"
             onClick={onClose}

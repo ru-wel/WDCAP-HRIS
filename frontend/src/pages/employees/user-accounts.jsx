@@ -156,11 +156,11 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
         </div>
 
         <div className="pt-5 px-4 sm:px-10 md:px-14">
-          <p className="lg:text-sm text-xs">
-            <b>Employee ID:</b> {currentData.id}
+          <p className="lg:text-sm text-xs text-[#483D3D]">
+            <b className="uppercase">Employee ID:</b> {currentData.id}
           </p>
           <div className="lg:pt-3 pt-2">
-            <p className="lg:text-sm text-xs pb-2 font-semibold">Role:</p>
+            <p className="lg:text-sm text-xs pb-2 font-semibold text-[#483D3D] uppercase">Role:</p>
             <select
               name="role"
               className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs cursor-pointer disabled:cursor-default"
@@ -177,7 +177,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
           </div>
 
           <div className="lg:pt-3 pt-2">
-            <p className="lg:text-sm text-xs pb-2 font-semibold">Email:</p>
+            <p className="lg:text-sm text-xs pb-2 font-semibold text-[#483D3D] uppercase">Email:</p>
             <input
               type="email"
               name="email"
@@ -188,7 +188,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
           </div>
 
           <div className="lg:pt-3 pt-2">
-            <p className="lg:text-sm text-xs pb-2 font-semibold">Status:</p>
+            <p className="lg:text-sm text-xs pb-2 font-semibold text-[#483D3D] uppercase">Status:</p>
             <select
               name="status"
               className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs cursor-pointer disabled:cursor-default"

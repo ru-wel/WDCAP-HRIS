@@ -446,18 +446,18 @@ function ModalEmployees({
                   )}
                 </div>
                 <div className="flex flex-col ">
-                  <p className="lg:text-sm text-xs">
-                    <b>Employee ID:</b> {data.employee_id}
+                  <p className="lg:text-sm text-xs text-[#483D3D]">
+                    <b className="uppercase">Employee ID:</b> {data.employee_id}
                   </p>
-                  <p className="lg:text-sm text-xs">
-                    <b>Name:</b> {data.first_name} {data.last_name}
+                  <p className="lg:text-sm text-xs text-[#483D3D]">
+                    <b className="uppercase">Name:</b> {data.first_name} {data.last_name}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className=" items-center">
-              <p className="lg:text-sm text-xs pr-2 pb-1.5">
+              <p className="lg:text-sm text-xs pr-2 pb-1.5 text-[#483D3D] uppercase">
                 <b>Employment Status:</b>
               </p>
               <select
@@ -479,7 +479,7 @@ function ModalEmployees({
 
           <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left">
             <div className="items-center md:pb-0 pb-3">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>First Name:</b>
               </p>
               <input
@@ -493,7 +493,7 @@ function ModalEmployees({
             </div>
 
             <div className=" items-center ">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Last Name:</b>
               </p>
               <input
@@ -509,7 +509,7 @@ function ModalEmployees({
 
           <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left">
             <div className=" items-center md:pb-0 pb-3">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Department:</b>
               </p>
               <select
@@ -529,7 +529,7 @@ function ModalEmployees({
             </div>
 
             <div className="items-center ">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Position:</b>
               </p>
               <select
@@ -558,7 +558,7 @@ function ModalEmployees({
 
           <div className="md:grid md:grid-cols-2 items-center gap-4 pt-3 text-left">
             <div className=" items-center md:pb-0 pb-3">
-              <p className="lg:text-sm text-xs md:pr-0 pr-2 pb-1.5">
+              <p className="lg:text-sm text-xs md:pr-0 pr-2 pb-1.5 text-[#483D3D] uppercase">
                 <b>Personnel Type:</b>
               </p>
               <select
@@ -581,7 +581,7 @@ function ModalEmployees({
             </div>
 
             <div className="items-center md:pb-0 pb-3">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Hire Date:</b>
               </p>
               <input
@@ -601,13 +601,13 @@ function ModalEmployees({
             <hr className="text-[#990100]" />
           </div>
 
-          <h2 className="lg:text-md text:sm text-left pb-4">
+          <h2 className="lg:text-md text:sm text-left pb-4 text-[#483D3D] uppercase">
             <b>Personal Information</b>
           </h2>
 
           <div className="md:grid md:grid-cols-2 gap-4 items-center text-left">
             <div className="items-center md:pb-0 pb-3">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Birth Date:</b>
               </p>
               <input
@@ -622,7 +622,7 @@ function ModalEmployees({
             </div>
 
             <div className="items-center ">
-              <p className="lg:text-sm text-xs pb-1.5">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Phone No.:</b>
               </p>
               <input
@@ -641,7 +641,7 @@ function ModalEmployees({
           </div>
 
           <div className="items-center text-left pt-3">
-            <p className="lg:text-sm text-xs pb-1.5">
+            <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
               <b>Home Address:</b>
             </p>
             <input
@@ -655,7 +655,7 @@ function ModalEmployees({
           </div>
 
           <div className="items-center text-left pt-3 ">
-            <p className="lg:text-sm text-xs pb-1.5">
+            <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
               <b>Emergency Contact Name:</b>
             </p>
             <input
@@ -669,7 +669,7 @@ function ModalEmployees({
           </div>
 
           <div className="items-center text-left pt-3">
-            <p className="lg:text-sm text-xs pb-1.5">
+            <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
               <b>Emergency Contact No.:</b>
             </p>
             <input
