@@ -1,0 +1,27 @@
+name: Cloud Build Notifications
+
+# 1. Trigger when ANY check run finishes
+on:
+  check_run:
+    types: [completed]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: >-
+      (contains(github.event.check_run.name, 'arise-hris-frontend') || 
+       contains(github.event.check_run.name, 'arise-hris-backend')) &&
+      github.event.check_run.app.slug == 'google-cloud-build'
+    
+    steps:
+      - name: Discord Notification
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          # Custom message using the Check Run data
+          args: |
+            **Build Update:** ${{ github.event.check_run.name }}
+            **Status:** ${{ github.event.check_run.conclusion }} ${{ github.event.check_run.conclusion == 'success' && '✅' || '❌' }}
+            **Branch:** ${{ github.event.check_run.check_suite.head_branch }}
+            [View Build Details](${{ github.event.check_run.html_url }})
