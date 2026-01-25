@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import DropDownFilter from '../../../components/dropdownfilter.jsx';
 import { get } from '../../../services/api.js';
 import { compareText } from '../../../utils/sort.js';
 
@@ -26,6 +25,78 @@ export default function EmployeeProjectMembers() {
   const [members, setMembers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('name_az');
+
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+
+  const sortOptions = useMemo(
+    () => [
+      { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
+      { value: 'employee_id_desc', label: 'Employee ID: Descending' },
+      { value: 'name_az', label: 'Name: A - Z' },
+      { value: 'name_za', label: 'Name: Z - A' },
+      { value: 'position_az', label: 'Position: A - Z' },
+      { value: 'position_za', label: 'Position: Z - A' },
+      { value: 'status_az', label: 'Status: A - Z' },
+      { value: 'status_za', label: 'Status: Z - A' },
+    ],
+    []
+  );
+
+  const defaultSort = 'name_az';
+
+  const activeFiltersCount = useMemo(() => {
+    let n = 0;
+    if (sortOrder !== defaultSort) n += 1;
+    return n;
+  }, [sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    setDraftSortOrder(sortOrder);
+  }, [filtersOpen, sortOrder]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setFiltersOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [filtersOpen]);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [filtersOpen]);
+
+  const clearFilters = () => {
+    setDraftSortOrder(defaultSort);
+  };
+
+  const applyDraftFilters = () => {
+    setSortOrder(draftSortOrder);
+    setFiltersOpen(false);
+  };
+
+  const ChipButton = ({ active, onClick, children }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+        active
+          ? 'bg-[#990100] border-[#990100] text-white'
+          : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50',
+      ].join(' ')}
+    >
+      {children}
+    </button>
+  );
 
   const fetchAll = async () => {
     try {
@@ -130,20 +201,80 @@ export default function EmployeeProjectMembers() {
         </div>
 
         <div className="flex items-center justify-end md:gap-4 gap-3 md:mt-0 mt-5">
-          <DropDownFilter
-            value={sortOrder}
-            onChange={setSortOrder}
-            options={[
-              { value: 'employee_id_asc', label: 'Employee ID: Ascending' },
-              { value: 'employee_id_desc', label: 'Employee ID: Descending' },
-              { value: 'name_az', label: 'Name: A - Z' },
-              { value: 'name_za', label: 'Name: Z - A' },
-              { value: 'position_az', label: 'Position: A - Z' },
-              { value: 'position_za', label: 'Position: Z - A' },
-              { value: 'status_az', label: 'Status: A - Z' },
-              { value: 'status_za', label: 'Status: Z - A' },
-            ]}
-          />
+        <div className="relative" data-filters-root="true">
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((p) => !p)}
+            className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+            aria-haspopup="dialog"
+            aria-expanded={filtersOpen}
+          >
+            <span className="font-medium">Filters</span>
+
+            {activeFiltersCount ? (
+              <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                {activeFiltersCount}
+              </span>
+            ) : null}
+
+            <span className="text-xs">▾</span>
+          </button>
+
+          {filtersOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+              <div
+                className="absolute inset-0 bg-black/40"
+                onClick={() => setFiltersOpen(false)}
+              />
+
+              <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                  <p className="text-sm font-bold text-[#990100]">Filters</p>
+                  <button
+                    type="button"
+                    onClick={() => setFiltersOpen(false)}
+                    className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                    aria-label="Close"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                  <div className="flex flex-wrap gap-2">
+                    {sortOptions.map((opt) => (
+                      <ChipButton
+                        key={opt.value}
+                        active={draftSortOrder === opt.value}
+                        onClick={() => setDraftSortOrder(opt.value)}
+                      >
+                        {opt.label}
+                      </ChipButton>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                  >
+                    Clear all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyDraftFilters}
+                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
 
           <div className="relative text-gray-600 border border-[#990100] rounded-lg">
             <input
