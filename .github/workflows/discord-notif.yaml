@@ -1,6 +1,5 @@
 name: Cloud Build Notifications
 
-# 1. Trigger when ANY check run finishes
 on:
   check_run:
     types: [completed]
@@ -14,14 +13,39 @@ jobs:
       github.event.check_run.app.slug == 'google-cloud-build'
     
     steps:
+      - name: Fetch Commit Details
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # 1. Get the SHA from the check run
+          SHA=${{ github.event.check_run.head_sha }}
+          
+          # 2. Create a short version (first 7 chars)
+          echo "short_sha=${SHA::7}" >> $GITHUB_OUTPUT
+          
+          # 3. Use GitHub CLI to fetch the commit info
+          # We prefer 'commit.author.name' over 'login' to get the real name
+          DATA=$(gh api repos/${{ github.repository }}/commits/$SHA)
+          
+          AUTHOR=$(echo "$DATA" | jq -r '.commit.author.name')
+          echo "author=$AUTHOR" >> $GITHUB_OUTPUT
+          
+          # 4. Get the message (limit to first line to avoid giant notifications)
+          MESSAGE=$(echo "$DATA" | jq -r '.commit.message' | head -n 1)
+          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
+
       - name: Discord Notification
         uses: Ilshidur/action-discord@master
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          # Custom message using the Check Run data
           args: |
             **Build Update:** ${{ github.event.check_run.name }}
             **Status:** ${{ github.event.check_run.conclusion }} ${{ github.event.check_run.conclusion == 'success' && '✅' || '❌' }}
-            **Branch:** ${{ github.event.check_run.check_suite.head_branch }}
+            
+            👤 **Author:** ${{ steps.commit.outputs.author }}
+            📝 **Commit:** `${{ steps.commit.outputs.short_sha }}`
+            💬 **Message:** ${{ steps.commit.outputs.message }}
+            
             [View Build Details](${{ github.event.check_run.html_url }})
