@@ -6,7 +6,7 @@ import logger from "../utils/logger.js";
 // upload a document
 export const uploadDocument = async (fileData, userId) => {
   try {
-    const { employee_id, document_name, file, file_name, file_type, file_size, checklist_item_id } = fileData;
+    const { employee_id, document_name, file, file_name, file_type, file_size, checklist_item_id, auto_approve } = fileData;
 
     // check if employee exists
     const { data: employee, error: empError } = await supabase
@@ -29,9 +29,64 @@ export const uploadDocument = async (fileData, userId) => {
       throw new BadRequestError(`File type ${file_type} is not allowed. Allowed types: ${FILE_VALIDATION.ALLOWED_EXTENSIONS.join(', ')}`);
     }
 
-    // generate unique file path: employee_id/timestamp_filename
+    // check when re-uploading, if checklist item already has a document, delete the old file
+    if (checklist_item_id) {
+      const { data: existingChecklist, error: checklistError } = await supabase
+        .from('onboarding_checklists')
+        .select('document_id, documents(*)')
+        .eq('id', checklist_item_id)
+        .single();
+
+      if (!checklistError && existingChecklist?.document_id && existingChecklist.documents) {
+        const oldDocument = existingChecklist.documents;
+
+        // delete old file from storage
+        const { error: deleteStorageError } = await supabase.storage
+          .from(process.env.STORAGE_BUCKET_DOCUMENTS)
+          .remove([oldDocument.file_path]);
+
+        if (deleteStorageError) {
+          logger.warn(`Failed to delete old file from storage: ${oldDocument.file_path}`, deleteStorageError);
+        } else {
+          logger.info(`Deleted old file from storage: ${oldDocument.file_path}`);
+        }
+
+        // delete old document record from database
+        const { error: deleteDocError } = await supabase
+          .from('documents')
+          .delete()
+          .eq('id', oldDocument.id);
+
+        if (deleteDocError) {
+          logger.warn(`Failed to delete old document record: ${oldDocument.id}`, deleteDocError);
+        } else {
+          logger.info(`Deleted old document record: ${oldDocument.id}`);
+
+          // log to audit trail
+          await supabase.from('audit_logs').insert({
+            user_id: userId,
+            action_type: AUDIT_ACTIONS.DELETE,
+            table_name: 'documents',
+            record_id: oldDocument.id,
+            old_values: oldDocument,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
+
+    // generate unique file path with organized naming convention
     const timestamp = Date.now();
-    const filePath = `${employee.employee_id}/${timestamp}_${file_name}`;
+
+    // extract file extension from original filename
+    const fileExtension = file_name.substring(file_name.lastIndexOf('.'));
+
+    // sanitize document name (replace spaces and special chars with underscores)
+    const sanitizedDocName = document_name.replace(/[^a-zA-Z0-9]/g, '_');
+
+    // create organized filename: {employee_id}_{document_type}_{timestamp}.{extension}
+    const organizedFileName = `${employee.employee_id}_${sanitizedDocName}_${timestamp}${fileExtension}`;
+    const filePath = `${employee.employee_id}/${organizedFileName}`;
 
     // upload to supabase storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -54,7 +109,7 @@ export const uploadDocument = async (fileData, userId) => {
         employee_id,
         document_name,
         file_path: uploadData.path,
-        file_name,
+        file_name: organizedFileName,
         file_type,
         file_size,
         uploaded_by: userId,
@@ -74,22 +129,35 @@ export const uploadDocument = async (fileData, userId) => {
 
     if (checklist_item_id) {
       try {
-        // Update the checklist item with the document link and submitted status
+        // determine status based on auto_approve flag
+        const updateData = {
+          document_id: newDocument.id,
+          updated_at: new Date().toISOString()
+        };
+
+        if (auto_approve) {
+          // HR uploading for project-based employee - auto-approve
+          updateData.status = ONBOARDING_STATUSES.APPROVED;
+          updateData.submitted_at = new Date().toISOString();
+          updateData.reviewed_at = new Date().toISOString();
+          updateData.reviewed_by = userId;
+        } else {
+          // regular employee upload - set to submitted for HR review
+          updateData.status = ONBOARDING_STATUSES.SUBMITTED;
+          updateData.submitted_at = new Date().toISOString();
+        }
+
         const { error: checklistError } = await supabase
           .from('onboarding_checklists')
-          .update({
-            document_id: newDocument.id,
-            status: ONBOARDING_STATUSES.SUBMITTED,
-            submitted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', checklist_item_id)
           .eq('employee_id', employee_id);  // ensure checklist belongs to employee
 
         if (checklistError) {
           logger.error('Failed to update checklist item:', checklistError);
         } else {
-          logger.info(`Checklist item ${checklist_item_id} updated with document ${newDocument.id}`);
+          const statusText = auto_approve ? 'approved' : 'submitted';
+          logger.info(`Checklist item ${checklist_item_id} updated with document ${newDocument.id} and ${statusText}`);
         }
       } catch (checklistUpdateError) {
         logger.error('Error updating checklist:', checklistUpdateError);

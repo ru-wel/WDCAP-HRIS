@@ -15,6 +15,9 @@ export const uploadDocumentSchema = Joi.object({
   }),
   checklist_item_id: Joi.string().uuid().optional().messages({
     'string.guid': 'Checklist item ID must be a valid UUID'
+  }),
+  auto_approve: Joi.boolean().optional().messages({
+    'boolean.base': 'Auto approve must be a boolean'
   })
 });
 

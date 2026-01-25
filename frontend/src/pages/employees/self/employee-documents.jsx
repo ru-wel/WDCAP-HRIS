@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { get, upload } from '../../../services/api';
 import { ONBOARDING_STATUSES, STORAGE_KEYS } from '../../../constants/config.js';
 import Navbar from '../../../components/navbar.jsx';
+import ConfirmModal from '../../../components/confirm-modal.jsx';
 
 function MyDocuments() {
 
@@ -14,6 +15,40 @@ function MyDocuments() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [uploadingDocId, setUploadingDocId] = useState(null);
+
+	// modal state
+	const [confirmState, setConfirmState] = useState({
+		open: false,
+		title: 'Success',
+		message: '',
+		confirmText: 'OK',
+		cancelText: null,
+		onConfirmAction: null,
+	});
+
+	const openConfirm = ({ title = 'Success', message = '', onConfirmAction = null } = {}) => {
+		setConfirmState({
+			open: true,
+			title,
+			message,
+			confirmText: 'OK',
+			cancelText: null,
+			onConfirmAction,
+		});
+	};
+
+	const closeConfirm = () => {
+		setConfirmState((prev) => ({ ...prev, open: false }));
+	};
+
+	const handleConfirm = async () => {
+		const action = confirmState.onConfirmAction;
+		closeConfirm(); // Close modal immediately
+
+		if (action) {
+			await action(); // Then execute the action in background
+		}
+	};
 
 	useEffect(() => {
 		fetchMyChecklist();
@@ -76,15 +111,57 @@ function MyDocuments() {
 			const response = await upload('/documents/upload', formData);
 
 			if (response.success) {
-				alert(`${checklistItem.onboarding_items.item_name} uploaded successfully!`);
-				// refresh checklist
-				await fetchMyChecklist();
+				// show success modal first, then refresh after user clicks OK
+			openConfirm({
+				title: 'Upload Successful',
+				message: `${checklistItem.onboarding_items.item_name} uploaded successfully!`,
+				onConfirmAction: async () => {
+					await fetchMyChecklist();
+				}
+			});
 			}
 		} catch (error) {
 			console.error('Upload error:', error);
-			alert(error.message || 'Failed to upload document');
+			openConfirm({
+				title: 'Upload Failed',
+				message: error.message || 'Failed to upload document'
+			});
 		} finally {
 			setUploadingDocId(null);
+		}
+	};
+
+	const handleDownload = async (documentId, fileName) => {
+		if (!documentId) {
+			openConfirm({
+				title: 'Download Failed',
+				message: 'No document available to download'
+			});
+			return;
+		}
+
+		try {
+			setLoading(true);
+
+			const response = await get(`/documents/${documentId}/download`);
+
+			if (response.success && response.data.signedUrl) {
+				// open download URL in new tab
+				window.open(response.data.signedUrl, '_blank');
+			} else {
+				openConfirm({
+					title: 'Download Failed',
+					message: 'Failed to generate download link'
+				});
+			}
+		} catch (error) {
+			console.error('Download error:', error);
+			openConfirm({
+				title: 'Download Failed',
+				message: error.message || 'Failed to download document'
+			});
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -228,9 +305,14 @@ function MyDocuments() {
 										</td>
 										<td className="td-style">
 											{item.documents?.file_name ? (
-												<span className="text-gray-600">
+												<button
+													onClick={() => handleDownload(item.documents.id, item.documents.file_name)}
+													disabled={loading}
+													className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed max-w-xs truncate cursor-pointer"
+													title={`Click to download: ${item.documents.file_name}`}
+												>
 													{item.documents.file_name}
-												</span>
+												</button>
 											) : (
 												<span className="text-gray-400 italic">No file uploaded</span>
 											)}
@@ -239,7 +321,9 @@ function MyDocuments() {
 											{formatDate(item.submitted_at)}
 										</td>
 										<td className="td-style">
-											{item.remarks ? (
+											{item.status === ONBOARDING_STATUSES.APPROVED ? (
+												<p className="text-gray-600 font-medium">DONE!</p>
+											) : item.remarks ? (
 												<div>
 													{item.status === ONBOARDING_STATUSES.REJECTED && (
 														<p className="text-red-600 font-medium mb-1">Reason:</p>
@@ -299,6 +383,16 @@ function MyDocuments() {
 					</table>
 				</div>
 			</div>
+
+			<ConfirmModal
+				open={confirmState.open}
+				title={confirmState.title}
+				message={confirmState.message}
+				confirmText={confirmState.confirmText}
+				cancelText={confirmState.cancelText}
+				onConfirm={handleConfirm}
+				onCancel={closeConfirm}
+			/>
 		</div>
 	);
 }

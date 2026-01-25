@@ -5,7 +5,7 @@ import { ForbiddenError } from '../utils/errors.js';
 // upload document controller
 export const uploadDocument = async (req, res, next) => {
   try {
-    const { employee_id, document_name } = req.body;
+    const { employee_id, document_name, auto_approve } = req.body;
     const file = req.file;
     const userId = req.user.id;
     const userRole = req.user.role;
@@ -17,11 +17,17 @@ export const uploadDocument = async (req, res, next) => {
       throw new ForbiddenError('You can only upload documents for yourself');
     }
 
+    // only HR/Executive can auto-approve if uploading for project-based
+    if (auto_approve && userRole !== ROLES.HR && userRole !== ROLES.EXECUTIVE) {
+      throw new ForbiddenError('Only HR/Executive can auto-approve documents');
+    }
+
     // prepare file data
     const fileData = {
       employee_id,
       document_name,
       checklist_item_id: checklistItemId,
+      auto_approve: auto_approve === true || auto_approve === 'true',
       file: file.buffer,
       file_name: file.originalname,
       file_type: file.mimetype,

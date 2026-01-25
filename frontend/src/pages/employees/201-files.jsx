@@ -1,118 +1,215 @@
 import React, { useEffect, useState } from 'react'
 import Navbar from "../../components/navbar";
-import { get, post } from '../../services/api';
+import { get, post, upload } from '../../services/api';
 import { ONBOARDING_STATUSES } from '../../constants/config';
 import ReactPaginate from 'react-paginate';
 import ChecklistConfig from '../../components/checklist-config';
+import ConfirmModal from '../../components/confirm-modal';
 
 const modalFiles = [
     {
         fileName: "Employee Contract",
+        backendName: "Employee Contract",
         file: "empContract",
         status: "empContractStatus",
         comment:"empContractComment",
         checklistId: "empContractChecklistId",
-        documentId: "empContractDocumentId"
+        documentId: "empContractDocumentId",
+        required: "empContractRequired"
     },
     {
         fileName: "Resume/CV",
+        backendName: "Resume/CV",
         file: "empCV",
         status: "empCVStatus",
         comment:"empCVComment",
         checklistId: "empCVChecklistId",
-        documentId: "empCVDocumentId"
+        documentId: "empCVDocumentId",
+        required: "empCVRequired"
     },
     {
         fileName: "Application for Employment",
+        backendName: "Application for Employment",
         file: "empApplication",
         status: "empApplicationStatus",
         comment:"empApplicationComment",
         checklistId: "empApplicationChecklistId",
-        documentId: "empApplicationDocumentId"
+        documentId: "empApplicationDocumentId",
+        required: "empApplicationRequired"
     },
     {
         fileName: "Personal Data Sheet",
+        backendName: "Personal Data Sheet",
         file: "empDataSheet",
         status: "empDataSheetStatus",
         comment:"empDataSheetComment",
         checklistId: "empDataSheetChecklistId",
-        documentId: "empDataSheetDocumentId"
+        documentId: "empDataSheetDocumentId",
+        required: "empDataSheetRequired"
+    },
+    {
+        fileName: "Employee Photo",
+        backendName: "Employee Photo",
+        file: "empPhoto",
+        status: "empPhotoStatus",
+        comment:"empPhotoComment",
+        checklistId: "empPhotoChecklistId",
+        documentId: "empPhotoDocumentId",
+        required: "empPhotoRequired"
+    },
+    {
+        fileName: "Sinumpaang Salaysay",
+        backendName: "Sinumpaang Salaysay",
+        file: "empSinumpaangSalaysay",
+        status: "empSinumpaangSalaysayStatus",
+        comment:"empSinumpaangSalaysayComment",
+        checklistId: "empSinumpaangSalaysayChecklistId",
+        documentId: "empSinumpaangSalaysayDocumentId",
+        required: "empSinumpaangSalaysayRequired"
+    },
+    {
+        fileName: "Waiver of Medical Examination",
+        backendName: "Waiver of Medical Examination",
+        file: "empWaiverMedical",
+        status: "empWaiverMedicalStatus",
+        comment:"empWaiverMedicalComment",
+        checklistId: "empWaiverMedicalChecklistId",
+        documentId: "empWaiverMedicalDocumentId",
+        required: "empWaiverMedicalRequired"
     },
     {
         fileName: "NDA",
+        backendName: "NDA",
         file: "empNDA",
         status: "empNDAStatus",
         comment:"empNDAComment",
         checklistId: "empNDAChecklistId",
-        documentId: "empNDADocumentId"
+        documentId: "empNDADocumentId",
+        required: "empNDARequired"
     },
     {
         fileName: "Pre-Employment Exam",
+        backendName: "Pre-Employment Exam",
         file: "empExam",
         status: "empExamStatus",
         comment:"empExamComment",
         checklistId: "empExamChecklistId",
-        documentId: "empExamDocumentId"
+        documentId: "empExamDocumentId",
+        required: "empExamRequired"
     },
     {
         fileName: "Diploma",
+        backendName: "Diploma",
         file: "empDiploma",
         status: "empDiplomaStatus",
         comment:"empDiplomaComment",
         checklistId: "empDiplomaChecklistId",
-        documentId: "empDiplomaDocumentId"
+        documentId: "empDiplomaDocumentId",
+        required: "empDiplomaRequired"
     },
     {
         fileName: "Transcript of Records",
+        backendName: "Transcript of Records",
         file: "empTranscriptRec",
         status: "empTranscriptRecStatus",
         comment:"empTranscriptRecComment",
         checklistId: "empTranscriptRecChecklistId",
-        documentId: "empTranscriptRecDocumentId"
+        documentId: "empTranscriptRecDocumentId",
+        required: "empTranscriptRecRequired"
     },
     {
         fileName: "SSS",
+        backendName: "SSS",
         file: "empSSS",
         status: "empSSS_Status",
         comment:"empSSSComment",
         checklistId: "empSSSChecklistId",
-        documentId: "empSSSDocumentId"
+        documentId: "empSSSDocumentId",
+        required: "empSSSRequired"
     },
     {
         fileName: "PhilHealth",
+        backendName: "PhilHealth",
         file: "empPhilhealth",
         status: "empPhilhealthStatus",
         comment:"empPhilhealthComment",
         checklistId: "empPhilhealthChecklistId",
-        documentId: "empPhilhealthDocumentId"
+        documentId: "empPhilhealthDocumentId",
+        required: "empPhilhealthRequired"
     },
     {
         fileName: "Pag-IBIG",
+        backendName: "Pag-IBIG",
         file: "empPagibig",
         status: "empPagibigStatus",
         comment:"empPagibigComment",
         checklistId: "empPagibigChecklistId",
-        documentId: "empPagibigDocumentId"
+        documentId: "empPagibigDocumentId",
+        required: "empPagibigRequired"
     },
     {
-        fileName: "Valid ID",
+        fileName: "Valid ID (Driver's License, PRC ID, Others)",
+        backendName: "Valid ID",
         file: "empValidID",
         status: "empValidIDStatus",
         comment:"empValidIDComment",
         checklistId: "empValidIDChecklistId",
-        documentId: "empValidIDDocumentId"
+        documentId: "empValidIDDocumentId",
+        required: "empValidIDRequired"
     },
 
 ]
 
-function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
+function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openConfirm}){
 
     const [data, setData] = useState(employeeFiles ?? null);
     const [initialData, setInitialData] = useState(employeeFiles ?? null);
     const [editData, setEditData] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [uploadingFiles, setUploadingFiles] = useState({}); // track which files are uploading
 
     const [files] = useState(modalFiles);
+
+    // custom modal (for yes/no decisions and success messages)
+    const [localConfirmState, setLocalConfirmState] = useState({
+        open: false,
+        title: '',
+        message: '',
+        onConfirmAction: null,
+        showCancel: true,
+    });
+
+    const openLocalConfirm = ({ title, message, onConfirmAction, showCancel = true }) => {
+        setLocalConfirmState({
+            open: true,
+            title,
+            message,
+            onConfirmAction,
+            showCancel,
+        });
+    };
+
+    const closeLocalConfirm = () => {
+        setLocalConfirmState({
+            open: false,
+            title: '',
+            message: '',
+            onConfirmAction: null,
+            showCancel: true,
+        });
+    };
+
+    const handleLocalConfirm = async () => {
+        const action = localConfirmState.onConfirmAction;
+        closeLocalConfirm(); 
+
+        if (action) {
+            await action();
+        }
+    };
+
+    // check if employee is project-based
+    const isProjectBased = employeeFiles?.personnelType === 'Project-Based';
 
     // WHEN EDITING THE VALUE
     const handleChange = (a) => {
@@ -122,7 +219,10 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
 
     const handleDownload = async (documentId, fileName) => {
         if (!documentId) {
-            alert('No document available to download');
+            openConfirm({
+                title: 'Download Failed',
+                message: 'No document available to download'
+            });
             return;
         }
 
@@ -135,22 +235,104 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                 // open download URL in new tab
                 window.open(response.data.signedUrl, '_blank');
             } else {
-                alert('Failed to generate download link');
+                openConfirm({
+                    title: 'Download Failed',
+                    message: 'Failed to generate download link'
+                });
             }
         } catch (error) {
             console.error('Download error:', error);
-            alert(error.message || 'Failed to download document');
+            openConfirm({
+                title: 'Download Failed',
+                message: error.message || 'Failed to download document'
+            });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async () => {
+    // handle file upload for project-based employees
+    const handleFileUpload = async (event, file) => {
+        const selectedFile = event.target.files?.[0];
+        if (!selectedFile) return;
+
+        const checklistId = data[file.checklistId];
+        if (!checklistId) {
+            openConfirm({
+                title: 'Upload Failed',
+                message: 'Checklist item not found. Please refresh and try again.'
+            });
+            event.target.value = ''; // reset file input
+            return;
+        }
+
+        // show confirmation modal before uploading
+        openLocalConfirm({
+            title: 'Confirm Upload',
+            message: `Upload "${selectedFile.name}" for ${file.fileName}?\n\nThis will automatically approve the document.`,
+            onConfirmAction: async () => {
+                await performUpload(selectedFile, file, checklistId, event);
+            }
+        });
+    };
+
+    const performUpload = async (selectedFile, file, checklistId, event) => {
+        try {
+            setUploadingFiles(prev => ({ ...prev, [file.file]: true }));
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('employee_id', data.employee_db_id); // database UUID
+            formData.append('document_name', file.backendName); // backend expects exact name from constants
+            formData.append('checklist_item_id', checklistId);
+            formData.append('auto_approve', 'true'); // auto-approve for HR uploads
+
+            const response = await upload('/documents/upload', formData);
+
+            if (response.success) {
+                // show success modal first using parent's openConfirm, then refresh after user clicks OK
+                openConfirm({
+                    title: 'Upload Successful',
+                    message: `Successfully uploaded ${file.fileName} and marked as approved!`,
+                    onConfirmAction: async () => {
+                        if (onRefresh) {
+                            await onRefresh();
+                        }
+                    }
+                });
+
+                // keep modal open for project-based employees so HR can continue uploading
+            } else {
+                openConfirm({
+                    title: 'Upload Failed',
+                    message: response.message || 'Failed to upload document'
+                });
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            openConfirm({
+                title: 'Upload Failed',
+                message: error.message || 'Failed to upload document'
+            });
+        } finally {
+            setUploadingFiles(prev => ({ ...prev, [file.file]: false }));
+            event.target.value = ''; // reset file input
+        }
+    };
+
+    const handleSave = () => {
         if (!data) return;
 
-        const confirmUpdate = window.confirm("Are you sure you want to save these changes?");
-        if (!confirmUpdate) return;
+        openLocalConfirm({
+            title: 'Confirm Save',
+            message: 'Are you sure you want to save these changes?',
+            onConfirmAction: async () => {
+                await performSave();
+            }
+        });
+    };
 
+    const performSave = async () => {
         try {
             setLoading(true);
 
@@ -162,7 +344,7 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                 const status = data[file.status];
                 const remarks = data[file.comment] || null;
 
-                // Only call API if status is approved or rejected (not pending/submitted)
+                // only call API if status is approved or rejected (not pending/submitted)
                 if (checklistId && (status === ONBOARDING_STATUSES.APPROVED || status === ONBOARDING_STATUSES.REJECTED)) {
                     const reviewPromise = post(`/onboarding/checklist/${checklistId}/review`, {
                         status,
@@ -175,19 +357,26 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
             // wait for all promises to complete
             await Promise.all(reviewPromises);
 
-            alert(`You've successfully updated the record of ${data.id}!`);
-
-            if (onRefresh) {
-                await onRefresh();
-            }
-
-            setEditData(false);
-            onClose();
+            // show success modal first using parent's openConfirm, then refresh and close after user clicks OK
+            openConfirm({
+                title: 'Update Successful',
+                message: `You've successfully updated the record of ${data.name}!`,
+                onConfirmAction: async () => {
+                    if (onRefresh) {
+                        await onRefresh();
+                    }
+                    setEditData(false);
+                    onClose();
+                }
+            });
         } catch (error) {
             console.error('Review error:', error);
-            alert(error.message || 'Failed to update documents');
+            openConfirm({
+                title: 'Update Failed',
+                message: error.message || 'Failed to update documents'
+            });
 
-            // Revert to initial data on error
+            // revert to initial data on error
             setData(initialData);
         } finally {
             setLoading(false);
@@ -215,9 +404,6 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
         </tr>
     );
 
-    //RETURN TO THIS FOR SETTING THE PAGES NEEDED
-    //const [pages, setPages] = useState(1);
-
     return (
         <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
              <div
@@ -225,15 +411,31 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                 data-lenis-prevent
              >
                 <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:py-[10px] py-[6px] md:px-4 px-3 w-full flex-shrink-0">
-                    <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>201 Files of {data.id}</h1>
+                    <div>
+                        <h1 className='text-white text-lg font-medium lg:text-lg text-sm'>
+                            201 Files of {data.name}
+                            {isProjectBased && (
+                                <span className="ml-2 text-xs bg-white/20 px-2 py-1 rounded">
+                                    Project-based
+                                </span>
+                            )}
+                        </h1>
+                    </div>
                     <button
                         className="text-white text-2xl font-bold hover:scale-110 transition disabled:opacity-50 cursor-pointer"
                         disabled={loading}
                         onClick={() => {
                             if (unsavedChanges){
-                                const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
-                                if (!confirmCancel) return;
-                            } onClose();
+                                openLocalConfirm({
+                                    title: 'Unsaved Changes',
+                                    message: 'You have unsaved changes. Do you want to close without saving?',
+                                    onConfirmAction: () => {
+                                        onClose();
+                                    }
+                                });
+                            } else {
+                                onClose();
+                            }
                         }}
                     > ✕ </button>
                 </div>
@@ -254,7 +456,12 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                 {row.file === 'empSSS' && renderSectionHeaderRow('BENEFITS')}
                                 {row.file === 'empValidID' && renderSectionHeaderRow('VALID ID')}
                                 <tr>
-                                <td className='text-left font-semibold pb-5 px-3 lg:text-sm text-xs'>{row.fileName}</td>
+                                <td className='text-left font-semibold pb-5 px-3 lg:text-sm text-xs'>
+                                    {row.fileName}
+                                    {data[row.required] && (
+                                        <span className="text-red-600 ml-1" title="Required document">*</span>
+                                    )}
+                                </td>
                                 <td className='pb-5 px-3'>
                                     {data[row.file] && data[row.documentId] ? (
                                         // has document - show as downloadable link
@@ -265,8 +472,8 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                                 handleDownload(documentId, fileName);
                                             }}
                                             disabled={loading}
-                                            className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left w-full cursor-pointer"
-                                            title="Click to download"
+                                            className="text-[#990100] hover:underline lg:text-sm text-xs disabled:opacity-50 disabled:cursor-not-allowed text-left max-w-xs truncate cursor-pointer"
+                                            title={`Click to download: ${data[row.file]}`}
                                         >
                                             📄 {data[row.file]}
                                         </button>
@@ -282,38 +489,69 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                                         </span>
                                     )}
                                 </td>
+                                {/* STATUS COLUMN - show upload button for project-based, dropdown for regular */}
                                 <td className='pb-5 px-3'>
-                                    <select name={row.status} className='input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data[row.status]} disabled = {!editData || loading} onChange={handleChange} required>
-                                        <option value="">Select Status</option>
-                                        <option value={ONBOARDING_STATUSES.APPROVED}>Approved</option>
-                                        <option value={ONBOARDING_STATUSES.REJECTED}>Rejected</option>
-                                    </select>
+                                    {isProjectBased ? (
+                                        // if project-based, show upload button
+                                        <div className="flex items-center justify-center">
+                                            <label htmlFor={`upload-${row.file}`}
+                                                className={`
+                                                    bg-[#990100] text-white lg:text-sm text-xs lg:px-4 px-2 py-1.5 rounded-lg
+                                                    hover:bg-[#ad3332] transition cursor-pointer whitespace-nowrap
+                                                    ${uploadingFiles[row.file] || loading ? 'opacity-50 cursor-not-allowed' : ''}
+                                                `}
+                                            >
+                                                {uploadingFiles[row.file] ? 'Uploading...' : (data[row.file] ? 'Re-upload' : 'Upload')}
+                                            </label>
+                                            <input id={`upload-${row.file}`} type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={(e) => handleFileUpload(e, row)} disabled={uploadingFiles[row.file] || loading} className="hidden"
+                                            />
+                                        </div>
+                                    ) : (
+                                        // if regular employee, show status dropdown
+                                        <select name={row.status} className='input-field disabled:text-gray-600 disabled:bg-gray-100 disabled:border-gray-300 disabled:cursor-not-allowed disabled:opacity-60 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs' value={data[row.status]} disabled={!editData || loading || !data[row.file]} onChange={handleChange} required
+                                        >
+                                            <option value="">Select Status</option>
+                                            <option value={ONBOARDING_STATUSES.APPROVED}>Approved</option>
+                                            <option value={ONBOARDING_STATUSES.REJECTED}>Rejected</option>
+                                        </select>
+                                    )}
                                 </td>
 
+                                {/* COMMENTS COLUMN - only show for regular employees */}
                                 <td className='pb-5 px-3'>
-                                    {data[row.status] === ONBOARDING_STATUSES.REJECTED &&(
-                                        editData ? (
-                                        <textarea name={row.comment}
-                                            value={data[row.comment] || ""}
-                                            onChange={handleChange}
-                                            disabled={loading}
-                                            required
-                                            placeholder="Reason"
-                                            className="input-field w-full lg:text-sm text-xs disabled:opacity-50"
-                                            maxLength="25" />
-                                        ):(
-                                            <p className="lg:text-sm text-xs text-gray-700">
-                                                {data[row.comment] || "No comment provided"}
-                                            </p>
-                                        )
-                                    )}
+                                    {isProjectBased ? (
+                                        // if project-based, show status text
+                                        <span className="lg:text-sm text-xs text-gray-600">
+                                            {data[row.status] === ONBOARDING_STATUSES.APPROVED && 'DONE!'}
+                                            {data[row.status] === ONBOARDING_STATUSES.PENDING && 'Pending'}
+                                            {data[row.status] === ONBOARDING_STATUSES.SUBMITTED && 'Submitted'}
+                                            {data[row.status] === ONBOARDING_STATUSES.REJECTED && (
+                                                <span className="text-red-600">
+                                                    Rejected: {data[row.comment] || 'No reason'}
+                                                </span>
+                                            )}
+                                        </span>
+                                    ) : (
+                                        // if regular employee, show comment fields
+                                        <>
+                                            {data[row.status] === ONBOARDING_STATUSES.REJECTED &&(
+                                                editData ? (
+                                                <textarea name={row.comment} value={data[row.comment] || ""} onChange={handleChange} disabled={loading} required placeholder="Reason" className="input-field w-full lg:text-sm text-xs disabled:opacity-50" maxLength="25" />
+                                                ):(
+                                                    <p className="lg:text-sm text-xs text-gray-700">
+                                                        {data[row.comment] || "No comment provided"}
+                                                    </p>
+                                                )
+                                            )}
 
-                                    {data[row.status] === ONBOARDING_STATUSES.APPROVED &&(
-                                        <p className='lg:text-sm text-xs'>DONE!</p>
-                                    )}
+                                            {data[row.status] === ONBOARDING_STATUSES.APPROVED &&(
+                                                <p className='lg:text-sm text-xs'>DONE!</p>
+                                            )}
 
-                                    {(data[row.status] === ONBOARDING_STATUSES.PENDING || data[row.status] === ONBOARDING_STATUSES.SUBMITTED) &&(
-                                        <p className='lg:text-sm text-xs'>{data[row.status] === ONBOARDING_STATUSES.SUBMITTED ? "Awaiting Review..." : "Pending..."}</p>
+                                            {(data[row.status] === ONBOARDING_STATUSES.PENDING || data[row.status] === ONBOARDING_STATUSES.SUBMITTED) &&(
+                                                <p className='lg:text-sm text-xs'>{data[row.status] === ONBOARDING_STATUSES.SUBMITTED ? "Awaiting Review..." : "Pending..."}</p>
+                                            )}
+                                        </>
                                     )}
                                 </td>
                             </tr>
@@ -330,50 +568,83 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh}){
                     </div>
 
                     <div className="pt-7">
-                        {!editData ? (
-                            <div className="flex justify-center gap-4">
+                        {isProjectBased ? (
+                            // if project-based, no update/delete buttons, just a close button
+                            <div className="flex justify-center">
                                 <button
-                                    onClick={() => setEditData(true)}
-                                    disabled={loading}
-                                    className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                    onClick={onClose}
+                                    disabled={loading || Object.values(uploadingFiles).some(uploading => uploading)}
+                                    className='bg-gray-500 lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-gray-600 hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                 >
-                                    Update Record
-                                </button>
-                                <button
-                                    disabled={loading}
-                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                >
-                                    Delete Record
+                                    Close
                                 </button>
                             </div>
-                        ):(
-                            <div className="flex justify-center gap-4">
-                                <button
-                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                    disabled={loading}
-                                    onClick={() => {
-                                        if (unsavedChanges){
-                                            const confirmCancel = window.confirm("You have unsaved changes. Do you want to close it without saving?");
-                                            if (!confirmCancel) return;
-                                        }
-                                        setData(initialData);
-                                        setEditData(false);
-                                    }}
-                                >
-                                    Cancel Changes
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={loading}
-                                    className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                >
-                                    {loading ? 'Saving...' : 'Save Changes'}
-                                </button>
-                            </div>
+                        ) : (
+                            // if regular employee, show update/delete workflow
+                            <>
+                                {!editData ? (
+                                    <div className="flex justify-center gap-4">
+                                        <button
+                                            onClick={() => setEditData(true)}
+                                            disabled={loading}
+                                            className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                        >
+                                            Update Record
+                                        </button>
+                                        <button
+                                            disabled={loading}
+                                            className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                        >
+                                            Delete Record
+                                        </button>
+                                    </div>
+                                ):(
+                                    <div className="flex justify-center gap-4">
+                                        <button
+                                            className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                            disabled={loading}
+                                            onClick={() => {
+                                                if (unsavedChanges){
+                                                    openLocalConfirm({
+                                                        title: 'Unsaved Changes',
+                                                        message: 'You have unsaved changes. Do you want to discard them?',
+                                                        onConfirmAction: () => {
+                                                            setData(initialData);
+                                                            setEditData(false);
+                                                        }
+                                                    });
+                                                } else {
+                                                    setData(initialData);
+                                                    setEditData(false);
+                                                }
+                                            }}
+                                        >
+                                            Cancel Changes
+                                        </button>
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={loading}
+                                            className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                        >
+                                            {loading ? 'Saving...' : 'Save Changes'}
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </div>      
+                    </div>
                 </div>
              </div>
+
+            <ConfirmModal
+                open={localConfirmState.open}
+                title={localConfirmState.title}
+                message={localConfirmState.message}
+                confirmText={localConfirmState.showCancel ? "Yes" : "OK"}
+                cancelText={localConfirmState.showCancel ? "No" : null}
+                onConfirm={handleLocalConfirm}
+                onCancel={closeLocalConfirm}
+            />
         </div>
     )
 }
@@ -394,6 +665,40 @@ function OnboardingFiles (){
     // checklist configuration modal state
     const [isChecklistConfigOpen, setChecklistConfigOpen] = useState(false);
     const [configEmployee, setConfigEmployee] = useState(null);
+
+    // confirm modal state
+    const [confirmState, setConfirmState] = useState({
+        open: false,
+        title: 'Success',
+        message: '',
+        confirmText: 'OK',
+        cancelText: null,
+        onConfirmAction: null,
+    });
+
+    const openConfirm = ({ title = 'Success', message = '', onConfirmAction = null } = {}) => {
+        setConfirmState({
+            open: true,
+            title,
+            message,
+            confirmText: 'OK',
+            cancelText: null,
+            onConfirmAction,
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmState((prev) => ({ ...prev, open: false }));
+    };
+
+    const handleConfirm = async () => {
+        const action = confirmState.onConfirmAction;
+        closeConfirm(); 
+
+        if (action) {
+            await action();
+        }
+    };
 
     const [itemOffset, setItemOffset] = useState(0);
     const itemsPerPage = 15;
@@ -443,39 +748,63 @@ function OnboardingFiles (){
                     empContract: '',
                     empContractStatus: ONBOARDING_STATUSES.PENDING,
                     empContractComment: '',
+                    empContractRequired: false,
                     empCV: '',
                     empCVStatus: ONBOARDING_STATUSES.PENDING,
                     empCVComment: '',
+                    empCVRequired: false,
                     empApplication: '',
                     empApplicationStatus: ONBOARDING_STATUSES.PENDING,
                     empApplicationComment: '',
+                    empApplicationRequired: false,
                     empDataSheet: '',
                     empDataSheetStatus: ONBOARDING_STATUSES.PENDING,
                     empDataSheetComment: '',
+                    empDataSheetRequired: false,
+                    empPhoto: '',
+                    empPhotoStatus: ONBOARDING_STATUSES.PENDING,
+                    empPhotoComment: '',
+                    empPhotoRequired: false,
+                    empSinumpaangSalaysay: '',
+                    empSinumpaangSalaysayStatus: ONBOARDING_STATUSES.PENDING,
+                    empSinumpaangSalaysayComment: '',
+                    empSinumpaangSalaysayRequired: false,
+                    empWaiverMedical: '',
+                    empWaiverMedicalStatus: ONBOARDING_STATUSES.PENDING,
+                    empWaiverMedicalComment: '',
+                    empWaiverMedicalRequired: false,
                     empNDA: '',
                     empNDAStatus: ONBOARDING_STATUSES.PENDING,
                     empNDAComment: '',
+                    empNDARequired: false,
                     empExam: '',
                     empExamStatus: ONBOARDING_STATUSES.PENDING,
                     empExamComment: '',
+                    empExamRequired: false,
                     empDiploma: '',
                     empDiplomaStatus: ONBOARDING_STATUSES.PENDING,
                     empDiplomaComment: '',
+                    empDiplomaRequired: false,
                     empTranscriptRec: '',
                     empTranscriptRecStatus: ONBOARDING_STATUSES.PENDING,
                     empTranscriptComment: '',
+                    empTranscriptRecRequired: false,
                     empSSS: '',
                     empSSS_Status: ONBOARDING_STATUSES.PENDING,
                     empSSSComment: '',
+                    empSSSRequired: false,
                     empPhilhealth: '',
                     empPhilhealthStatus: ONBOARDING_STATUSES.PENDING,
                     empPhilhealthComment: '',
+                    empPhilhealthRequired: false,
                     empPagibig: '',
                     empPagibigStatus: ONBOARDING_STATUSES.PENDING,
                     empPagibigComment: '',
+                    empPagibigRequired: false,
                     empValidID: '',
                     empValidIDStatus: ONBOARDING_STATUSES.PENDING,
                     empValidIDComment: '',
+                    empValidIDRequired: false,
                     lastUpdatedDate: formatDate(new Date()),
                     lastUpdatedTime: formatTime(new Date())
                 };
@@ -491,6 +820,9 @@ function OnboardingFiles (){
                 'Resume/CV': 'empCV',
                 'Application for Employment': 'empApplication',
                 'Personal Data Sheet': 'empDataSheet',
+                'Employee Photo': 'empPhoto',
+                'Sinumpaang Salaysay': 'empSinumpaangSalaysay',
+                'Waiver of Medical Examination': 'empWaiverMedical',
                 'NDA': 'empNDA',
                 'Pre-Employment Exam': 'empExam',
                 'Diploma': 'empDiploma',
@@ -508,6 +840,7 @@ function OnboardingFiles (){
                 employee[`${fieldName}Comment`] = item.remarks || '';
                 employee[`${fieldName}ChecklistId`] = item.id; // store checklist ID for API calls
                 employee[`${fieldName}DocumentId`] = item.documents?.id || null; // store document ID for download
+                employee[`${fieldName}Required`] = item.is_required || false; // store if document is required
 
                 if (fieldName === 'empSSS') {
                     employee.empSSS_Status = item.status || ONBOARDING_STATUSES.PENDING;
@@ -555,6 +888,30 @@ function OnboardingFiles (){
 
     const handleClose = () => setModalOpen(false);
 
+    // refresh modal with updated employee data
+    const handleModalRefresh = async () => {
+        if (!viewEmployeeFiles) return;
+
+        // fetch fresh data
+        await fetchEmployeesWithChecklists();
+
+        try {
+            const response = await get('/onboarding/checklists');
+            if (response.success) {
+                const transformedData = transformChecklistData(response.data);
+                // find the employee we're currently viewing
+                const updatedEmployee = transformedData.find(
+                    emp => emp.employee_db_id === viewEmployeeFiles.employee_db_id
+                );
+                if (updatedEmployee) {
+                    setViewEmployeeFiles(updatedEmployee);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to refresh modal data:', error);
+        }
+    };
+
     const handleOpenChecklistConfig = (employee) => {
         setConfigEmployee(employee);
         setChecklistConfigOpen(true);
@@ -578,8 +935,12 @@ function OnboardingFiles (){
 
     const getRemarks = (empFiles) =>{
         const isComplete = empFiles.empContractStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empCVStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empApplicationStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empDataSheetStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empPhotoStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empSinumpaangSalaysayStatus === ONBOARDING_STATUSES.APPROVED &&
+            empFiles.empWaiverMedicalStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empNDAStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empExamStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empDiplomaStatus === ONBOARDING_STATUSES.APPROVED &&
@@ -587,8 +948,7 @@ function OnboardingFiles (){
             empFiles.empSSS_Status === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empPhilhealthStatus === ONBOARDING_STATUSES.APPROVED &&
             empFiles.empPagibigStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empValidIDStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empCVStatus === ONBOARDING_STATUSES.APPROVED;
+            empFiles.empValidIDStatus === ONBOARDING_STATUSES.APPROVED;
 
         return isComplete ? "COMPLETE" : "INCOMPLETE";
     }
@@ -746,7 +1106,8 @@ function OnboardingFiles (){
                         onClose={handleClose}
                         employeeFiles={viewEmployeeFiles}
                         onSave={updateEmployeeFiles}
-                        onRefresh={fetchEmployeesWithChecklists}
+                        onRefresh={handleModalRefresh}
+                        openConfirm={openConfirm}
                     />
 
                     {/* Checklist Configuration Modal */}
@@ -794,6 +1155,16 @@ function OnboardingFiles (){
                     </div>
                 </div>
             </div>
+
+            <ConfirmModal
+                open={confirmState.open}
+                title={confirmState.title}
+                message={confirmState.message}
+                confirmText={confirmState.confirmText}
+                cancelText={confirmState.cancelText}
+                onConfirm={handleConfirm}
+                onCancel={closeConfirm}
+            />
         </div>
     )
 } export default OnboardingFiles;
