@@ -1,10 +1,11 @@
 # HRIS ARISE | WD CAPSTONE
 
 # Tech Stacks
-- PostgreSQL
+- PostgreSQL via Supabase
 - Express
 - React
 - Node
+- Google Cloud Hosting
 
 # Features
 - 
