@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../../../components/navbar.jsx";
 import ReactPaginate from "react-paginate";
 import { get } from "../../../services/api.js";
-import { compareNumber, compareText } from "../../../utils/sort.js";
+import { compareNumber, compareText } from "./././utils/sort.js";
 
-//try kesss
+//push
 
 export default function EmployeeDepartments() {
   const navigate = useNavigate();
