@@ -17,6 +17,18 @@ steps:
       - '.'
     dir: 'backend'
 
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'hris-backend'
+      - '--image=$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/hris-backend:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
 # The 'images' field automatically pushes these tags to Artifact Registry
 images:
   - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/hris-backend:$COMMIT_SHA'
