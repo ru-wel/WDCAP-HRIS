@@ -184,7 +184,7 @@
   width: 34px;
   height: 34px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.35);
+  background: #990100;
   color: white;
   border: none;
   cursor: pointer;
@@ -194,11 +194,12 @@
 }
 
 .gc-icon-cancel {
-  width: 70px;
+  /*width: 70px;
   height: 34px;
   border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.35);
-  color: white;
+  background: rgba(0, 0, 0, 0.35);*/
+  padding:0px 8px;
+  color: #990100;
   border: none;
   cursor: pointer;
   font-size: 16px;
@@ -206,8 +207,13 @@
   place-items: center;
 }
 
-.gc-icon-btn:hover, .gc-icon-cancel:hover {
-  background: rgba(0, 0, 0, 0.5);
+.gc-icon-btn:hover{
+  background-color: #ad3332;
+} 
+
+.gc-icon-cancel:hover {
+  text-decoration:underline;
+  color: #ad3332;
 }
 
 .gc-dot {

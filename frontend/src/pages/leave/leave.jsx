@@ -44,18 +44,21 @@ function formatPrettyDateRange(startIso, endIso) {
   return `${formatPrettyDate(startIso)} to ${formatPrettyDate(endIso)}`;
 }
 
-function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel }) {
+function EventPopover({ open, data, onClose, onCancelClick, canCancel }) {
   const ref = useRef(null);
 
   useEffect(() => {
     if (!open) return;
+
     const onDocMouseDown = (e) => {
       if (ref.current && !ref.current.contains(e.target)) onClose();
     };
-    document.addEventListener("mousedown", onDocMouseDown);
+
     const onKey = (e) => {
       if (e.key === "Escape") onClose();
     };
+
+    document.addEventListener("mousedown", onDocMouseDown);
     window.addEventListener("keydown", onKey);
 
     return () => {
@@ -65,45 +68,61 @@ function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel })
   }, [open, onClose]);
 
   if (!open || !data) return null;
-  const CARD_W = 430;
-  const CARD_H = 260;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const left = Math.max(16, Math.min(anchor.x - 60, vw - CARD_W - 16));
-  const top = Math.max(16, Math.min(anchor.y - 80, vh - CARD_H - 16));
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/10" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* backdrop */}
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
 
-      <div ref={ref} className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style={{ width: CARD_W, height: CARD_H, left, top }}>
-          <div className="relative p-3 flex justify-end gap-2 border-b">
-            {canCancel ? (
-              <button className="gc-icon-cancel" title="Cancel Leave" onClick={() => onCancelClick?.(data)}>Cancel</button>
-            ) : null}
-            <button className="gc-icon-btn" title="Close" onClick={onClose}>✕</button>
-          </div>
-          <div className="p-5">
-            <div className="flex items-start gap-3">
-              <span
-                className="gc-dot"
-                style={{ background: data.dotColor || "#F59E0B" }}
-              />
-              <div>
-                <h3 className="text-2xl font-medium text-gray-900 leading-tight">
-                  {data.title}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {data.dateLabel || formatPrettyDate(data.date)}
-                </p>
-              </div>
+      {/* modal */}
+      <div
+        ref={ref}
+        className="gc-popover relative bg-white rounded-2xl shadow-2xl border border-gray-200 w-[430px] max-w-[90vw]"
+      >
+        <div className="p-3 flex justify-end gap-2 border-b border-[#990100]">
+          {/*{canCancel && (
+            <button
+              className="gc-icon-cancel"
+              onClick={() => onCancelClick?.(data)}
+            >
+              Cancel
+            </button>
+          )}*/}
+
+          <a
+            className="gc-icon-cancel"
+            href = "/leave/history"
+          >
+            Edit
+          </a>
+          
+          <button className="gc-icon-btn" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <span
+              className="gc-dot"
+              style={{ background: data.dotColor || "#F59E0B" }}
+            />
+            <div>
+              <h3 className="lg:text-2xl text-xl text-gray-900">
+                {data.title}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {data.dateLabel}
+              </p>
             </div>
-            <div className="mt-6 space-y-4 text-sm text-gray-800">
-              <div className="gc-row">
-                <span className="gc-row-icon">≡</span>
-                <span>{data.category || "Leave"}</span>
-              </div>
-              <div className="gc-row">
+          </div>
+
+          <div className="mt-6 space-y-4 text-sm text-gray-800">
+            <div className="gc-row">
+              <span className="gc-row-icon">≡</span>
+              <span>{data.category || "Leave"}</span>
+            </div>
+            <div className="gc-row">
               <span className="gc-row-icon">📅</span>
               <span>{data.calendarName || "SIL"}</span>
             </div>
@@ -113,6 +132,7 @@ function EventPopover({ open, anchor, data, onClose, onCancelClick, canCancel })
     </div>
   );
 }
+
 
 export default function Leave() {
   const { user } = useAuth();
@@ -235,9 +255,9 @@ export default function Leave() {
             title,
             start,
             end: endInclusive ? addDaysIso(endInclusive, 1) : undefined,
-            dotColor: "#F59E0B",
-            pillBg: "#FFE1A3",
-            pillText: "#FF8A00",
+            dotColor: "#44688f",
+            pillBg: "#acbccd",
+            pillText: "#264668",
             category: "Leave",
             calendarName: leaveType,
             start_date: start,
@@ -625,7 +645,7 @@ export default function Leave() {
             <div className="gc-legend-item">
               <span
                 className="gc-legend-color"
-                style={{ background: "#F59E0B" }}
+                style={{ background: "#44688f" }}
               />
               <span>SIL</span>
             </div>

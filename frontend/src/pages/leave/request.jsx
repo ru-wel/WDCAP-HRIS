@@ -58,7 +58,7 @@ function ModalShell({ open, title, onClose, children }) {
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+      <div className="relative w-full lg:max-w-xl md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
         <div className="p-4 sm:p-6">
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
             <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
@@ -104,8 +104,8 @@ function LeaveRequestDetailsModal({
       title={`Leave Request of ${row?.id ?? ""}`}
       onClose={onClose}
     >
-      <div className="space-y-5 text-sm">
-        <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2">
+      <div className="space-y-5 text-sm px-2">
+        <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2">
           <div className="font-semibold">Date Requested:</div>
           <div>{row?.dateRequested ?? "10/29/2025"}</div>
 
@@ -123,7 +123,7 @@ function LeaveRequestDetailsModal({
 
           <div className="font-semibold">Reason:</div>
           <textarea
-            className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none"
+            className="border border-gray-300 rounded-md p-3 md:text-sm text-xs h-28 resize-none"
             placeholder="Reason"
             value={row?.reason ?? ""}
             readOnly
@@ -155,7 +155,7 @@ function LeaveRequestDetailsModal({
         <div className="flex justify-center pt-3">
           <button
             type="button"
-            className="green-button shadow-md px-6"
+            className="green-button shadow-md"
             onClick={() => {
               if (!row) return;
               if (!canUpdate) {
@@ -719,7 +719,7 @@ function LeaveRequest() {
         meta.days
           ? `\n\nThis request is for ${meta.days} day${
               meta.days !== 1 ? "s" : ""
-            } (estimated ${meta.points} point${meta.points !== 1 ? "s" : ""}).`
+            } (estimated ${meta.points} credit${meta.points !== 1 ? "s" : ""}).`
           : ""
       }`,
       confirmText: "OK",
