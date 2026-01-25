@@ -8,11 +8,10 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--no-cache'
       - '-t'
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/hris-frontend:$COMMIT_SHA'
       - '-t'
-      - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/hris-frontend:latest'
-      - '--cache-from'
       - '$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO_NAME/hris-frontend:latest'
       - '.'
     dir: 'frontend'
