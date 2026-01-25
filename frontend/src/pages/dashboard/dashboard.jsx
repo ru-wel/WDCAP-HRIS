@@ -21,11 +21,7 @@ function StatCard({ title, icon, value, onClick }) {
           </p>
           <p className="mt-2 text-2xl font-semibold text-[#990100]">{value}</p>
         </div>
-        <img
-          src={icon}
-          alt={`${title} icon`}
-          className="w-9 h-9 opacity-90"
-        />
+        <img src={icon} alt={`${title} icon`} className="w-9 h-9 opacity-90" />
       </div>
     </button>
   );
@@ -97,9 +93,11 @@ const normalizeSummary = (payload) => {
         employee_id: r.employee_id,
         employee_code: typeof r.employee_code === "string" ? r.employee_code : "",
         employee_name: typeof r.employee_name === "string" ? r.employee_name : "",
-        position_title: typeof r.position_title === "string" ? r.position_title : "",
+        position_title:
+          typeof r.position_title === "string" ? r.position_title : "",
         evaluation_date: r.evaluation_date,
-        evaluation_type: typeof r.evaluation_type === "string" ? r.evaluation_type : "",
+        evaluation_type:
+          typeof r.evaluation_type === "string" ? r.evaluation_type : "",
       })),
     recentAuditLogs: recentAuditLogs
       .filter((r) => r && typeof r === "object")
@@ -128,20 +126,31 @@ const normalizeSummary = (payload) => {
         targetEmployee:
           r.target_employee && typeof r.target_employee === "object"
             ? {
-                id: typeof r.target_employee.id === "string" ? r.target_employee.id : null,
+                id:
+                  typeof r.target_employee.id === "string"
+                    ? r.target_employee.id
+                    : null,
                 employeeCode:
                   typeof r.target_employee.employee_code === "string"
                     ? r.target_employee.employee_code
                     : null,
                 name:
-                  typeof r.target_employee.name === "string" ? r.target_employee.name : null,
+                  typeof r.target_employee.name === "string"
+                    ? r.target_employee.name
+                    : null,
               }
             : null,
         targetProject:
           r.target_project && typeof r.target_project === "object"
             ? {
-                id: typeof r.target_project.id === "string" ? r.target_project.id : null,
-                name: typeof r.target_project.name === "string" ? r.target_project.name : null,
+                id:
+                  typeof r.target_project.id === "string"
+                    ? r.target_project.id
+                    : null,
+                name:
+                  typeof r.target_project.name === "string"
+                    ? r.target_project.name
+                    : null,
               }
             : null,
         user: {
@@ -156,8 +165,563 @@ const formatShortDate = (value) => {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
 };
+
+function ExecutiveDashboard({ loading, summary, statValues, navigate }) {
+  return (
+    <>
+      <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          title="Employees"
+          icon="icons/red-employees.png"
+          value={loading ? "…" : statValues.employees}
+          onClick={() => navigate("/employees")}
+        />
+        <StatCard
+          title="Ongoing Projects"
+          icon="icons/red-projects.png"
+          value={loading ? "…" : statValues.activeProjects}
+          onClick={() => navigate("/projects")}
+        />
+        <StatCard
+          title="Pending Evaluations"
+          icon="icons/sidenav/red-evaluation.png"
+          value={loading ? "…" : statValues.pendingEvaluations}
+          onClick={() => navigate("/evaluation")}
+        />
+        <StatCard
+          title="Leave Requests"
+          icon="icons/red-leave.png"
+          value={loading ? "…" : statValues.pendingLeaves}
+          onClick={() => navigate("/leave/request")}
+        />
+      </section>
+
+      <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+              Pending Evaluations
+            </h2>
+            <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
+              {loading ? "…" : statValues.pendingEvaluations}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
+            <table className="min-w-[420px] w-full text-sm">
+              <thead className="bg-[#ad3332] text-white">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Name</th>
+                  <th className="px-4 py-2 text-left font-medium">Position</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!loading && summary.pendingEvaluations.length ? (
+                  summary.pendingEvaluations.slice(0, 5).map((row) => (
+                    <tr
+                      key={String(row.evaluation_id || row.employee_id)}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        const id = row?.employee_id;
+                        if (!id) return;
+                        navigate(
+                          `/evaluation/history?employeeId=${encodeURIComponent(
+                            String(id)
+                          )}`
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        const id = row?.employee_id;
+                        if (!id) return;
+                        navigate(
+                          `/evaluation/history?employeeId=${encodeURIComponent(
+                            String(id)
+                          )}`
+                        );
+                      }}
+                      className="bg-white cursor-pointer hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-2 text-gray-900">
+                        {(row.employee_code || row.employee_name)
+                          ? `${row.employee_code || ""}${
+                              row.employee_code && row.employee_name ? " - " : ""
+                            }${row.employee_name || ""}`.trim()
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-gray-900">
+                        {row.position_title || "N/A"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="bg-white">
+                    <td className="px-4 py-2 text-gray-900" colSpan={2}>
+                      {loading ? "Loading…" : "No pending evaluations."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-xs text-gray-500">
+            Executive overview of employees due for evaluation.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+            Dates to Remember (This Week)
+          </h2>
+
+          <div className="px-2">
+            <div className="border-b border-[#f0dede] py-3">
+              <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
+                Jan 12 | Monday
+              </p>
+
+              <div className="px-4 md:grid md:grid-cols-2">
+                <p className="pb-1.5 text-sm">- Executive sync / key updates</p>
+                <p className="pb-1.5 text-sm">- Evaluation checkpoints</p>
+                <p className="pb-1.5 text-sm">- Client / stakeholder meetings</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function HRDashboard({ loading, summary, statValues, navigate }) {
+  return (
+    <>
+      <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          title="Employees"
+          icon="icons/red-employees.png"
+          value={loading ? "…" : statValues.employees}
+          onClick={() => navigate("/employees")}
+        />
+        <StatCard
+          title="Total Departments"
+          icon="icons/red-departments.png"
+          value={loading ? "…" : statValues.departments}
+          onClick={() => navigate("/employees/departments")}
+        />
+        <StatCard
+          title="Leave Requests"
+          icon="icons/red-leave.png"
+          value={loading ? "…" : statValues.pendingLeaves}
+          onClick={() => navigate("/leave/request")}
+        />
+        <StatCard
+          title="Pending Evaluations"
+          icon="icons/sidenav/red-evaluation.png"
+          value={loading ? "…" : statValues.pendingEvaluations}
+          onClick={() => navigate("/evaluation")}
+        />
+      </section>
+
+      <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+              Pending Evaluations
+            </h2>
+            <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
+              {loading ? "…" : statValues.pendingEvaluations}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
+            <table className="min-w-[420px] w-full text-sm">
+              <thead className="bg-[#ad3332] text-white">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Name</th>
+                  <th className="px-4 py-2 text-left font-medium">Position</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!loading && summary.pendingEvaluations.length ? (
+                  summary.pendingEvaluations.slice(0, 5).map((row) => (
+                    <tr
+                      key={String(row.evaluation_id || row.employee_id)}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        const id = row?.employee_id;
+                        if (!id) return;
+                        navigate(
+                          `/evaluation/history?employeeId=${encodeURIComponent(
+                            String(id)
+                          )}`
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        const id = row?.employee_id;
+                        if (!id) return;
+                        navigate(
+                          `/evaluation/history?employeeId=${encodeURIComponent(
+                            String(id)
+                          )}`
+                        );
+                      }}
+                      className="bg-white cursor-pointer hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-2 text-gray-900">
+                        {(row.employee_code || row.employee_name)
+                          ? `${row.employee_code || ""}${
+                              row.employee_code && row.employee_name ? " - " : ""
+                            }${row.employee_name || ""}`.trim()
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-gray-900">
+                        {row.position_title || "N/A"}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="bg-white">
+                    <td className="px-4 py-2 text-gray-900" colSpan={2}>
+                      {loading ? "Loading…" : "No pending evaluations."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <p className="mt-3 text-xs text-gray-500">
+            HR overview for evaluation tracking and coordination.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+            Dates to Remember (This Week)
+          </h2>
+
+          <div className="px-2">
+            <div className="border-b border-[#f0dede] py-3">
+              <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
+                Jan 12 | Monday
+              </p>
+
+              <div className="px-4 md:grid md:grid-cols-2">
+                <p className="pb-1.5 text-sm">- Onboarding / HR reminders</p>
+                <p className="pb-1.5 text-sm">- Evaluation schedules</p>
+                <p className="pb-1.5 text-sm">- Leave approvals follow-ups</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ManagerDashboard({
+  loading,
+  summary,
+  statValues,
+  navigate,
+  setIsCalendarOpen,
+}) {
+  return (
+    <>
+      <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          title="Pending Evaluations"
+          icon="icons/sidenav/red-evaluation.png"
+          value={loading ? "…" : statValues.pendingEvaluations}
+          onClick={() => navigate("/evaluation")}
+        />
+        <StatCard
+          title="Leave Requests"
+          icon="icons/red-leave.png"
+          value={loading ? "…" : statValues.pendingLeaves}
+          onClick={() => navigate("/leave/request")}
+        />
+        <StatCard
+          title="My Team"
+          icon="icons/red-employees.png"
+          value="View"
+          onClick={() => navigate("/employees?scope=team")}
+        />
+        <StatCard
+          title="My Projects"
+          icon="icons/red-projects.png"
+          value={loading ? "…" : statValues.activeProjects}
+          onClick={() => navigate("/projects?scope=assigned")}
+        />
+      </section>
+
+      <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-3">
+            Pending Evaluations (To Do)
+          </h2>
+
+          <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
+            <table className="min-w-[420px] w-full text-sm">
+              <thead className="bg-[#ad3332] text-white">
+                <tr>
+                  <th className="px-4 py-2 text-left font-medium">Employee</th>
+                  <th className="px-4 py-2 text-left font-medium">Due Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!loading && summary.pendingEvaluations.length ? (
+                  summary.pendingEvaluations.slice(0, 5).map((row) => (
+                    <tr
+                      key={String(row.evaluation_id || row.employee_id)}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        const eid = row?.evaluation_id;
+                        if (!eid) return;
+                        navigate(
+                          `/evaluation/upload?evaluationId=${encodeURIComponent(
+                            String(eid)
+                          )}`
+                        );
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" && e.key !== " ") return;
+                        const eid = row?.evaluation_id;
+                        if (!eid) return;
+                        navigate(
+                          `/evaluation/upload?evaluationId=${encodeURIComponent(
+                            String(eid)
+                          )}`
+                        );
+                      }}
+                      className="bg-white cursor-pointer hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-2 text-gray-900">
+                        {(row.employee_code || row.employee_name)
+                          ? `${row.employee_code || ""}${
+                              row.employee_code && row.employee_name ? " - " : ""
+                            }${row.employee_name || ""}`.trim()
+                          : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-gray-900">
+                        {formatShortDate(row.evaluation_date)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr className="bg-white">
+                    <td className="px-4 py-2 text-gray-900" colSpan={2}>
+                      {loading ? "Loading…" : "No pending evaluations."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/evaluation/history")}
+            >
+              My Eval History
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/leave/history")}
+            >
+              My Leave History
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/profile")}
+            >
+              My Profile
+            </button>
+            <button
+              type="button"
+              className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
+              onClick={() => setIsCalendarOpen(true)}
+            >
+              Calendar
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+            Dates to Remember (This Week)
+          </h2>
+
+          <div className="px-2">
+            <div className="border-b border-[#f0dede] py-3">
+              <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
+                Jan 12 | Monday
+              </p>
+
+              <div className="px-4 md:grid md:grid-cols-2">
+                <p className="pb-1.5 text-sm">- Team check-ins</p>
+                <p className="pb-1.5 text-sm">- Evaluation deadlines</p>
+                <p className="pb-1.5 text-sm">- Leave reminders</p>
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs text-gray-500">
+            Weekly reminders for your team and deliverables.
+          </p>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function EmployeeDashboard({
+  loading,
+  nextEval,
+  statValues,
+  navigate,
+  setIsCalendarOpen,
+  isProjectBased,
+}) {
+  return (
+    <>
+      <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard
+          title="Leave Remarks"
+          icon="icons/red-leave.png"
+          value="View"
+          onClick={() => navigate("/leave/history")}
+        />
+        <StatCard
+          title="Next Evaluation"
+          icon="icons/sidenav/red-evaluation.png"
+          value={loading ? "…" : nextEval.date}
+          onClick={() => navigate("/evaluation/history")}
+        />
+        {isProjectBased ? null : (
+          <StatCard
+            title="Projects"
+            icon="icons/red-projects.png"
+            value={loading ? "…" : statValues.activeProjects}
+            onClick={() => navigate("/projects")}
+          />
+        )}
+        <StatCard
+          title="Leave Request"
+          icon="icons/red-leave.png"
+          value="Open"
+          onClick={() => navigate("/leave/request")}
+        />
+      </section>
+
+      <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+            Dates to Remember (This Week)
+          </h2>
+
+          <div className="px-2">
+            <div className="border-b border-[#f0dede] py-3">
+              <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
+                Jan 12 | Monday
+              </p>
+
+              <div className="px-4 md:grid md:grid-cols-2">
+                <p className="pb-1.5 text-sm">- Weekly check-in</p>
+                <p className="pb-1.5 text-sm">- Evaluation reminders</p>
+                <p className="pb-1.5 text-sm">- Project updates</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/evaluation/history")}
+            >
+              My Evaluation History
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/leave/history")}
+            >
+              My Leave History
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+              onClick={() => navigate("/profile")}
+            >
+              My Profile
+            </button>
+            <button
+              type="button"
+              className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
+              onClick={() => setIsCalendarOpen(true)}
+            >
+              Calendar
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-2">
+            Quick Links
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
+              onClick={() => navigate("/calendar")}
+            >
+              Calendar
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
+              onClick={() => navigate("/projects")}
+            >
+              Projects
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
+              onClick={() => navigate("/leave/request")}
+            >
+              Leave Request
+            </button>
+            <button
+              type="button"
+              className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
+              onClick={() => navigate("/evaluation/history")}
+            >
+              Evaluation History
+            </button>
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
 
 function Dashboard() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -168,9 +732,11 @@ function Dashboard() {
   const { user } = useAuth();
 
   const role = user?.role;
-  const isEmployee = role === ROLES.EMPLOYEE;
+
+  const isExecutive = role === ROLES.EXECUTIVE;
+  const isHr = role === ROLES.HR;
   const isManager = role === ROLES.MANAGER;
-  const isExecOrHr = role === ROLES.EXECUTIVE || role === ROLES.HR;
+  const isEmployee = role === ROLES.EMPLOYEE;
 
   const [isProjectBased, setIsProjectBased] = useState(false);
 
@@ -180,13 +746,13 @@ function Dashboard() {
   const displayName =
     safeName ||
     [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
-    (role === ROLES.EXECUTIVE
+    (isExecutive
       ? "Executive"
-      : role === ROLES.HR
+      : isHr
       ? "HR"
-      : role === ROLES.MANAGER
+      : isManager
       ? "Manager"
-      : role === ROLES.EMPLOYEE
+      : isEmployee
       ? "Employee"
       : "") ||
     user?.email ||
@@ -309,403 +875,44 @@ function Dashboard() {
           </div>
         ) : null}
 
-        {isExecOrHr ? (
-          <>
-            <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard
-                title="Employees"
-                icon="icons/red-employees.png"
-                value={loading ? "…" : statValues.employees}
-                onClick={() => navigate("/employees")}
-              />
-              <StatCard
-                title="Ongoing Projects"
-                icon="icons/red-projects.png"
-                value={loading ? "…" : statValues.activeProjects}
-                onClick={() => navigate("/projects")}
-              />
-              <StatCard
-                title="Leave Requests"
-                icon="icons/red-leave.png"
-                value={loading ? "…" : statValues.pendingLeaves}
-                onClick={() => navigate("/leave/request")}
-              />
-              <StatCard
-                title="Total Departments"
-                icon="icons/red-departments.png"
-                value={loading ? "…" : statValues.departments}
-                onClick={() => navigate("/employees/departments")}
-              />
-            </section>
-
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    Pending Evaluations
-                  </h2>
-                  <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
-                    {loading ? "…" : statValues.pendingEvaluations}
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
-                  <table className="min-w-[420px] w-full text-sm">
-                    <thead className="bg-[#ad3332] text-white">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium">Name</th>
-                        <th className="px-4 py-2 text-left font-medium">Position</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!loading && summary.pendingEvaluations.length ? (
-                        summary.pendingEvaluations.slice(0, 5).map((row) => (
-                          <tr
-                            key={String(row.evaluation_id || row.employee_id)}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              const id = row?.employee_id;
-                              if (!id) return;
-                              navigate(
-                                `/evaluation/history?employeeId=${encodeURIComponent(
-                                  String(id)
-                                )}`
-                              );
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter" && e.key !== " ") return;
-                              const id = row?.employee_id;
-                              if (!id) return;
-                              navigate(
-                                `/evaluation/history?employeeId=${encodeURIComponent(
-                                  String(id)
-                                )}`
-                              );
-                            }}
-                            className="bg-white cursor-pointer hover:bg-gray-50"
-                          >
-                            <td className="px-4 py-2 text-gray-900">
-                              {(row.employee_code || row.employee_name)
-                                ? `${row.employee_code || ""}${
-                                    row.employee_code && row.employee_name ? " - " : ""
-                                  }${row.employee_name || ""}`.trim()
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-2 text-gray-900">
-                              {row.position_title || "N/A"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="bg-white">
-                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
-                            {loading ? "Loading…" : "No pending evaluations."}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Monitor employees who are due for performance evaluation.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">- Birthday of Reuel Christian Sundiam!</p>
-                      <p className="pb-1.5 text-sm">- Evaluation of Carl Paldeng</p>
-                      <p className="pb-1.5 text-sm">- Meeting of the Executives with a Client</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </>
+        {isExecutive ? (
+          <ExecutiveDashboard
+            loading={loading}
+            summary={summary}
+            statValues={statValues}
+            navigate={navigate}
+          />
+        ) : isHr ? (
+          <HRDashboard
+            loading={loading}
+            summary={summary}
+            statValues={statValues}
+            navigate={navigate}
+          />
         ) : isManager ? (
-          <>
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard
-                title="Pending Evaluations"
-                icon="icons/sidenav/red-evaluation.png"
-                value={loading ? "…" : statValues.pendingEvaluations}
-                onClick={() => navigate("/evaluation/history")}
-              />
-              <StatCard
-                title="Leave Requests"
-                icon="icons/red-leave.png"
-                value={loading ? "…" : statValues.pendingLeaves}
-                onClick={() => navigate("/leave/request")}
-              />
-              <StatCard
-                title="My Team"
-                icon="icons/red-employees.png"
-                value="View"
-                onClick={() => navigate("/employees?scope=team")}
-              />
-              <StatCard
-                title="My Projects"
-                icon="icons/red-projects.png"
-                value={loading ? "…" : statValues.activeProjects}
-                onClick={() => navigate("/projects?scope=assigned")}
-              />
-            </section>
-
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-3">
-                  Pending Evaluations (To Do)
-                </h2>
-
-                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
-                  <table className="min-w-[420px] w-full text-sm">
-                    <thead className="bg-[#ad3332] text-white">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium">Employee</th>
-                        <th className="px-4 py-2 text-left font-medium">Due Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!loading && summary.pendingEvaluations.length ? (
-                        summary.pendingEvaluations.slice(0, 5).map((row) => (
-                          <tr
-                            key={String(row.evaluation_id || row.employee_id)}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              const eid = row?.evaluation_id;
-                              if (!eid) return;
-                              navigate(
-                                `/evaluation/upload?evaluationId=${encodeURIComponent(String(eid))}`
-                              );
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter" && e.key !== " ") return;
-                              const eid = row?.evaluation_id;
-                              if (!eid) return;
-                              navigate(
-                                `/evaluation/upload?evaluationId=${encodeURIComponent(String(eid))}`
-                              );
-                            }}
-                            className="bg-white cursor-pointer hover:bg-gray-50"
-                          >
-                            <td className="px-4 py-2 text-gray-900">
-                              {(row.employee_code || row.employee_name)
-                                ? `${row.employee_code || ""}${
-                                    row.employee_code && row.employee_name ? " - " : ""
-                                  }${row.employee_name || ""}`.trim()
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-2 text-gray-900">
-                              {formatShortDate(row.evaluation_date)}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="bg-white">
-                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
-                            {loading ? "Loading…" : "No pending evaluations."}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    View Evaluation History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/leave/history")}
-                  >
-                    My Leave History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/profile")}
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
-                    onClick={() => setIsCalendarOpen(true)}
-                  >
-                    Calendar
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">- Team meeting</p>
-                      <p className="pb-1.5 text-sm">- Evaluation schedule</p>
-                      <p className="pb-1.5 text-sm">- Leave reminders</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Weekly reminders for your team and deliverables.
-                </p>
-              </div>
-            </section>
-          </>
+          <ManagerDashboard
+            loading={loading}
+            summary={summary}
+            statValues={statValues}
+            navigate={navigate}
+            setIsCalendarOpen={setIsCalendarOpen}
+          />
         ) : (
-          <>
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard
-                title="Leave Remarks"
-                icon="icons/red-leave.png"
-                value="View"
-                onClick={() => navigate("/leave/history")}
-              />
-              <StatCard
-                title="Next Evaluation"
-                icon="icons/sidenav/red-evaluation.png"
-                value={loading ? "…" : nextEval.date}
-                onClick={() => navigate("/evaluation/history")}
-              />
-              {isProjectBased ? null : (
-                <StatCard
-                  title="Projects"
-                  icon="icons/red-projects.png"
-                  value={loading ? "…" : statValues.activeProjects}
-                  onClick={() => navigate("/projects")}
-                />
-              )}
-              <StatCard
-                title="Leave Request"
-                icon="icons/red-leave.png"
-                value="Open"
-                onClick={() => navigate("/leave/request")}
-              />
-            </section>
-
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">- Weekly check-in</p>
-                      <p className="pb-1.5 text-sm">- Evaluation reminders</p>
-                      <p className="pb-1.5 text-sm">- Project updates</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    My Evaluation History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/leave/history")}
-                  >
-                    My Leave History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/profile")}
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
-                    onClick={() => setIsCalendarOpen(true)}
-                  >
-                    Calendar
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-2">
-                  Quick Links
-                </h2>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
-                    onClick={() => navigate("/calendar")}
-                  >
-                    Calendar
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
-                    onClick={() => navigate("/projects")}
-                  >
-                    Projects
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
-                    onClick={() => navigate("/leave/request")}
-                  >
-                    Leave Request
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-3 text-sm hover:bg-gray-50 text-left"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    Evaluation History
-                  </button>
-                </div>
-              </div>
-            </section>
-          </>
+          <EmployeeDashboard
+            loading={loading}
+            nextEval={nextEval}
+            statValues={statValues}
+            navigate={navigate}
+            setIsCalendarOpen={setIsCalendarOpen}
+            isProjectBased={isProjectBased}
+          />
         )}
       </div>
 
-      <CalendarModal open={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
+      <CalendarModal
+        open={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+      />
     </div>
   );
 }
