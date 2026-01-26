@@ -66,14 +66,14 @@ export default function DepartmentEmployees() {
     setDraftSortOrder(sortOrder);
   }, [filtersOpen, sortOrder]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!filtersOpen) return;
     const onKeyDown = (e) => {
       if (e.key === "Escape") setFiltersOpen(false);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [filtersOpen]);
+  }, [filtersOpen]);*/
 
   const sortOptions = useMemo(() => {
     if (tab === "positions") {
@@ -382,6 +382,14 @@ export default function DepartmentEmployees() {
   };
 
   const resetPaginationOnSearchOrTab = (nextTab) => {
+
+    if (unsavedChangesPosition) {
+      confirmUnsavedChanges(() => {
+        resetPaginationOnSearchOrTab(nextTab);
+      });
+      return;
+    }
+
     setEmpOffset(0);
     setPosOffset(0);
     if (nextTab) {
@@ -400,6 +408,14 @@ export default function DepartmentEmployees() {
 
   const closeAdd = ({ force = false } = {}) => {
     if (positionSaving && !force) return;
+
+    if (!force && unsavedChangesAddPosition) {
+      confirmUnsavedChanges(() => {
+        closeAdd({ force: true });
+      });
+      return;
+    }
+
     setIsAddOpen(false);
     setAddPositionTitleDraft("");
     setPositionError("");
@@ -445,6 +461,14 @@ export default function DepartmentEmployees() {
 
   const closeDetails = ({ force = false } = {}) => {
     if (positionSaving && !force) return;
+
+    if (!force && unsavedChangesPosition) {
+      confirmUnsavedChanges(() => {
+        closeDetails({ force: true });
+      });
+      return;
+    }
+
     setIsDetailsOpen(false);
     setSelectedPosition(null);
     setPositionTitleDraft("");
@@ -508,6 +532,20 @@ export default function DepartmentEmployees() {
           setPositionSaving(false);
         }
       },
+    });
+  };
+
+  //FOR UNSAVED CHANGES
+  const unsavedChangesPosition = isDetailsOpen && isEditingPosition && positionTitleDraft !== selectedPosition?.title;
+  const unsavedChangesAddPosition = isAddOpen && addPositionTitleDraft.trim() !== "";
+
+  const confirmUnsavedChanges = (onDiscard) => {
+    openConfirm({
+      title: "Unsaved Changes",
+      message: "You have unsaved changes. Do you want to cancel without saving?",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: onDiscard,
     });
   };
 
@@ -882,7 +920,7 @@ export default function DepartmentEmployees() {
       {isAddOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={closeAdd}
+          
         >
           <div className="absolute inset-0 bg-black/25" />
 
@@ -939,7 +977,7 @@ export default function DepartmentEmployees() {
                     type="button"
                     onClick={closeAdd}
                     disabled={positionSaving}
-                    className="bg-gray-500 hover:bg-gray-400 green-button"
+                    className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
                   >
                     Cancel
                   </button>
@@ -953,7 +991,6 @@ export default function DepartmentEmployees() {
       {isDetailsOpen && selectedPosition && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
-          onClick={closeDetails}
         >
           <div className="absolute inset-0 bg-black/25" />
 
@@ -1001,36 +1038,74 @@ export default function DepartmentEmployees() {
                   </div>
                 </div>
 
-                <div className="flex justify-center gap-8 mt-10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!isEditingPosition) {
-                        setIsEditingPosition(true);
-                        setPositionError("");
-                        return;
-                      }
-                      onUpdatePosition();
-                    }}
-                    disabled={positionSaving}
-                    className="bg-green-700 hover:bg-green-600 generate-report-button font-medium"
-                  >
-                    {positionSaving
-                      ? "Saving..."
-                      : isEditingPosition
-                      ? "Save Changes"
-                      : "Update Position"}
-                  </button>
+                
+                  { isEditingPosition ? (
+                    <div className="flex justify-center gap-8 mt-10">
 
-                  <button
-                    type="button"
-                    onClick={onDeletePosition}
-                    disabled={positionSaving}
-                    className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
-                  >
-                    {positionSaving ? "Working..." : "Delete Position"}
-                  </button>
-                </div>
+                      <button
+                        type="button"
+                        onClick={closeDetails}
+                        aria-label="Close"
+                        className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
+                      >
+                        Cancel Changes
+                      </button>
+
+                      <button
+                      type="button"
+                      onClick={() => {
+                        
+                        if (!isEditingPosition) {
+                          setIsEditingPosition(true);
+                          setPositionError("");
+                          return;
+                        }
+                          onUpdatePosition();
+                        }}
+                        disabled={positionSaving}
+                        className="mustard-button font-medium"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+
+                    
+                  ):(
+
+                    <div className="flex justify-center gap-8 mt-10">
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          
+                          if (!isEditingPosition) {
+                            setIsEditingPosition(true);
+                            setPositionError("");
+                            return;
+                          }
+                          onUpdatePosition();
+                        }}
+                        disabled={positionSaving}
+                        className="green-button hover:bg-[#22C55E]/80 font-medium"
+                      >
+                        {positionSaving ? "Saving..." : "Update Position"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={onDeletePosition}
+                        disabled={positionSaving}
+                        className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
+                      >
+                        {positionSaving ? "Working..." : "Delete Position"}
+                      </button>
+                    </div>
+                    )
+                  }
+
+
+                  
+
               </div>
             </div>
           </div>
