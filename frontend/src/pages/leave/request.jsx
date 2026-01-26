@@ -39,14 +39,14 @@ const formatRange = (startIso, endIso, mode) => {
 };
 
 function ModalShell({ open, title, onClose, children }) {
-  useEffect(() => {
+  /*useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose]);*/
 
   if (!open) return null;
 
@@ -92,17 +92,35 @@ function LeaveRequestDetailsModal({
   onCancelRequest,
 }) {
   const [status, setStatus] = useState("APPROVED");
+  const [initialStatus, setInitialStatus] = useState("PENDING");
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setStatus(row?.status || "PENDING");
+    const a = row?.status || "PENDING";
+    setStatus(a);
+    setInitialStatus(a);
+    setIsEditing(false);
   }, [open, row]);
+
+  // FOR UNSAVED CHANGES
+
+  const unsavedChanges = isEditing && status !== initialStatus;
+
+  const handleClose = () => {
+    if (unsavedChanges) {
+      onCancelRequest?.("unsaved");
+      return;
+    }
+    onClose();
+  };
 
   return (
     <ModalShell
       open={open}
       title={`Leave Request of ${row?.id ?? ""}`}
-      onClose={onClose}
+      onClose={handleClose}
     >
       <div className="space-y-5 text-sm px-2">
         <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2">
@@ -135,10 +153,10 @@ function LeaveRequestDetailsModal({
         <div className="flex items-center gap-4">
           <div className="font-semibold">Status:</div>
           <select
-            className="border border-gray-300 rounded-md px-4 py-2 text-sm bg-white w-56"
+            className="border border-[#990100] cursor-pointer text-[#990100] focus:outline-gray-400 rounded-md px-4 py-2 text-sm bg-white w-56 disabled:text-gray-600"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            disabled={!canUpdate}
+            disabled={!canUpdate || !isEditing}
           >
             <option value="APPROVED">APPROVED</option>
             <option value="REJECTED">REJECTED</option>
@@ -152,12 +170,26 @@ function LeaveRequestDetailsModal({
           {row?.updatedBy ?? ""}
         </div>
 
-        <div className="flex justify-center pt-3">
+        <div className="flex pt-3 gap-x-6 justify-end">
+          
+
+          {isEditing && (
+            <button
+              type="button"
+              className="bg-red-700 hover:bg-red-600 generate-report-button"
+              onClick={handleClose}
+            >
+              Cancel Changes
+            </button>
+          )}
+
           <button
             type="button"
-            className="green-button shadow-md"
+            className={isEditing ? 'mustard-button shadow-md': 'green-button shadow-md'}
             onClick={() => {
               if (!row) return;
+
+              
               if (!canUpdate) {
                 if (canCancel) {
                   onCancelRequest?.(row);
@@ -166,10 +198,26 @@ function LeaveRequestDetailsModal({
                 }
                 return;
               }
-              onUpdate?.(row, status);
+
+              if (!isEditing) {
+                setIsEditing(true);
+                return;
+              }
+
+              if (status !== initialStatus) {
+                onUpdate?.(row, status);
+              } else {
+                setIsEditing(false);
+              }
             }}
           >
-            {canUpdate ? "Update Request" : canCancel ? "Cancel Request" : "Close"}
+            {!canUpdate
+              ? canCancel
+                ? "Cancel Request"
+                : "Close"
+              : isEditing
+              ? "Save Changes"
+              : "Update Request"}
           </button>
         </div>
       </div>
@@ -335,7 +383,6 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
                   );
                   if (diff >= 365) show = false;
                 } catch {
-                  //
                 }
               }
             }
@@ -1063,8 +1110,26 @@ function LeaveRequest() {
           isEmployee &&
           String(selectedRow?.status || "").toUpperCase() === "PENDING"
         }
-        onCancelRequest={handleCancel}
+        onCancelRequest={(type) => {
+          if (type === "unsaved") {
+            openConfirm({
+              title: "Unsaved Changes",
+              message: "You have unsaved changes. Do you want to cancel without saving?",
+              confirmText: "OK",
+              cancelText: "Cancel",
+              onConfirm: () => {
+                closeConfirm();
+                setDetailsOpen(false);
+              },
+              onCancel: closeConfirm,
+            });
+            return;
+          }
+
+          handleCancel(selectedRow);
+        }}
       />
+
 
       <LeaveRequestCreateModal
         open={createOpen}

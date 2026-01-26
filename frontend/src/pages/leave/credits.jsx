@@ -9,14 +9,14 @@ import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
 
 function ModalShell({ open, title, onClose, children }) {
-  useEffect(() => {
+  /*useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose]);*/
 
   if (!open) return null;
 
@@ -24,7 +24,6 @@ function ModalShell({ open, title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/20"
-        onClick={onClose}
         aria-hidden="true"
       />
 
@@ -45,7 +44,7 @@ function ModalShell({ open, title, onClose, children }) {
             </button>
           </div>
 
-          <div className="pt-6">{children}</div>
+          <div className="md:pt-6 pt-4">{children}</div>
         </div>
       </div>
     </div>
@@ -62,19 +61,23 @@ function LeaveCreditsDetailsModal({
 }) {
   const [editMode, setEditMode] = useState(false);
   const [draft, setDraft] = useState([]);
+  const [initialCredits, setInitialCredits] = useState([]);
 
   useEffect(() => {
     if (!open) return;
     setEditMode(false);
+
     const items = Array.isArray(details) ? details : [];
-    setDraft(
-      items.map((it) => ({
-        leave_balance_id: it.leave_balance_id,
-        leave_type_name: it.leave_type_name || "Leave",
-        current_balance: it.current_balance ?? 0,
-        used_leave: it.used_leave ?? 0,
-      }))
-    );
+
+    const normalized = items.map((it) => ({
+      leave_balance_id: it.leave_balance_id,
+      leave_type_name: it.leave_type_name || "Leave",
+      current_balance: it.current_balance ?? 0,
+      used_leave: it.used_leave ?? 0,
+    }));
+
+    setDraft(normalized);
+    setInitialCredits(normalized);
   }, [open, details]);
 
   const onChangeCredit = (leaveBalanceId, nextValue) => {
@@ -85,6 +88,20 @@ function LeaveCreditsDetailsModal({
           : d
       )
     );
+  };
+
+  const unsavedChanges = useMemo(() => {
+    if (!editMode) return false;
+
+    return JSON.stringify(draft) !== JSON.stringify(initialCredits);
+  }, [draft, initialCredits, editMode]);
+
+  const handleClose = () => {
+    if (unsavedChanges) {
+      onSave?.("unsaved");
+      return;
+    }
+    onClose();
   };
 
   const leaveTypes = useMemo(() => {
@@ -113,10 +130,10 @@ function LeaveCreditsDetailsModal({
     <ModalShell
       open={open}
       title={`Leave Credits of ${row?.id ?? ""}`}
-      onClose={onClose}
+      onClose={handleClose}
     >
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <div className="md:flex justify-between px-4">
           <div className="flex gap-2">
             <span className="font-semibold">Employee Name:</span>
             <span>{row?.name ?? ""}</span>
@@ -149,7 +166,7 @@ function LeaveCreditsDetailsModal({
                     <input
                       type="number"
                       min={0}
-                      className="border border-gray-300 rounded-md px-3 py-1 text-sm w-28 text-center"
+                      className="border border-[#990100] focus:outline-gray-400 rounded-md px-3 py-1 text-sm w-28 text-center"
                       value={
                         draft.find(
                           (d) => d.leave_balance_id === lt.leave_balance_id
@@ -192,24 +209,22 @@ function LeaveCreditsDetailsModal({
           ))}
         </div>
 
-        <div className="flex items-end justify-between pt-4 text-sm">
-          <div>
-            <span className="font-semibold">Last Updated:</span> 10/20/25
-          </div>
+        <div className="flex items-center justify-end pt-6 text-sm">
+
           {canEdit ? (
             editMode ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
-                  onClick={() => setEditMode(false)}
+                  className="green-button bg-red-700 hover:bg-red-600 shadow-md"
+                  onClick={handleClose}
                 >
-                  Cancel
+                  Cancel Changes
                 </button>
                 <button
                   type="button"
-                  className="green-button shadow-md px-6"
-                  onClick={() => onSave?.(row, draft)}
+                  className="mustard-button shadow-md"
+                  onClick={() => onSave?.(row, draft, () => setEditMode(false))}
                 >
                   Save Changes
                 </button>
@@ -217,7 +232,7 @@ function LeaveCreditsDetailsModal({
             ) : (
               <button
                 type="button"
-                className="green-button shadow-md px-6"
+                className="green-button shadow-md"
                 onClick={() => setEditMode(true)}
               >
                 Update Leave
@@ -226,7 +241,7 @@ function LeaveCreditsDetailsModal({
           ) : (
             <button
               type="button"
-              className="green-button shadow-md px-6"
+              className="green-button bg-red-700 hover:bg-red-600 shadow-md"
               onClick={onClose}
             >
               Close
@@ -651,7 +666,7 @@ export default function LeaveCredits() {
     setReportOpen(false);
   };
 
-  const handleSaveCredits = (employeeRow, draft) => {
+  const handleSaveCredits = (employeeRow, draft, done) => {
     const items = Array.isArray(draft) ? draft : [];
     const safeItems = items
       .filter((d) => d?.leave_balance_id)
@@ -676,6 +691,7 @@ export default function LeaveCredits() {
             });
           }
           await fetchCredits();
+          done?.();
           setDetailsOpen(false);
           openConfirm({
             title: "Success",
@@ -934,7 +950,24 @@ export default function LeaveCredits() {
         }
         onClose={() => setDetailsOpen(false)}
         canEdit={canEdit}
-        onSave={handleSaveCredits}
+        onSave={(rowOrFlag, draft, done) => {
+          if (rowOrFlag === "unsaved") {
+            openConfirm({
+              title: "Unsaved Changes",
+              message: "You have unsaved changes. Do you want to cancel without saving?",
+              confirmText: "OK",
+              cancelText: "Cancel",
+              onConfirm: () => {
+                closeConfirm();
+                setDetailsOpen(false);
+              },
+              onCancel: closeConfirm,
+            });
+            return;
+          }
+
+          handleSaveCredits(rowOrFlag, draft, done);
+        }}
       />
 
       {!isEmployee && (
