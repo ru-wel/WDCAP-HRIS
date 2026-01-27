@@ -124,7 +124,7 @@ function StatusPill({ status }) {
     );
   }
   return (
-    <span className="inline-block bg-[#FFE1A3] text-[#805200] px-6 py-[6px] rounded-xl text-xs font-semibold">
+    <span className="inline-block bg-[#C8C8FF] text-[#0000FF] px-6 py-[6px] rounded-xl text-xs font-semibold">
       {normalized || "PENDING"}
     </span>
   );

@@ -153,7 +153,7 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
       role="dialog"
       aria-modal="true"
       aria-label={title || 'Preview'}
@@ -287,20 +287,20 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
   const formLabel = formDoc?.fileName || 'Evaluation Form';
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/10" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30" />
 
       <div
         ref={ref}
-        className="gc-popover absolute bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col"
-        style={{ width: CARD_W, maxHeight: maxH, left, top }}
+        className="gc-popover relative bg-white rounded-2xl shadow-2xl border border-gray-200 w-[430px] max-w-[90vw] h-auto flex flex-col"
+        style={{ width: CARD_W }}
       >
-        <div className="relative p-3 flex justify-end gap-2 border-b">
+        <div className="p-3 flex justify-end gap-2 border-b border-[#990100]">
           <button className="gc-icon-btn" title="Close" onClick={onClose}>
             ✕
           </button>
         </div>
-        <div className="p-5 overflow-y-auto flex-1" data-lenis-prevent>
+        <div className="p-5 flex-1" data-lenis-prevent>
           <div className="flex items-start gap-3">
             <span className="gc-dot" style={{ background: data.dotColor || '#F59E0B' }} />
             <div>
@@ -404,7 +404,7 @@ function ModalShell({ open, title, onClose, children }) {
             className="text-white text-2xl leading-none hover:opacity-80"
             aria-label="Close"
           >
-            ×
+            ✕
           </button>
         </div>
         <div className="px-10 py-8">{children}</div>
