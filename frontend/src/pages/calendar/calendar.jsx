@@ -92,9 +92,11 @@ function CalendarSidebar({ selectedDate, onPickDate }) {
 
   const myCalendars = useMemo(
     () => [
-      { id: "birthdays", label: "Birthdays", checked: true, color: "#0B8043" },
+      { id: "birthdays", label: "Birthdays", checked: true, color: "#BD2B25" },
       { id: "events", label: "Events", checked: true, color: "#A142F4" },
-      { id: "tasks", label: "Tasks", checked: true, color: "#F29900" },
+      { id: "tasks", label: "Tasks", checked: true, color: "#FAD771" },
+      { id: "evaluation", label: "Evaluation", checked: true, color: "#F59E0B" },
+      { id: "leave", label: "Leave", checked: true, color: "#44688f" },
     ],
     []
   );
@@ -163,7 +165,7 @@ function CalendarSidebar({ selectedDate, onPickDate }) {
           <div className="mt-2">{filterList(myCalendars).map((c) => <CheckboxRow key={c.id} item={c} />)}</div>
         </div>
 
-        <div className="mt-10 px-1 text-[12px] text-gray-500">Terms · Privacy</div>
+        
       </div>
     </div>
   );
@@ -192,7 +194,7 @@ function DateCreateModal({
     : "";
 
   return (
-    <div className="fixed inset-0 z-[60]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <button
         type="button"
         className="absolute inset-0 bg-black/30"
@@ -200,21 +202,21 @@ function DateCreateModal({
         aria-label="Close create modal overlay"
       />
 
-      <div className="absolute left-4 top-4 right-4 sm:right-auto sm:left-6 sm:top-6 w-[min(92vw,620px)]">
-        <div className="rounded-3xl overflow-hidden shadow-2xl border border-gray-200 bg-[#F4F6F8]">
-          <div className="flex items-center justify-between px-4 py-3">
-            <button
+      <div className="relative w-[min(92vw,500px)]">
+        <div className="rounded-3xl overflow-hidden shadow-2xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-end px-4 py-3">
+            {/*<button
               type="button"
               className="w-9 h-9 rounded-full hover:bg-black/5 grid place-items-center"
               aria-label="Menu"
             >
               ☰
-            </button>
+            </button>*/}
 
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-full hover:bg-black/5 grid place-items-center text-lg"
+              className="w-9 h-9 rounded-full bg-[#990100] text-white hover:bg-[#990100]/80 grid place-items-center lg:text-lg"
               aria-label="Close"
             >
               ✕
@@ -226,11 +228,11 @@ function DateCreateModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Add title and time"
-              className="w-full bg-transparent text-3xl sm:text-4xl font-semibold text-gray-800 placeholder:text-gray-500 outline-none border-b-2 border-[#990100] pb-3"
+              className="w-full bg-transparent text-xl font-semibold text-[#990100] placeholder:text-gray-500 outline-none border-b-2 border-[#990100] pb-2"
               autoFocus
             />
 
-            <div className="mt-5 flex items-center gap-2">
+            <div className="mt-3 flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setTab("event")}
@@ -552,7 +554,7 @@ export default function CalendarPage() {
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700"
                 >
-                  Options
+                  Calendar Options
                 </button>
               </div>
             </div>

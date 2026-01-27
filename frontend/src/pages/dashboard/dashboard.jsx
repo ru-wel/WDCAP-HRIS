@@ -425,7 +425,7 @@ function Dashboard() {
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
+                  Events for the Week
                 </h2>
 
                 <div className="px-2">

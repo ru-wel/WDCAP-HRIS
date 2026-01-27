@@ -518,7 +518,7 @@ useEffect(() => {
     openConfirm({
       title: "Discard changes?",
       message:
-        "You have unsaved changes. Do you want to cancel without saving?",
+        "You have unsaved changes. Do you want to close it without saving?",
       confirmText: "OK",
       cancelText: "Cancel",
       onConfirm: doCancel,

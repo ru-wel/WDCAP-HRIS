@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ConfirmModal from "../components/confirm-modal.jsx";
 
 function ModalShell({ open, title, onClose, children }) {
   useEffect(() => {
@@ -81,6 +82,8 @@ export default function ReportModal({
   const [endDate, setEndDate] = useState('');
   const [fileType, setFileType] = useState('XLSX');
   const [category, setCategory] = useState('');
+  const [initialData, setInitialData] = useState(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const normalizedFileTypes = useMemo(() => {
     const incoming = Array.isArray(fileTypes) ? fileTypes : ['XLSX', 'CSV'];
@@ -108,6 +111,29 @@ export default function ReportModal({
       { value: 'custom', label: 'Custom Range' },
     ],
     []
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    setInitialData({
+      preset,
+      startDate,
+      endDate,
+      fileType,
+      category,
+    });
+  }, [open]);
+
+  const data = useMemo(
+    () => ({
+      preset,
+      startDate,
+      endDate,
+      fileType,
+      category,
+    }),
+    [preset, startDate, endDate, fileType, category]
   );
 
   useEffect(() => {
@@ -172,8 +198,19 @@ export default function ReportModal({
   const dd = String(today.getDate()).padStart(2, "0");
   const maxDate = `${yyyy}-${mm}-${dd}`;
 
+  const unsavedChanges = JSON.stringify(data) !== JSON.stringify(initialData);
+
+  const handleClose = () => {
+    if (unsavedChanges) {
+      setShowConfirmClose(true);
+      return;
+    }
+
+    onClose?.();
+  };
+
   return (
-    <ModalShell open={open} title={title || 'Generate Report'} onClose={onClose}>
+    <ModalShell open={open} title={title || 'Generate Report'} onClose={handleClose}>
       <div className="space-y-5 flex justify-center">
         <div className="items-center gap-4 lg:text-sm text-xs">
           {normalizedCategories.length ? (
@@ -258,16 +295,16 @@ export default function ReportModal({
       </div>
 
       <div className="flex justify-end lg:pt-7 pt-5  gap-3">
-          <button
+          {/*<button
             type="button"
             className="bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
             onClick={onClose}
           >
             Cancel
-          </button>
+          </button>*/}
           <button
             type="button"
-            className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
+            className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer disabled:bg-[#198C19]/50 disabled:cursor-default"
             disabled={!canGenerate}
             onClick={() => onGenerate?.({ preset, startDate, endDate, fileType, category })}
           >
@@ -275,6 +312,22 @@ export default function ReportModal({
           </button>
       </div>
 
+      <ConfirmModal
+        open={showConfirmClose}
+        title="Unsaved Changes"
+        message="You have unsaved changes. Do you want to close it without saving?"
+        confirmText="OK"
+        cancelText="Cancel"
+        onCancel={() => setShowConfirmClose(false)}
+        onConfirm={() => {
+          setShowConfirmClose(false);
+          onClose?.();
+        }}
+      />
+
     </ModalShell>
+
+    
+    
   );
 }

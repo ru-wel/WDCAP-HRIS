@@ -954,7 +954,7 @@ export default function LeaveCredits() {
           if (rowOrFlag === "unsaved") {
             openConfirm({
               title: "Unsaved Changes",
-              message: "You have unsaved changes. Do you want to cancel without saving?",
+              message: "You have unsaved changes. Do you want to close it without saving?",
               confirmText: "OK",
               cancelText: "Cancel",
               onConfirm: () => {
