@@ -372,7 +372,7 @@ function ReportsLogs() {
                 <th className="th-style rounded-tl-lg rounded-bl-lg">Date | Time</th>
                 <th className="th-style">Email</th>
                 <th className="th-style">Action</th>
-                <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
+                <th className="th-style rounded-tr-lg rounded-br-lg">
                   Changes
                 </th>
               </tr>
@@ -411,7 +411,7 @@ function ReportsLogs() {
                         {log?.users?.email || "N/A"}
                       </td>
                       <td className="td-style-nobtn">{formatReportAction(log)}</td>
-                      <td className="td-style-nobtn hidden sm:table-cell">
+                      <td className="td-style-nobtn">
                         {getReportName(log)}
                       </td>
                     </tr>

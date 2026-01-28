@@ -399,7 +399,7 @@ function DepartmentsLogs() {
                   <th className="th-style">User</th>
                   <th className="th-style">Department</th>
                   <th className="th-style">Action</th>
-                  <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
+                  <th className="th-style rounded-tr-lg rounded-br-lg">
                     Changes
                   </th>
                 </tr>
@@ -432,7 +432,7 @@ function DepartmentsLogs() {
 
                         <td className="td-style-nobtn">{log.action_type}</td>
 
-                        <td className="td-style-nobtn hidden sm:table-cell">
+                        <td className="td-style-nobtn">
                           {formatDepartmentChanges(log)}
                         </td>
                       </tr>

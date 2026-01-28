@@ -532,7 +532,7 @@ function LeaveLogs() {
                   </th>
                   <th className="th-style">User</th>
                   <th className="th-style">Action</th>
-                  <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
+                  <th className="th-style rounded-tr-lg rounded-br-lg">
                     Changes
                   </th>
                 </tr>
@@ -565,7 +565,7 @@ function LeaveLogs() {
 
                         <td className="td-style-nobtn">{getActionLabel(log)}</td>
 
-                        <td className="td-style-nobtn hidden sm:table-cell">
+                        <td className="td-style-nobtn">
                           {formatLeaveChanges(log)}
                         </td>
                       </tr>

@@ -400,7 +400,7 @@ function UserAccountsLogs() {
                   <th className="th-style">User</th>
                   <th className="th-style">User Account</th>
                   <th className="th-style">Action</th>
-                  <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">
+                  <th className="th-style rounded-tr-lg rounded-br-lg">
                     Changes
                   </th>
                 </tr>
@@ -434,7 +434,7 @@ function UserAccountsLogs() {
                           {formatActionLabel(log.action_type)}
                         </td>
 
-                        <td className="td-style-nobtn hidden sm:table-cell">
+                        <td className="td-style-nobtn">
                           {formatChanges(log.new_values, log.action_type)}
                         </td>
                       </tr>

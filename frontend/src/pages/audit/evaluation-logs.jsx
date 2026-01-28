@@ -479,7 +479,7 @@ function EvaluationLogs() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">Date | Time</th>
                   <th className="th-style">Email</th>
                   <th className="th-style">Action</th>
-                  <th className="th-style hidden sm:table-cell rounded-tr-lg rounded-br-lg">Changes</th>
+                  <th className="th-style rounded-tr-lg rounded-br-lg">Changes</th>
                 </tr>
               </thead>
 
@@ -504,7 +504,7 @@ function EvaluationLogs() {
 
                         <td className="td-style-nobtn">{formatEvalAction(log)}</td>
 
-                        <td className="td-style-nobtn hidden sm:table-cell">{formatEvalChanges(log)}</td>
+                        <td className="td-style-nobtn">{formatEvalChanges(log)}</td>
                       </tr>
                     );
                   })

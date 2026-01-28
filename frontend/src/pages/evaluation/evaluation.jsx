@@ -330,14 +330,14 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+                className="bg-white border border-[#990100] text-[#990100] hover:text-[#990100]/70 rounded-md px-4 py-2 text-sm hover:bg-gray-50 hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() => onReschedule?.(data)}
               >
                 Update Schedule
               </button>
               <button
                 type="button"
-                className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
+                className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
                 onClick={() => onUploadResult?.(data)}
               >
                 {data?.hasResult ? 'Update Result' : 'Upload Result'}
@@ -348,7 +348,7 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
               {formDoc ? (
                 <button
                   type="button"
-                  className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+                  className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50 "
                   onClick={() => onOpenDoc?.(data, 'form', formLabel)}
                 >
                   Form
@@ -396,24 +396,24 @@ function ModalShell({ open, title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
       <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300 overflow-hidden">
-        <div className="bg-[#990100] text-white px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
+        <div className="bg-[#990100] text-white py-2 sm:py-3 px-3 sm:px-4 flex items-center justify-between m-4 rounded-lg">
+          <h2 className="text-white text-sm sm:text-base lg:text-lg font-medium">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-white text-2xl leading-none hover:opacity-80"
+            className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
-        <div className="px-10 py-8">{children}</div>
+        <div className="px-10 py-8 pt-4">{children}</div>
       </div>
     </div>
   );
 }
 
-function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNotify }) {
+function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNotify, openConfirm }) {
   const isUpdate = mode === 'update';
 
   const [employeeId, setEmployeeId] = useState('');
@@ -422,6 +422,42 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // FOR CONFIRMING WHEN SAVING
+
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  
+  const confirmSave = () => {
+    openConfirm({
+      title: 'Confirmation',
+      message: 'Are you sure you want to save these changes?',
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await handleSubmit();
+        setUnsavedChanges(false);
+      },
+    });
+  };
+
+  // FOR UNSAVED CHANGES
+  const handleClose = () => {
+    if (!unsavedChanges) {
+      onClose?.();
+      return;
+    }
+
+    openConfirm({
+      title: 'Unsaved Changes',
+      message: 'You have unsaved changes. Do you want to close it without saving?',
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+      onConfirm: () => {
+        setUnsavedChanges(false);
+        onClose?.();
+      },
+    });
+  };
+  
   useEffect(() => {
     if (!open) return;
     setSaving(false);
@@ -478,15 +514,15 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
   };
 
   return (
-    <ModalShell open={open} title={isUpdate ? 'Update Evaluation Schedule' : 'Schedule Evaluation'} onClose={onClose}>
+    <ModalShell open={open} title={isUpdate ? 'Update Evaluation Schedule' : 'Schedule Evaluation'} onClose={handleClose}>
       <div className="space-y-5 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Employee</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase ">Employee:</label>
             <select
-              className="input-select"
+              className="input-select disabled:text-gray-600"
               value={employeeId}
-              onChange={(e) => setEmployeeId(e.target.value)}
+              onChange={(e) => {setEmployeeId(e.target.value); setUnsavedChanges(true);}}
               disabled={isUpdate}
             >
               {(employees || []).map((e) => (
@@ -499,8 +535,8 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Evaluation Type</label>
-            <select className="input-select" value={evaluationType} onChange={(e) => setEvaluationType(e.target.value)}>
+            <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Evaluation Type:</label>
+            <select className="input-select" value={evaluationType} onChange={(e) => {setEvaluationType(e.target.value); setUnsavedChanges(true);}}>
               <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
               <option value="Probationary">Probationary</option>
             </select>
@@ -508,23 +544,23 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-2">Schedule Date</label>
+          <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Schedule Date:</label>
           <input
             type="date"
             className="input-select"
             value={evaluationDate}
-            onChange={(e) => setEvaluationDate(e.target.value)}
+            onChange={(e) => {setEvaluationDate(e.target.value); setUnsavedChanges(true);}}
           />
         </div>
 
         {!isUpdate ? (
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Notes (optional)</label>
+            <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Notes (optional):</label>
             <textarea
               className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none w-full"
               placeholder="Notes"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={(e) => {setNotes(e.target.value); setUnsavedChanges(true);}}
             />
           </div>
         ) : null}
@@ -532,16 +568,16 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
         <div className="flex justify-end gap-3 pt-2">
           <button
             type="button"
-            className="bg-white border border-gray-300 rounded-md px-5 py-2 text-sm hover:bg-gray-50"
-            onClick={onClose}
+            className="bg-[#990100] text-white rounded-md px-6 py-2 text-sm hover:bg-[#ad3332] disabled:opacity-60 hover:scale-105 transition duration-300"
+            onClick={handleClose}
             disabled={saving}
           >
             Cancel
           </button>
           <button
             type="button"
-            className="bg-[#990100] text-white rounded-md px-6 py-2 text-sm hover:bg-[#ad3332] disabled:opacity-60"
-            onClick={handleSubmit}
+            className="green-button"
+            onClick={confirmSave}
             disabled={!canSubmit || saving}
           >
             {saving ? 'Saving…' : 'Save'}
@@ -551,6 +587,8 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
     </ModalShell>
   );
 }
+
+
 
 export default function Evaluation() {
   const { user } = useAuth();
@@ -585,6 +623,7 @@ export default function Evaluation() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleMode, setScheduleMode] = useState('create');
   const [scheduleInitial, setScheduleInitial] = useState(null);
+  
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -1274,6 +1313,7 @@ export default function Evaluation() {
         onClose={() => setScheduleOpen(false)}
         onSaved={fetchInit}
         onNotify={notify}
+        openConfirm={openConfirm}
       />
 
       <ConfirmModal
