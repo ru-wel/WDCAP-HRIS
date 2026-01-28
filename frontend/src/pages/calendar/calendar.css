@@ -122,8 +122,8 @@
 }
 
 .fc .fc-daygrid-day-frame {
-  padding: 8px;
-  min-height: 115px;
+  padding: 6px;
+  min-height: 140px;
 }
 
 .fc .fc-daygrid-day-number {
@@ -151,40 +151,123 @@
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
+  margin: 0 !important;
 }
 
 .fc .fc-daygrid-event-harness {
-  margin-top: 6px;
+  margin-bottom: 6px;
 }
 
-.fc .fc-event {
-  border-radius: 999px !important;
-  padding: 4px 10px !important;
-  border: none !important;
-  box-shadow: none !important;
+.fc .fc-daygrid-event-harness:first-child {
+  margin-top: 0;
 }
 
-.fc .fc-event-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: #111827 !important;
+.fc .fc-daygrid-event-harness:not(:first-child) {
+  margin-top: 2px;
+}
+
+.gc-event-pill {
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
 }
 
-.fc .fc-event[style*="background-color: rgb(11, 128, 67)"],
-.fc .fc-event[style*="background-color: rgb(26, 115, 232)"],
-.fc .fc-event[style*="background-color: rgb(183, 28, 28)"] {
-  color: #ffffff !important;
+.fc .fc-daygrid-day-top {
+  padding-bottom: 8px;
 }
 
-.fc .fc-event[style*="background-color: rgb(11, 128, 67)"] .fc-event-title,
-.fc .fc-event[style*="background-color: rgb(26, 115, 232)"] .fc-event-title,
-.fc .fc-event[style*="background-color: rgb(183, 28, 28)"] .fc-event-title {
-  color: #ffffff !important;
+.fc .fc-daygrid-day-events {
+  margin-top: 6px !important;
 }
 
+.gc-popover {
+  animation: gcPop 120ms ease-out;
+}
+
+@keyframes gcPop {
+  from {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.gc-icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: #990100;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.gc-icon-cancel {
+  padding: 0px 8px;
+  color: #990100;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.gc-icon-btn:hover {
+  background-color: #ad3332;
+}
+
+.gc-icon-cancel:hover {
+  text-decoration: underline;
+  color: #ad3332;
+}
+
+.gc-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  margin-top: 8px;
+  flex: 0 0 auto;
+}
+
+.gc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gc-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: #f3f4f6;
+  font-size: 14px;
+}
+
+/* Tablet adjustments */
+@media (max-width: 1024px) {
+  .gc-event-pill {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile adjustments */
 @media (max-width: 640px) {
   .fc .fc-toolbar-chunk:nth-child(2) {
     display: flex;
@@ -206,4 +289,64 @@
     min-height: 90px;
     padding: 6px;
   }
+
+  .gc-event-pill {
+    padding: 3px 6px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+}
+
+/* Very small mobile devices */
+@media (max-width: 480px) {
+  .gc-event-pill {
+    padding: 2px 5px;
+    font-size: 9px;
+  }
+}
+
+.fc .fc-daygrid-more-link {
+  color: #990100;
+  font-weight: 600;
+  font-size: 12px;
+  margin-top: 4px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: rgba(153, 1, 0, 0.08);
+}
+
+.fc .fc-daygrid-more-link:hover {
+  background: rgba(153, 1, 0, 0.15);
+  text-decoration: none;
+}
+
+.fc .fc-popover {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.fc .fc-popover-header {
+  background: #fafafa;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  font-weight: 600;
+  color: #374151;
+}
+
+.fc .fc-popover-body {
+  padding: 8px;
+}
+
+.fc .fc-popover-close {
+  color: #6b7280;
+  opacity: 1;
+  font-size: 18px;
+  width: 24px;
+  height: 24px;
+}
+
+.fc .fc-popover-close:hover {
+  color: #990100;
 }

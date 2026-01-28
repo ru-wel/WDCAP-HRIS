@@ -77,3 +77,18 @@ export const ONBOARDING_STATUSES = {
   APPROVED: 'approved',
   REJECTED: 'rejected'
 };
+
+export const EVENT_TYPES = {
+  HOLIDAY: 'holiday',
+  COMPANY_EVENT: 'company_event',
+  MEETING: 'meeting'
+};
+
+export const CALENDAR_EVENT_TYPES = {
+  LEAVE: 'leave',
+  EVALUATION: 'evaluation',
+  BIRTHDAY: 'birthday',
+  EVENT: 'event',
+  PROJECT: 'project',
+  HOLIDAY: 'holiday'
+};
