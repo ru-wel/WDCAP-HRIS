@@ -24,8 +24,9 @@ const app = express();
 app.use(helmet()); // set security headers
 app.use(cors({
   origin: [
-    'http://localhost:5173',                                 // local URL
-    'https://hris-frontend-715830193633.asia-east2.run.app'  // production URL
+    'http://localhost:5173',                                  // local URL
+    'https://hris-frontend-715830193633.asia-east2.run.app',  // production URL
+    'https://acdc-hris.site'                                  // custom domain
   ],
   credentials: true
 }));

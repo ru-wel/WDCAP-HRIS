@@ -1,0 +1,19 @@
+{
+  "hosting": {
+    "public": "dist_proxy",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "hris-frontend",
+          "region": "asia-east2"
+        }
+      }
+    ]
+  }
+}

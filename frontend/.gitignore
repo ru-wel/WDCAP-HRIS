@@ -21,5 +21,7 @@ dist/
 build/
 coverage/
 
+.firebase/
+
 *.md
 *.txt
