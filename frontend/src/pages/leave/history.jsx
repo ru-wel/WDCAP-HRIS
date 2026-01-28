@@ -111,20 +111,20 @@ function StatusPill({ status }) {
   const normalized = String(status || "").toUpperCase();
   if (normalized === "APPROVED") {
     return (
-      <span className="inline-block bg-green-200 text-green-700 px-6 py-[6px] rounded-xl text-xs font-semibold">
+      <span className="inline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold bg-green-200 text-green-700">
         APPROVED
       </span>
     );
   }
   if (normalized === "REJECTED") {
     return (
-      <span className="inline-block bg-red-200 text-red-600 px-6 py-[6px] rounded-xl text-xs font-semibold">
+      <span className="bg-red-200 text-red-600 inline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold">
         REJECTED
       </span>
     );
   }
   return (
-    <span className="inline-block bg-[#C8C8FF] text-[#0000FF] px-6 py-[6px] rounded-xl text-xs font-semibold">
+    <span className=" bg-[#C8C8FF] text-[#0000FF] inline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold">
       {normalized || "PENDING"}
     </span>
   );

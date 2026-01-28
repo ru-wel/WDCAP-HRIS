@@ -561,20 +561,19 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openCon
                         </tbody>
                     </table>
 
-                    <div className="flex items-center justify-end px-3 pt-3 text-xs text-gray-700">
-                        <p>
-                            <b>Last Updated:</b> {data.lastUpdatedDate || data.hireDate} | {data.lastUpdatedTime || '10:00 AM PHT'}
-                        </p>
-                    </div>
-
                     <div className="pt-7">
                         {isProjectBased ? (
                             // if project-based, no update/delete buttons, just a close button
-                            <div className="flex justify-center">
+                            <div className="flex justify-between ">
+                                <div className="flex items-center justify-end px-3 pt-3 text-xs text-gray-700">
+                                    <p>
+                                        <b>Last Updated:</b> {data.lastUpdatedDate || data.hireDate} | {data.lastUpdatedTime || '10:00 AM PHT'}
+                                    </p>
+                                </div>
                                 <button
                                     onClick={onClose}
                                     disabled={loading || Object.values(uploadingFiles).some(uploading => uploading)}
-                                    className='bg-gray-500 lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-gray-600 hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                    className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                 >
                                     Close
                                 </button>
@@ -583,51 +582,70 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openCon
                             // if regular employee, show update/delete workflow
                             <>
                                 {!editData ? (
-                                    <div className="flex justify-center gap-4">
-                                        <button
-                                            onClick={() => setEditData(true)}
-                                            disabled={loading}
-                                            className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                        >
-                                            Update Record
-                                        </button>
-                                        <button
-                                            disabled={loading}
-                                            className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                        >
-                                            Delete Record
-                                        </button>
+                                    <div className="flex justify-between md:flex-row flex-col items-center gap-4">
+
+                                        <div className="flex items-center justify-end px-3 pt-3 text-xs text-gray-700">
+                                            <p>
+                                                <b>Last Updated:</b> {data.lastUpdatedDate || data.hireDate} | {data.lastUpdatedTime || '10:00 AM PHT'}
+                                            </p>
+                                        </div>
+                                        <div className='flex gap-4'>
+                                            <button
+                                                onClick={() => setEditData(true)}
+                                                disabled={loading}
+                                                className='bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                            >
+                                                Update Record
+                                            </button>
+                                            <button
+                                                disabled={loading}
+                                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                            >
+                                                Delete Record
+                                            </button>
+
+                                        </div>
+                                        
                                     </div>
                                 ):(
-                                    <div className="flex justify-center gap-4">
-                                        <button
-                                            className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                            disabled={loading}
-                                            onClick={() => {
-                                                if (unsavedChanges){
-                                                    openLocalConfirm({
-                                                        title: 'Unsaved Changes',
-                                                        message: 'You have unsaved changes. Do you want to discard them?',
-                                                        onConfirmAction: () => {
-                                                            setData(initialData);
-                                                            setEditData(false);
-                                                        }
-                                                    });
-                                                } else {
-                                                    setData(initialData);
-                                                    setEditData(false);
-                                                }
-                                            }}
-                                        >
-                                            Cancel Changes
-                                        </button>
-                                        <button
-                                            onClick={handleSave}
-                                            disabled={loading}
-                                            className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
-                                        >
-                                            {loading ? 'Saving...' : 'Save Changes'}
-                                        </button>
+                                    <div className="flex md:flex-row flex-col justify-between items-center gap-4">
+
+                                        <div className="flex items-center justify-end px-3 pt-3 text-xs text-gray-700">
+                                            <p>
+                                                <b>Last Updated:</b> {data.lastUpdatedDate || data.hireDate} | {data.lastUpdatedTime || '10:00 AM PHT'}
+                                            </p>
+                                        </div>
+
+                                        <div className='flex gap-4'>
+                                            <button
+                                                className='bg-[#C60000] lg:px-5 py-[7px] px-4 py lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                                disabled={loading}
+                                                onClick={() => {
+                                                    if (unsavedChanges){
+                                                        openLocalConfirm({
+                                                            title: 'Unsaved Changes',
+                                                            message: 'You have unsaved changes. Do you want to discard them?',
+                                                            onConfirmAction: () => {
+                                                                setData(initialData);
+                                                                setEditData(false);
+                                                            }
+                                                        });
+                                                    } else {
+                                                        setData(initialData);
+                                                        setEditData(false);
+                                                    }
+                                                }}
+                                            >
+                                                Cancel Changes
+                                            </button>
+                                            <button
+                                                onClick={handleSave}
+                                                disabled={loading}
+                                                className='bg-[#FFA500] lg:px-5 md:py-[7px] px-4 py-[7px] lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
+                                            >
+                                                {loading ? 'Saving...' : 'Save Changes'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </>
@@ -990,7 +1008,6 @@ function OnboardingFiles (){
     
     //REACT-PAGINATE
     
-    
     const endOffset = itemOffset + itemsPerPage;
     const currentLogs = employeesFiles.slice(itemOffset, endOffset);
     const pageCount = Math.ceil(employeesFiles.length / itemsPerPage);
@@ -1075,19 +1092,19 @@ function OnboardingFiles (){
                                         <td className="td-style">
                                             {row.hireDate}
                                         </td>
-                                        <td className= " td-style">
-                                            <p className={` lg:py-[4px] lg:px-2 px-4 py-1 lg:rounded-xl rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</p>
+                                        <td className= "td-style">
+                                            <span className={` inline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold  ${remarks === 'COMPLETE' ? 'text-[#198C19] bg-[#198C19]/25': 'text-[#C60000] bg-[#C60000]/25'}`}>{remarks}</span>
                                         </td>
                                         <td className="td-style">
-                                            <div className="flex gap-2 justify-center">
+                                            <div className="flex md:flex-row flex-col gap-2 justify-center">
                                                 <button
-                                                    className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
+                                                    className="bg-[#990100] text-white lg:text-sm text-xs md:px-4 px-2 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                                     onClick={() => handleOpen(row)}
                                                 >
                                                     View Details
                                                 </button>
                                                 <button
-                                                    className="bg-blue-600 text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-blue-700 hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
+                                                    className="mustard-button text-white lg:text-sm text-xs md:px-4 px-2 py-[5px] rounded-lg  hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                                     onClick={() => handleOpenChecklistConfig(row)}
                                                     title="Configure checklist requirements"
                                                 >

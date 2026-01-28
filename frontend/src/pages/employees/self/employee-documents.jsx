@@ -197,7 +197,7 @@ function MyDocuments() {
 		const config = statusConfig[status] || statusConfig[ONBOARDING_STATUSES.PENDING];
 
 		return (
-			<span className={`inline-block px-4 py-1.5 rounded-full lg:text-sm text-xs font-medium ${config.bg} ${config.text} ${config.border} whitespace-nowrap`}>
+			<span className={`iinline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold ${config.bg} ${config.text} ${config.border} whitespace-nowrap`}>
 				{config.label}
 			</span>
 		);
@@ -267,7 +267,7 @@ function MyDocuments() {
 						<thead className="thead-style">
 							<tr>
 								<th className="th-style rounded-tl-lg rounded-bl-lg">Document Name</th>
-								<th className="th-style">Required</th>
+								<th className="th-style hidden md:table-cell">Required</th>
 								<th className="th-style">Status</th>
 								<th className="th-style">Current File</th>
 								<th className="th-style">Submitted</th>
@@ -295,7 +295,7 @@ function MyDocuments() {
 												)}
 											</div>
 										</td>
-										<td className="td-style">
+										<td className="td-style hidden md:table-cell">
 											<span className={`${item.is_required ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
 												{item.is_required ? 'Required' : 'Optional'}
 											</span>

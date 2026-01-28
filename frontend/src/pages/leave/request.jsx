@@ -1031,7 +1031,7 @@ function LeaveRequest() {
                     <td className="td-style">{row.type}</td>
                     <td className="td-style">{row.date}</td>
                     <td className="td-style">
-                      <span className="inline-block bg-[#FFE1A3] text-[#805200] px-4 py-[6px] rounded-xl text-xs font-semibold">
+                      <span className=" bg-[#FFE1A3] text-[#805200] inline-flex min-w-fit px-3 py-1 whitespace-nowrap rounded-full text-xs font-semibold">
                         {row.status}
                       </span>
                     </td>
