@@ -502,7 +502,7 @@ export default function Leave() {
         <div className="flex flex-col lg:flex-row  justify-between gap-4 mb-4">
         <h1 className="text-2xl lg:text-3xl font-bold text-[#990100] text-left lg:self-center">Leave</h1>
 
-        <div className="flex flex-col md:flex-row gap-3 w-full lg:w-auto items-start md:items-end">
+        <div className="flex items-center justify-end gap-3">
           <div className="relative">
             <button
               type="button"
@@ -523,20 +523,20 @@ export default function Leave() {
             </button>
           </div>
 
-          <div className="relative flex items-center border border-[#990100] rounded-lg h-10 w-full md:w-56">
-            <input
-              type="search"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-full w-full px-3 pr-8 rounded-lg text-sm focus:outline-none"
-            />
-            <img
-              src="/icons/red-search.png"
-              alt="search"
-              className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2"
-            />
-          </div>
+          <div className="relative border border-[#990100] rounded-lg">
+              <input
+                type="search"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-9 px-3 pr-8 rounded-lg text-sm focus:outline-none"
+              />
+              <img
+                src="/icons/red-search.png"
+                alt="search"
+                className="w-4 h-4 absolute right-2 top-2.5"
+              />
+            </div>
         </div>
           {filtersOpen ? (
             <div className="fixed inset-0 z-50 flex items-center justify-center px-4">

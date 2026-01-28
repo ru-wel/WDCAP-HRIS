@@ -266,7 +266,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
           </div>
 
           <div className="pt-6 overflow-auto flex-1 min-h-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 text-sm">
               <div className="flex gap-2"><span className="font-semibold">Employee Name:</span><span>{employeeName}</span></div>
               <div className="flex gap-2"><span className="font-semibold">Position:</span><span>{position}</span></div>
               <div className="flex gap-2"><span className="font-semibold">Personnel Type:</span><span>{personnelType}</span></div>
@@ -279,8 +279,8 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
               {loading ? (
                 <div className="text-sm text-gray-600">Loading evaluations…</div>
               ) : (
-                <div className="div-table mt-0">
-                  <table className="table-style" style={{ minWidth: 'min(900px, 100%)' }}>
+                <div className="div-table overflow-x-auto -mx-4 sm:mx-0 mt-0">
+                  <table className="table-style" >
                     <thead className="thead-style">
                       <tr>
                         <th className="th-style rounded-tl-lg rounded-bl-lg">Evaluation Type</th>
@@ -342,7 +342,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                               </td>
                               <td className="td-style">
                                 {canUpdate ? (
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex md:flex-row flex-col items-center gap-2">
                                     {formDoc ? (
                                       <button
                                         type="button"
@@ -388,7 +388,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                   <span className="font-semibold">Last Updated:</span> {lastUpdated || '—'}
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/*<div className="flex items-center gap-2">
                   <button
                     type="button"
                     className="bg-[#990100] text-white px-4 py-2 rounded-md text-sm hover:bg-[#ad3332] transition disabled:opacity-60"
@@ -397,7 +397,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                   >
                     Generate Report
                   </button>
-                </div>
+                </div>*/}
               </div>
             </div>
           </div>
@@ -684,6 +684,7 @@ export default function EvaluationHistory() {
     setDetailsEvals([]);
   };
 
+
   const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
     const stamp = new Date().toISOString().slice(0, 10);
     const isCsv = fileType === 'CSV';
@@ -691,7 +692,7 @@ export default function EvaluationHistory() {
     if (reportMode === 'employees') {
       const employeesRows = Array.isArray(visible) ? visible : [];
       const rowsForExport = (startDate || endDate)
-        ? filterRowsByDateRange(employeesRows, (r) => r?.created_at || r?.updated_at, startDate, endDate)
+        ? filterRowsByDateRange(employeesRows, (r) =>r?.hireDateRaw, startDate, endDate)
         : employeesRows;
 
       const filename = `evaluation-employees-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
@@ -882,17 +883,11 @@ export default function EvaluationHistory() {
   
   return (
     <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-      <div className="flex justify-between items-center w-full">
-        <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">Evaluation History</h1>
+      <div className="flex flex-col lg:flex-row  justify-between gap-4 mb-4">
+        <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Evaluation History</h1>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="generate-report-button"
-            onClick={handleTopGenerateReportClick}
-          >
-            Generate Report
-          </button>
+        <div className="flex items-center justify-end gap-3">
+          
 
           <div className="relative">
             <button
@@ -983,6 +978,17 @@ export default function EvaluationHistory() {
       </div>
 
       <hr className="text-[#990100] mt-6" />
+      <div className="flex justify-end mt-5">
+        <button
+          type="button"
+          className="generate-report-button"
+          onClick={handleTopGenerateReportClick}
+        >
+          Generate Report
+        </button>
+      </div>
+
+      
 
       <div className="mt-6">
         {loading ? (
@@ -990,7 +996,7 @@ export default function EvaluationHistory() {
         ) : error ? (
           <div className="text-sm text-red-700">{error}</div>
         ) : (
-          <div className="div-table">
+          <div className="div-table overflow-x-auto -mx-4 sm:mx-0">
             <table className="table-style">
               <thead className="thead-style">
                 <tr>
@@ -1020,7 +1026,7 @@ export default function EvaluationHistory() {
                       <td className="td-style">
                         <button
                           type="button"
-                          className="bg-[#ad3332] text-white px-3 py-1 rounded-md text-xs hover:bg-[#990100] transition"
+                          className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                           onClick={() => openDetails(r)}
                         >
                           View Details

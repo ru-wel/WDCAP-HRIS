@@ -658,7 +658,7 @@ export default function EvaluationUpload() {
     );
   };
 
-  const handleSave = async () => {
+  const trySaving = async () => {
     if (!evaluationId) {
       openInfo({
         title: 'Error',
@@ -770,6 +770,20 @@ export default function EvaluationUpload() {
     });
   };
 
+  const handleSave = () => {
+    if (saving) return;
+
+    openConfirm({
+      title: 'Confirmation',
+      message: 'Are you sure you want to save the Evaluation?',
+      confirmText: 'OK',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        await trySaving();
+      },
+    });
+  };
+
   const scoreFilled = Boolean(String(score || '').trim());
   const remarksFilled = Boolean(String(remarks || '').trim());
   const breakdownFilled = Boolean(breakdownFile || currentDocs?.breakdown?.fileName);
@@ -788,16 +802,20 @@ export default function EvaluationUpload() {
 
   return (
     <div className="p-7 lg:mx-[4.5rem] md:mx-10">
-      <div className="flex items-center justify-between">
+      <div className="lg:flex items-center justify-between">
         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">Evaluation - Upload Result</h1>
 
-        <button
-          type="button"
-          onClick={() => navigate('/evaluation/history')}
-          className="text-sm font-medium text-[#990100] hover:underline"
-        >
-          Back to Evaluation History
-        </button>
+        <div className='flex justify-end'>
+          <button
+            type="button"
+            onClick={() => navigate('/evaluation/history')}
+            className="text-sm font-medium text-[#990100] hover:underline"
+          >
+            Back to Evaluation History
+          </button>
+        </div>
+
+        
       </div>
 
       <hr className="text-[#990100] mt-6" />
@@ -808,7 +826,9 @@ export default function EvaluationUpload() {
         ) : error ? (
           <div className="text-sm text-red-700">{error}</div>
         ) : (
-          <div className="bg-white border border-gray-300 rounded-lg shadow-lg p-6 max-w-4xl">
+          <div className='flex justify-center'>
+          <div className="w-full max-w-4xl bg-white border border-gray-300 rounded-lg shadow-lg p-6">
+            
             <div className="bg-[#990100] text-white rounded-lg px-5 py-3">
               <h2 className="text-lg font-semibold">Upload Result</h2>
             </div>
@@ -1063,6 +1083,7 @@ export default function EvaluationUpload() {
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
+          </div>
           </div>
         )}
       </div>
