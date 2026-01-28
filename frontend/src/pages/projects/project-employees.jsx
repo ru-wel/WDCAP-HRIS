@@ -604,8 +604,9 @@ const applyDraftFilters = () => {
 
   if (loading) {
     return (
-      <div>
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading Employees...</p>
         </div>
       </div>
@@ -848,9 +849,12 @@ const applyDraftFilters = () => {
         </div>
 
         {loading && (
-          <div className="flex justify-center items-center py-20">
-            <p className="text-gray-600">Loading employees...</p>
+         <div className="flex min-h-screen items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading Employees...</p>
           </div>
+        </div>
         )}
 
         {error && (
