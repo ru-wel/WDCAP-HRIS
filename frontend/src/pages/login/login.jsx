@@ -158,9 +158,9 @@ function Login(){
 
                 {/* RIGHT SIDE */}
 
-                <div className="lg:basis-8/15 md:bg-[#EDEDED] flex items-center justify-center md:min-h-screen md:basis-3/7 lg:order-2 md:order-2 order-1 w-full px-6 py-10">
+                <div className="lg:basis-8/15 md:bg-[#EDEDED] flex items-center justify-center md:min-h-screen md:basis-3/7 lg:order-2 md:order-2 order-1 w-full pt-10">
 
-                    <img className = "lg:w-[400px] lg:h-[300px] md:w-[300px] md:h-[200px] w-[150px] h-[100px] md:mt-0 md:mb-0 mt-20 mb-15" src="arise-logo-login-clear-bg.png" alt="Arise Logo" />
+                    <img className = "lg:w-[400px] lg:h-[300px] md:w-[300px] md:h-[200px] w-[150px] h-[100px]" src="arise-logo-login-clear-bg.png" alt="Arise Logo" />
                 </div>
 
                 {/* LEFT SIDE */}
