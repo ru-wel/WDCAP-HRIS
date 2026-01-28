@@ -213,9 +213,15 @@ const statusTitle = (status) => {
   return 'Leave Request';
 };
 
-const statusSubject = (status) => {
+const statusSubject = (status, employeeName = null) => {
   const normalized = normalizeLeaveStatusLabel(status);
   const label = normalized.charAt(0) + normalized.slice(1).toLowerCase();
+
+  // include employee name in subject line for HR notifs
+  if (employeeName) {
+    return `WDCAP HRIS — Leave Request from ${employeeName} — ${label}`;
+  }
+
   return `WDCAP HRIS — Leave Request — ${label}`;
 };
 
@@ -642,74 +648,33 @@ export const createLeaveRequest = async (payload, user) => {
 
     logger.info(`Leave request created: ${created.leave_request_id} by user ${user.email}`);
 
-    // Email notification (best-effort)
-    try {
-      const override = String(process.env.LEAVE_NOTIFICATION_EMAILS || '').trim();
-      const overrideList = override
-        ? override.split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
+    (async () => {
+      try {
+        const override = String(process.env.LEAVE_NOTIFICATION_EMAILS || '').trim();
+        const overrideList = override
+          ? override.split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
 
-      let to = overrideList;
-      if (!to.length) {
-        const { data: recipients } = await supabase
-          .from('users')
-          .select('email, role')
-          .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
-        to = (recipients || []).map((r) => r.email).filter(Boolean);
-      }
+        let to = overrideList;
+        if (!to.length) {
+          const { data: recipients } = await supabase
+            .from('users')
+            .select('email, role')
+            .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
+          to = (recipients || []).map((r) => r.email).filter(Boolean);
+        }
 
-      const body = toUiLeaveRow(created);
+        const body = toUiLeaveRow(created);
 
-      const effectiveDate = new Date().toISOString();
+        const effectiveDate = new Date().toISOString();
 
-      const logoAttachment = await getEmailLogoAttachment();
-      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+        const logoAttachment = await getEmailLogoAttachment();
+        const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
 
-      const html = buildLeaveEmailHtml({
-        title: statusTitle(body.status),
-        message: 'A new leave request has been submitted for your review.',
-        recipientName: 'HR Team',
-        date: effectiveDate,
-        logoSrc,
-        details: [
-          { label: 'Employee', value: body.employee_name },
-          { label: 'Type', value: body.leave_type_name },
-          { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
-          { label: 'Reason', value: body.reason || '—' }
-        ],
-        status: body.status
-      });
-
-      const adminSendResult = await sendEmail({
-        to,
-        subject: statusSubject(body.status),
-        text: [
-          'A new leave request was submitted.',
-          '',
-          `Employee: ${body.employee_name}`,
-          `Type: ${body.leave_type_name}`,
-          `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
-          `Reason: ${body.reason || ''}`,
-          `Status: ${normalizeLeaveStatusLabel(body.status)}`
-        ].join('\n'),
-        html,
-        attachments: logoAttachment ? [logoAttachment] : undefined
-      });
-
-      if (adminSendResult?.skipped) {
-        logger.warn('Leave create email notification skipped (SMTP not configured or no recipients).');
-      } else if (adminSendResult?.error) {
-        logger.warn(`Leave create email notification returned error: ${adminSendResult.error}`);
-      }
-
-      // Confirmation email to the employee who filed the request.
-      // (Previously we only emailed HR/Admin; employees often expect an acknowledgement.)
-      const employeeEmail = String(user?.email || '').trim();
-      if (employeeEmail) {
-        const employeeHtml = buildLeaveEmailHtml({
+        const html = buildLeaveEmailHtml({
           title: statusTitle(body.status),
-          message: leaveStatusEmailCopy(body.status),
-          recipientName: getFirstName(body.employee_name) || body.employee_name,
+          message: 'A new leave request has been submitted for your review.',
+          recipientName: 'HR Team',
           date: effectiveDate,
           logoSrc,
           details: [
@@ -721,11 +686,11 @@ export const createLeaveRequest = async (payload, user) => {
           status: body.status
         });
 
-        const employeeSendResult = await sendEmail({
-          to: [employeeEmail],
-          subject: statusSubject(body.status),
+        const adminSendResult = await sendEmail({
+          to,
+          subject: statusSubject(body.status, body.employee_name),
           text: [
-            leaveStatusEmailCopy(body.status),
+            'A new leave request was submitted.',
             '',
             `Employee: ${body.employee_name}`,
             `Type: ${body.leave_type_name}`,
@@ -733,19 +698,62 @@ export const createLeaveRequest = async (payload, user) => {
             `Reason: ${body.reason || ''}`,
             `Status: ${normalizeLeaveStatusLabel(body.status)}`
           ].join('\n'),
-          html: employeeHtml,
+          html,
           attachments: logoAttachment ? [logoAttachment] : undefined
         });
 
-        if (employeeSendResult?.skipped) {
-          logger.warn('Leave employee confirmation email skipped (SMTP not configured).');
-        } else if (employeeSendResult?.error) {
-          logger.warn(`Leave employee confirmation email returned error: ${employeeSendResult.error}`);
+        if (adminSendResult?.skipped) {
+          logger.warn('Leave create email notification skipped (SMTP not configured or no recipients).');
+        } else if (adminSendResult?.error) {
+          logger.warn(`Leave create email notification returned error: ${adminSendResult.error}`);
         }
+
+        // confirmation email to the employee who filed the request
+        const employeeEmail = String(user?.email || '').trim();
+        if (employeeEmail) {
+          const employeeHtml = buildLeaveEmailHtml({
+            title: statusTitle(body.status),
+            message: leaveStatusEmailCopy(body.status),
+            recipientName: getFirstName(body.employee_name) || body.employee_name,
+            date: effectiveDate,
+            logoSrc,
+            details: [
+              { label: 'Employee', value: body.employee_name },
+              { label: 'Type', value: body.leave_type_name },
+              { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
+              { label: 'Reason', value: body.reason || '—' }
+            ],
+            status: body.status
+          });
+
+          const employeeSendResult = await sendEmail({
+            to: [employeeEmail],
+            subject: statusSubject(body.status),
+            text: [
+              leaveStatusEmailCopy(body.status),
+              '',
+              `Employee: ${body.employee_name}`,
+              `Type: ${body.leave_type_name}`,
+              `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
+              `Reason: ${body.reason || ''}`,
+              `Status: ${normalizeLeaveStatusLabel(body.status)}`
+            ].join('\n'),
+            html: employeeHtml,
+            attachments: logoAttachment ? [logoAttachment] : undefined
+          });
+
+          if (employeeSendResult?.skipped) {
+            logger.warn('Leave employee confirmation email skipped (SMTP not configured).');
+          } else if (employeeSendResult?.error) {
+            logger.warn(`Leave employee confirmation email returned error: ${employeeSendResult.error}`);
+          }
+        }
+      } catch (mailErr) {
+        logger.warn('Leave create email notification failed:', mailErr);
       }
-    } catch (mailErr) {
-      logger.warn('Leave create email notification failed:', mailErr);
-    }
+    })().catch(err => {
+      logger.error('Async email notification error:', err);
+    });
 
     return toUiLeaveRow(created);
   } catch (error) {
@@ -835,56 +843,59 @@ export const updateLeaveRequestStatus = async (leaveRequestId, { status, reason 
 
     logger.info(`Leave request status updated: ${leaveRequestId} => ${normalizedStatus} by ${user.email}`);
 
-    // Email notification to employee (best-effort)
-    try {
-      const { data: employeeUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('employee_id', existing.employee_id)
-        .single();
+    (async () => {
+      try {
+        const { data: employeeUser } = await supabase
+          .from('users')
+          .select('email')
+          .eq('employee_id', existing.employee_id)
+          .single();
 
-      const to = employeeUser?.email ? [employeeUser.email] : [];
-      const body = toUiLeaveRow(updated);
+        const to = employeeUser?.email ? [employeeUser.email] : [];
+        const body = toUiLeaveRow(updated);
 
-      const remarks = typeof reason === 'string' ? reason.trim() : '';
-      const effectiveDate = new Date().toISOString();
+        const remarks = typeof reason === 'string' ? reason.trim() : '';
+        const effectiveDate = new Date().toISOString();
 
-      const logoAttachment = await getEmailLogoAttachment();
-      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+        const logoAttachment = await getEmailLogoAttachment();
+        const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
 
-      const html = buildLeaveEmailHtml({
-        title: statusTitle(body.status),
-        message: leaveStatusEmailCopy(body.status),
-        recipientName: getFirstName(body.employee_name) || body.employee_name,
-        date: effectiveDate,
-        logoSrc,
-        details: [
-          { label: 'Employee', value: body.employee_name },
-          { label: 'Type', value: body.leave_type_name },
-          { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
-          ...(remarks ? [{ label: 'Remarks', value: remarks }] : [])
-        ],
-        status: body.status
-      });
+        const html = buildLeaveEmailHtml({
+          title: statusTitle(body.status),
+          message: leaveStatusEmailCopy(body.status),
+          recipientName: getFirstName(body.employee_name) || body.employee_name,
+          date: effectiveDate,
+          logoSrc,
+          details: [
+            { label: 'Employee', value: body.employee_name },
+            { label: 'Type', value: body.leave_type_name },
+            { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
+            ...(remarks ? [{ label: 'Remarks', value: remarks }] : [])
+          ],
+          status: body.status
+        });
 
-      await sendEmail({
-        to,
-        subject: statusSubject(body.status),
-        text: [
-          leaveStatusEmailCopy(body.status),
-          '',
-          `Employee: ${body.employee_name}`,
-          `Type: ${body.leave_type_name}`,
-          `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
-          `Status: ${normalizeLeaveStatusLabel(body.status)}`,
-          reason ? `Remarks: ${reason}` : null
-        ].filter(Boolean).join('\n'),
-        html,
-        attachments: logoAttachment ? [logoAttachment] : undefined
-      });
-    } catch (mailErr) {
-      logger.warn('Leave status email notification failed:', mailErr);
-    }
+        await sendEmail({
+          to,
+          subject: statusSubject(body.status),
+          text: [
+            leaveStatusEmailCopy(body.status),
+            '',
+            `Employee: ${body.employee_name}`,
+            `Type: ${body.leave_type_name}`,
+            `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
+            `Status: ${normalizeLeaveStatusLabel(body.status)}`,
+            reason ? `Remarks: ${reason}` : null
+          ].filter(Boolean).join('\n'),
+          html,
+          attachments: logoAttachment ? [logoAttachment] : undefined
+        });
+      } catch (mailErr) {
+        logger.warn('Leave status email notification failed:', mailErr);
+      }
+    })().catch(err => {
+      logger.error('Async email notification error:', err);
+    });
 
     return toUiLeaveRow(updated);
   } catch (error) {
@@ -941,106 +952,109 @@ export const cancelLeaveRequest = async (leaveRequestId, user) => {
       timestamp
     });
 
-    // Email notifications (best-effort)
-    try {
-      const body = toUiLeaveRow(updated);
-      const effectiveDate = new Date().toISOString();
+    (async () => {
+      try {
+        const body = toUiLeaveRow(updated);
+        const effectiveDate = new Date().toISOString();
 
-      const override = String(process.env.LEAVE_NOTIFICATION_EMAILS || '').trim();
-      const overrideList = override
-        ? override.split(',').map((s) => s.trim()).filter(Boolean)
-        : [];
+        const override = String(process.env.LEAVE_NOTIFICATION_EMAILS || '').trim();
+        const overrideList = override
+          ? override.split(',').map((s) => s.trim()).filter(Boolean)
+          : [];
 
-      // Notify HR/Admin
-      let toHr = overrideList;
-      if (!toHr.length) {
-        const { data: recipients } = await supabase
+        // notify HR/Admin
+        let toHr = overrideList;
+        if (!toHr.length) {
+          const { data: recipients } = await supabase
+            .from('users')
+            .select('email, role')
+            .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
+          toHr = (recipients || []).map((r) => r.email).filter(Boolean);
+        }
+
+        if (toHr.length) {
+          const logoAttachment = await getEmailLogoAttachment();
+          const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
+          const htmlHr = buildLeaveEmailHtml({
+            title: statusTitle(body.status),
+            message: 'A leave request has been cancelled.',
+            recipientName: 'HR Team',
+            date: effectiveDate,
+            logoSrc,
+            details: [
+              { label: 'Employee', value: body.employee_name },
+              { label: 'Type', value: body.leave_type_name },
+              { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
+              { label: 'Reason', value: body.reason || '—' }
+            ],
+            status: body.status
+          });
+
+          await sendEmail({
+            to: toHr,
+            subject: statusSubject(body.status, body.employee_name),
+            text: [
+              'A leave request has been cancelled.',
+              '',
+              `Employee: ${body.employee_name}`,
+              `Type: ${body.leave_type_name}`,
+              `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
+              `Reason: ${body.reason || ''}`,
+              `Status: ${normalizeLeaveStatusLabel(body.status)}`
+            ].join('\n'),
+            html: htmlHr,
+            attachments: logoAttachment ? [logoAttachment] : undefined
+          });
+        }
+
+        // notify employee (confirmation)
+        const { data: employeeUser } = await supabase
           .from('users')
-          .select('email, role')
-          .in('role', [ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]);
-        toHr = (recipients || []).map((r) => r.email).filter(Boolean);
+          .select('email')
+          .eq('employee_id', existing.employee_id)
+          .single();
+
+        const toEmployee = employeeUser?.email ? [employeeUser.email] : [];
+        if (toEmployee.length) {
+          const logoAttachment = await getEmailLogoAttachment();
+          const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
+          const htmlEmp = buildLeaveEmailHtml({
+            title: statusTitle(body.status),
+            message: leaveStatusEmailCopy(body.status),
+            recipientName: getFirstName(body.employee_name) || body.employee_name,
+            date: effectiveDate,
+            logoSrc,
+            details: [
+              { label: 'Employee', value: body.employee_name },
+              { label: 'Type', value: body.leave_type_name },
+              { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` }
+            ],
+            status: body.status
+          });
+
+          await sendEmail({
+            to: toEmployee,
+            subject: statusSubject(body.status),
+            text: [
+              leaveStatusEmailCopy(body.status),
+              '',
+              `Employee: ${body.employee_name}`,
+              `Type: ${body.leave_type_name}`,
+              `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
+              `Status: ${normalizeLeaveStatusLabel(body.status)}`
+            ].join('\n'),
+            html: htmlEmp,
+            attachments: logoAttachment ? [logoAttachment] : undefined
+          });
+        }
+      } catch (mailErr) {
+        logger.warn('Leave cancel email notification failed:', mailErr);
       }
-
-      if (toHr.length) {
-        const logoAttachment = await getEmailLogoAttachment();
-        const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
-
-        const htmlHr = buildLeaveEmailHtml({
-          title: statusTitle(body.status),
-          message: 'A leave request has been cancelled.',
-          recipientName: 'HR Team',
-          date: effectiveDate,
-          logoSrc,
-          details: [
-            { label: 'Employee', value: body.employee_name },
-            { label: 'Type', value: body.leave_type_name },
-            { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
-            { label: 'Reason', value: body.reason || '—' }
-          ],
-          status: body.status
-        });
-
-        await sendEmail({
-          to: toHr,
-          subject: statusSubject(body.status),
-          text: [
-            'A leave request has been cancelled.',
-            '',
-            `Employee: ${body.employee_name}`,
-            `Type: ${body.leave_type_name}`,
-            `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
-            `Reason: ${body.reason || ''}`,
-            `Status: ${normalizeLeaveStatusLabel(body.status)}`
-          ].join('\n'),
-          html: htmlHr,
-          attachments: logoAttachment ? [logoAttachment] : undefined
-        });
-      }
-
-      // Notify employee (confirmation)
-      const { data: employeeUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('employee_id', existing.employee_id)
-        .single();
-
-      const toEmployee = employeeUser?.email ? [employeeUser.email] : [];
-      if (toEmployee.length) {
-        const logoAttachment = await getEmailLogoAttachment();
-        const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
-
-        const htmlEmp = buildLeaveEmailHtml({
-          title: statusTitle(body.status),
-          message: leaveStatusEmailCopy(body.status),
-          recipientName: getFirstName(body.employee_name) || body.employee_name,
-          date: effectiveDate,
-          logoSrc,
-          details: [
-            { label: 'Employee', value: body.employee_name },
-            { label: 'Type', value: body.leave_type_name },
-            { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` }
-          ],
-          status: body.status
-        });
-
-        await sendEmail({
-          to: toEmployee,
-          subject: statusSubject(body.status),
-          text: [
-            leaveStatusEmailCopy(body.status),
-            '',
-            `Employee: ${body.employee_name}`,
-            `Type: ${body.leave_type_name}`,
-            `Dates: ${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}`,
-            `Status: ${normalizeLeaveStatusLabel(body.status)}`
-          ].join('\n'),
-          html: htmlEmp,
-          attachments: logoAttachment ? [logoAttachment] : undefined
-        });
-      }
-    } catch (mailErr) {
-      logger.warn('Leave cancel email notification failed:', mailErr);
-    }
+    })().catch(err => {
+      logger.error('Async email notification error:', err);
+    });
 
     return toUiLeaveRow(updated);
   } catch (error) {

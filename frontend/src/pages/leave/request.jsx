@@ -877,15 +877,13 @@ function LeaveRequest() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
-            {isEmployee && (
-              <button
-                type="button"
-                className="bg-[#990100] text-white text-sm px-4 py-[7px] rounded-lg hover:bg-[#ad3332] transition duration-300 ease-in-out"
-                onClick={() => setCreateOpen(true)}
-              >
-                Request Leave
-              </button>
-            )}
+            <button
+              type="button"
+              className="bg-[#990100] text-white text-sm px-4 py-[7px] rounded-lg hover:bg-[#ad3332] transition duration-300 ease-in-out"
+              onClick={() => setCreateOpen(true)}
+            >
+              Request Leave
+            </button>
 
             <div className="relative">
               <button

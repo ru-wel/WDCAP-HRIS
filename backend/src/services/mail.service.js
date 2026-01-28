@@ -43,7 +43,24 @@ let cachedTransport = null;
 
 const getTransport = () => {
   const cfg = getSmtpConfig();
-  if (!isConfigured(cfg)) return null;
+  if (!isConfigured(cfg)) {
+    logger.warn('SMTP configuration check failed:', {
+      host: cfg.host ? 'SET' : 'MISSING',
+      port: cfg.port ? 'SET' : 'MISSING',
+      user: cfg.user ? 'SET' : 'MISSING',
+      pass: cfg.pass ? 'SET' : 'MISSING',
+      from: cfg.from ? 'SET' : 'MISSING'
+    });
+    return null;
+  }
+
+  logger.info('SMTP configured successfully:', {
+    host: cfg.host,
+    port: cfg.port,
+    user: cfg.user,
+    from: cfg.from,
+    secure: cfg.secure
+  });
 
   if (cachedTransport) return cachedTransport;
 
