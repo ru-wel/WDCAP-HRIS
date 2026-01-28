@@ -3,9 +3,27 @@ import { useNavigate } from "react-router-dom";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import "../../assets/styles/calendar.css";
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
 import { get } from "../../services/api.js";
+
+const PROJECT_STATUS_COLORS = {
+  Active: "#22c55e",
+  Completed: "#2563eb",
+  "On Hold": "#f59e0b",
+};
 
 function StatCard({ title, icon, value, onClick }) {
   return (
@@ -97,9 +115,11 @@ const normalizeSummary = (payload) => {
         employee_id: r.employee_id,
         employee_code: typeof r.employee_code === "string" ? r.employee_code : "",
         employee_name: typeof r.employee_name === "string" ? r.employee_name : "",
-        position_title: typeof r.position_title === "string" ? r.position_title : "",
+        position_title:
+          typeof r.position_title === "string" ? r.position_title : "",
         evaluation_date: r.evaluation_date,
-        evaluation_type: typeof r.evaluation_type === "string" ? r.evaluation_type : "",
+        evaluation_type:
+          typeof r.evaluation_type === "string" ? r.evaluation_type : "",
       })),
     recentAuditLogs: recentAuditLogs
       .filter((r) => r && typeof r === "object")
@@ -128,20 +148,31 @@ const normalizeSummary = (payload) => {
         targetEmployee:
           r.target_employee && typeof r.target_employee === "object"
             ? {
-                id: typeof r.target_employee.id === "string" ? r.target_employee.id : null,
+                id:
+                  typeof r.target_employee.id === "string"
+                    ? r.target_employee.id
+                    : null,
                 employeeCode:
                   typeof r.target_employee.employee_code === "string"
                     ? r.target_employee.employee_code
                     : null,
                 name:
-                  typeof r.target_employee.name === "string" ? r.target_employee.name : null,
+                  typeof r.target_employee.name === "string"
+                    ? r.target_employee.name
+                    : null,
               }
             : null,
         targetProject:
           r.target_project && typeof r.target_project === "object"
             ? {
-                id: typeof r.target_project.id === "string" ? r.target_project.id : null,
-                name: typeof r.target_project.name === "string" ? r.target_project.name : null,
+                id:
+                  typeof r.target_project.id === "string"
+                    ? r.target_project.id
+                    : null,
+                name:
+                  typeof r.target_project.name === "string"
+                    ? r.target_project.name
+                    : null,
               }
             : null,
         user: {
@@ -152,15 +183,255 @@ const normalizeSummary = (payload) => {
   };
 };
 
-const formatShortDate = (value) => {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
+const toTitleCase = (input) =>
+  String(input || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+
+const humanizeAuditEntity = (tableName) => {
+  const t = String(tableName || "").trim().toLowerCase();
+  if (!t) return "";
+  const map = {
+    employees: "Employee",
+    users: "User Account",
+    departments: "Department",
+    positions: "Position",
+    projects: "Project",
+    project_assignments: "Project Assignment",
+    leave_requests: "Leave Request",
+    leave_types: "Leave Type",
+    employee_leave_balances: "Leave Credits",
+    onboarding_checklists: "201 File",
+    onboarding_items: "Onboarding Item",
+    documents: "201 File",
+    reports: "Report",
+    evaluation: "Evaluation",
+    performance_evaluations: "Evaluation",
+  };
+  if (map[t]) return map[t];
+  const cleaned = t.replace(/_/g, " ");
+  return toTitleCase(cleaned);
+};
+
+const pickAuditTarget = (row) => {
+  const table = String(row?.table_name || "").trim().toLowerCase();
+  const preferred =
+    row?.new_values && typeof row.new_values === "object" ? row.new_values : null;
+  const fallback =
+    row?.old_values && typeof row.old_values === "object" ? row.old_values : null;
+  const v = preferred || fallback || {};
+
+  const targetEmployeeLabel = (() => {
+    const name = String(row?.targetEmployee?.name || "").trim();
+    const code = String(row?.targetEmployee?.employeeCode || "").trim();
+    if (name && code) return `${name} (${code})`;
+    if (name) return name;
+    if (code) return code;
+    return "";
+  })();
+
+  if (table === "employees") {
+    const empId = String(v.employee_id || v.employee_code || "").trim();
+    if (empId) return empId;
+    const fn = String(v.first_name || "").trim();
+    const ln = String(v.last_name || "").trim();
+    const full = `${fn} ${ln}`.trim();
+    if (full) return full;
+  }
+  if (table === "users") {
+    const email = String(v.email || "").trim();
+    if (email) return email;
+  }
+  if (table === "departments") {
+    const name = String(v.department_name || v.name || "").trim();
+    if (name) return name;
+  }
+  if (table === "projects") {
+    const name = String(v.project_name || v.name || "").trim();
+    if (name) return name;
+  }
+  if (table === "leave_requests") {
+    const id = String(v.leave_request_id || v.id || "").trim();
+    const shortId = id && /^[0-9a-f-]{20,}$/i.test(id) ? id.slice(0, 8) : id;
+    const who = String(
+      targetEmployeeLabel ||
+        v.employee_name ||
+        v.name ||
+        (v.employees
+          ? `${String(v.employees?.first_name || "").trim()} ${String(
+              v.employees?.last_name || ""
+            ).trim()}`.trim()
+          : "") ||
+        v.employee_id ||
+        ""
+    ).trim();
+    const type = String(v.leave_type_name || v.type || "").trim();
+    const label = [who, type].filter(Boolean).join(" - ");
+    if (label && shortId) return `${label} (#${shortId})`;
+    if (label) return label;
+    if (shortId) return `#${shortId}`;
+  }
+
+  if (table === "employee_leave_balances") {
+    const who = String(
+      targetEmployeeLabel ||
+        (v.employees
+          ? `${String(v.employees?.first_name || "").trim()} ${String(
+              v.employees?.last_name || ""
+            ).trim()}`.trim()
+          : "") ||
+        v.employee_name ||
+        v.employee_id ||
+        ""
+    ).trim();
+    const type = String(
+      v.leave_types?.leave_type_name || v.leave_type_name || ""
+    ).trim();
+    const label = [who, type].filter(Boolean).join(" - ");
+    if (label) return label;
+    return "";
+  }
+  if (table === "leave_types") {
+    const type = String(v.leave_type_name || v.name || "").trim();
+    if (type) return type;
+  }
+  if (table === "documents" || table === "onboarding_checklists") {
+    const file = String(v.file_name || v.filename || v.file_path || "").trim();
+    if (file) return targetEmployeeLabel ? `${file} (${targetEmployeeLabel})` : file;
+    if (targetEmployeeLabel) return targetEmployeeLabel;
+  }
+  if (table === "project_assignments") {
+    const empLabel = (() => {
+      const name = String(row?.targetEmployee?.name || "").trim();
+      const code = String(row?.targetEmployee?.employeeCode || "").trim();
+      if (name && code) return `${name} (${code})`;
+      return name || code || "";
+    })();
+    const projLabel = String(row?.targetProject?.name || v.project_name || "").trim();
+    const label = [empLabel, projLabel].filter(Boolean).join(" → ");
+    if (label) return label;
+  }
+  if (table === "performance_evaluations" || table === "evaluation") {
+    const empCode = String(
+      v.employee_code || v.employee_id || v.employees?.employee_id || ""
+    ).trim();
+    const empName = String(
+      v.employee_name ||
+        `${v.employees?.first_name || ""} ${v.employees?.last_name || ""}`.trim()
+    ).trim();
+    const type = String(v.evaluation_type || "").trim();
+
+    const looksLikeUuid = (s) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        String(s || "").trim()
+      );
+    const who =
+      targetEmployeeLabel ||
+      (empCode && !looksLikeUuid(empCode) ? empCode : empName || "");
+    const label = [who, type].filter(Boolean).join(" - ");
+    if (label) return label;
+  }
+
+  const recordId = String(row?.record_id || "").trim();
+  // Avoid showing raw UUIDs on the dashboard.
+  if (recordId && !/^[0-9a-f]{8}-/i.test(recordId)) return recordId;
+  return "";
+};
+
+const formatAuditAction = (row) => {
+  const action = String(row?.action_type || "").toUpperCase();
+  const table = String(row?.table_name || "");
+  const entity = humanizeAuditEntity(table);
+  const target = pickAuditTarget(row);
+  const reportName = String(
+    row?.new_values?.report_name || row?.new_values?.reportName || ""
+  ).trim();
+  const reportSource = String(row?.new_values?.source || "").trim();
+  const requestedEmail = String(row?.new_values?.email || "").trim();
+  if (action === "LOGIN") return "Logged in";
+  if (action === "LOGOUT") return "Logged out";
+  if (action === "CREATE")
+    return `${entity ? `Created ${entity}` : "Created record"}${
+      target ? ` — ${target}` : ""
+    }`;
+  if (action === "UPDATE")
+    return `${entity ? `Updated ${entity}` : "Updated record"}${
+      target ? ` — ${target}` : ""
+    }`;
+  if (action === "DELETE")
+    return `${entity ? `Deleted ${entity}` : "Deleted record"}${
+      target ? ` — ${target}` : ""
+    }`;
+  if (action === "PASSWORD_RESET_REQUEST") {
+    return requestedEmail
+      ? `Password reset requested: ${requestedEmail}`
+      : "Password reset requested";
+  }
+  if (action === "GENERATE_REPORT") {
+    if (reportName) return `Generated report: ${reportName}`;
+    if (reportSource) return `Generated report (${reportSource})`;
+    return "Generated report";
+  }
+  return `${action || "Activity"}${entity ? ` ${entity}` : ""}${
+    target ? ` — ${target}` : ""
+  }`.trim();
+};
+
+const getAuditRouteForRow = (row) => {
+  const action = String(row?.action_type || "").toUpperCase();
+  const table = String(row?.table_name || "").trim().toLowerCase();
+  const reportSource = String(row?.new_values?.source || "").trim().toLowerCase();
+
+  // For report generation audit logs, table_name is the report source (users/employees/projects/etc).
+  if (action === "GENERATE_REPORT") {
+    const effective = reportSource || table;
+    if (effective === "users") return "/audit/user-accounts";
+    if (effective === "employees") return "/audit/employees";
+    if (effective === "departments") return "/audit/departments";
+    if (effective === "projects") return "/audit/projects";
+    if (effective === "evaluation" || effective === "performance_evaluations")
+      return "/audit/evaluation";
+    if (
+      effective === "leave" ||
+      effective === "leave_requests" ||
+      effective === "leave_types" ||
+      effective === "employee_leave_balances"
+    ) {
+      return "/audit/leave";
+    }
+    return "/audit/reports";
+  }
+
+  // Non-report audit logs
+  if (table === "users") return "/audit/user-accounts";
+  if (table === "employees") return "/audit/employees";
+  if (table === "departments") return "/audit/departments";
+  if (table === "projects") return "/audit/projects";
+  if (table === "project_assignments") return "/audit/projects";
+  if (table === "evaluation" || table === "performance_evaluations")
+    return "/audit/evaluation";
+  if (
+    table === "leave" ||
+    table === "leave_requests" ||
+    table === "leave_types" ||
+    table === "employee_leave_balances"
+  ) {
+    return "/audit/leave";
+  }
+  // 201 files are part of Employees module in the UI
+  if (
+    table === "documents" ||
+    table === "onboarding_checklists" ||
+    table === "onboarding_items"
+  ) {
+    return "/audit/employees";
+  }
+  if (table === "reports") return "/audit/reports";
+
+  return null;
 };
 
 function Dashboard() {
@@ -170,13 +441,15 @@ function Dashboard() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  const role = user?.role;
-  const isEmployee = role === ROLES.EMPLOYEE;
-  const isManager = role === ROLES.MANAGER;
-  const isExecOrHr = role === ROLES.EXECUTIVE || role === ROLES.HR;
-
+  const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const canSeeAuditDashboard =
+    user?.role === ROLES.EXECUTIVE || user?.role === ROLES.HR;
   const [isProjectBased, setIsProjectBased] = useState(false);
+
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
+  const [employeeStatusData, setEmployeeStatusData] = useState([]);
+  const [projectsByStatus, setProjectsByStatus] = useState([]);
 
   const rawName = String(user?.name || "").trim();
   const safeName = rawName && !rawName.includes("@") ? rawName : "";
@@ -184,14 +457,12 @@ function Dashboard() {
   const displayName =
     safeName ||
     [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
-    (role === ROLES.EXECUTIVE
+    (user?.role === ROLES.EXECUTIVE
       ? "Executive"
-      : role === ROLES.HR
+      : user?.role === ROLES.HR
       ? "HR"
-      : role === ROLES.MANAGER
+      : user?.role === ROLES.MANAGER
       ? "Manager"
-      : role === ROLES.EMPLOYEE
-      ? "Employee"
       : "") ||
     user?.email ||
     "";
@@ -199,7 +470,7 @@ function Dashboard() {
   useEffect(() => {
     let cancelled = false;
     let lastFetchTime = 0;
-    const COOLDOWN_MS = 30000;
+    const COOLDOWN_MS = 30000; // 30 seconds cooldown to minimize API calls
 
     const run = async () => {
       try {
@@ -225,12 +496,19 @@ function Dashboard() {
 
     const refresh = () => {
       if (cancelled) return;
+
+      // prevent API refresh if data fetched recently (within 30 seconds)
       const timeSinceLastFetch = Date.now() - lastFetchTime;
-      if (timeSinceLastFetch < COOLDOWN_MS) return;
+      if (timeSinceLastFetch < COOLDOWN_MS) {
+        return;
+      }
+
       run();
     };
 
     run();
+
+    // keep dashboard stats without requiring a full page reload.
     window.addEventListener("focus", refresh);
     const onVisibility = () => {
       if (document.visibilityState === "visible") refresh();
@@ -244,6 +522,81 @@ function Dashboard() {
     };
   }, []);
 
+  // Executive/HR-only: lightweight analytics for employees (active/inactive) and projects (by status)
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!canSeeAuditDashboard) {
+        setAnalyticsLoading(false);
+        setAnalyticsError("");
+        setEmployeeStatusData([]);
+        setProjectsByStatus([]);
+        return;
+      }
+
+      try {
+        setAnalyticsLoading(true);
+        setAnalyticsError("");
+
+        const res = await get("/analytics/summary");
+        if (!res?.success)
+          throw new Error(res?.message || "Failed to load analytics");
+        const data = res?.data || {};
+
+        if (cancelled) return;
+
+        const normalizePairs = (rows, labelKeyCandidates, valueKeyCandidates) => {
+          const list = Array.isArray(rows) ? rows : [];
+          return list
+            .filter((r) => r && typeof r === "object")
+            .map((r) => {
+              const labelKey =
+                labelKeyCandidates.find((k) => typeof r?.[k] === "string") ||
+                labelKeyCandidates[0];
+              const valueKey =
+                valueKeyCandidates.find((k) => r?.[k] !== undefined) ||
+                valueKeyCandidates[0];
+              const label = String(
+                r?.[labelKey] ?? r?.name ?? r?.label ?? ""
+              ).trim();
+              const rawVal = r?.[valueKey] ?? r?.value ?? r?.count ?? r?.total;
+              const value = Number(rawVal);
+              return {
+                name: label || "Unknown",
+                value: Number.isFinite(value) ? value : 0,
+              };
+            })
+            .filter((r) => r.name && Number.isFinite(r.value));
+        };
+
+        setEmployeeStatusData(
+          normalizePairs(data.employeeStatusData, ["status", "name", "label"], [
+            "count",
+            "value",
+            "total",
+          ])
+        );
+        setProjectsByStatus(
+          normalizePairs(data.projectsByStatus, ["status", "name", "label"], [
+            "count",
+            "value",
+            "total",
+          ])
+        );
+      } catch (e) {
+        if (!cancelled) setAnalyticsError(e?.message || "Failed to load analytics");
+      } finally {
+        if (!cancelled) setAnalyticsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeAuditDashboard]);
+
+  // For employees: determine if project-based to hide Projects card
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
@@ -280,20 +633,25 @@ function Dashboard() {
     };
   }, [summary]);
 
-  const nextEval = useMemo(() => {
-    const list = Array.isArray(summary.pendingEvaluations)
-      ? summary.pendingEvaluations
-      : [];
-    const first = list[0] || null;
-    return first
-      ? {
-          date: formatShortDate(first.evaluation_date),
-          type: first.evaluation_type || "",
-        }
-      : { date: "—", type: "" };
-  }, [summary.pendingEvaluations]);
+  const employeeStatusCounts = useMemo(() => {
+    const norm = (v) => String(v || "").trim().toLowerCase();
+    const active =
+      employeeStatusData.find((r) => norm(r?.name) === "active")?.value ?? 0;
+    const inactive =
+      employeeStatusData.find((r) => norm(r?.name) === "inactive")?.value ?? 0;
+    const total = employeeStatusData.reduce(
+      (sum, r) => sum + (Number(r?.value) || 0),
+      0
+    );
+    return { active, inactive, total };
+  }, [employeeStatusData]);
 
-  const hasUpcomingEval = nextEval.date !== "—";
+  const projectsStatusTotal = useMemo(() => {
+    return projectsByStatus.reduce(
+      (sum, r) => sum + (Number(r?.value) || 0),
+      0
+    );
+  }, [projectsByStatus]);
 
   return (
     <div>
@@ -307,6 +665,14 @@ function Dashboard() {
               Good <Greeting /> — here’s what’s happening today.
             </p>
           </div>
+
+          {/*<button
+            type="button"
+            onClick={() => setIsCalendarOpen(true)}
+            className="self-start md:self-auto text-xs md:text-sm bg-[#990100] hover:bg-[#ad3332] text-white px-4 py-2 rounded-full font-medium shadow-sm transition duration-200 ease-in-out cursor-pointer"
+          >
+            View Calendar
+          </button>*/}
         </header>
 
         {error ? (
@@ -315,7 +681,38 @@ function Dashboard() {
           </div>
         ) : null}
 
-        {isExecOrHr ? (
+        {isEmployee ? (
+          <>
+            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+              <StatCard
+                title="Employees"
+                icon="icons/red-employees.png"
+                value="Open"
+                onClick={() => navigate("/employees/departments")}
+              />
+              <StatCard
+                title="Leave"
+                icon="icons/red-leave.png"
+                value={loading ? "…" : statValues.pendingLeaves}
+                onClick={() => navigate("/leave/request")}
+              />
+              <StatCard
+                title="Evaluation"
+                icon="icons/sidenav/red-evaluation.png"
+                value="View"
+                onClick={() => navigate("/evaluation/history")}
+              />
+              {isProjectBased ? null : (
+                <StatCard
+                  title="Projects"
+                  icon="icons/red-projects.png"
+                  value={loading ? "…" : statValues.activeProjects}
+                  onClick={() => navigate("/projects")}
+                />
+              )}
+            </section>
+          </>
+        ) : (
           <>
             <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <StatCard
@@ -343,6 +740,135 @@ function Dashboard() {
                 onClick={() => navigate("/employees/departments")}
               />
             </section>
+
+            {canSeeAuditDashboard ? (
+              <section className="mt-8 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                  <div>
+                    <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                      Analytics Overview
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Employees & projects snapshot (Executive/HR only)
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
+                    onClick={() => navigate("/analytics")}
+                  >
+                    Open full Analytics
+                  </button>
+                </div>
+
+                {analyticsError ? (
+                  <div className="mb-4 bg-white border border-gray-200 rounded-lg p-3 text-sm text-[#990100]">
+                    {analyticsError}
+                  </div>
+                ) : null}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Employees (Total)
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
+                      {analyticsLoading ? "…" : employeeStatusCounts.total}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Active Employees
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
+                      {analyticsLoading ? "…" : employeeStatusCounts.active}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Inactive Employees
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
+                      {analyticsLoading ? "…" : employeeStatusCounts.inactive}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Projects (All)
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
+                      {analyticsLoading ? "…" : projectsStatusTotal}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                      Employee Status
+                    </h3>
+                    <div className="h-[240px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={employeeStatusData}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={55}
+                            outerRadius={85}
+                            paddingAngle={2}
+                          >
+                            {employeeStatusData.map((_, idx) => (
+                              <Cell
+                                key={idx}
+                                fill={[
+                                  "#990100",
+                                  "#6B7280",
+                                  "#F59E0B",
+                                  "#22C55E",
+                                  "#2563EB",
+                                ][idx % 5]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-xl p-4">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                      Projects by Status
+                    </h3>
+                    <div className="h-[240px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={projectsByStatus}
+                          margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                          <Tooltip />
+                          <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                            {projectsByStatus.map((entry, index) => (
+                              <Cell
+                                key={index}
+                                fill={
+                                  PROJECT_STATUS_COLORS[entry.name] || "#64748b"
+                                }
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ) : null}
 
             <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
@@ -394,7 +920,7 @@ function Dashboard() {
                             className="bg-white cursor-pointer hover:bg-gray-50"
                           >
                             <td className="px-4 py-2 text-gray-900">
-                              {(row.employee_code || row.employee_name)
+                              {row.employee_code || row.employee_name
                                 ? `${row.employee_code || ""}${
                                     row.employee_code && row.employee_name
                                       ? " - "
@@ -424,7 +950,7 @@ function Dashboard() {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                <h2 className="text-lg md:text-xl font-semibold text-[#990100] ">
                   Events for the Week
                 </h2>
 
@@ -438,7 +964,9 @@ function Dashboard() {
                       <p className="pb-1.5 text-sm">
                         - Birthday of Reuel Christian Sundiam!
                       </p>
-                      <p className="pb-1.5 text-sm">- Evaluation of Carl Paldeng</p>
+                      <p className="pb-1.5 text-sm">
+                        - Evaluation of Carl Paldeng
+                      </p>
                       <p className="pb-1.5 text-sm">
                         - Meeting of the Executives with a Client
                       </p>
@@ -448,310 +976,10 @@ function Dashboard() {
               </div>
             </section>
           </>
-        ) : isManager ? (
-          <>
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard
-                title="Pending Evaluations"
-                icon="icons/sidenav/red-evaluation.png"
-                value={loading ? "…" : statValues.pendingEvaluations}
-                onClick={() => navigate("/evaluation/history")}
-              />
-              <StatCard
-                title="Leave Requests"
-                icon="icons/red-leave.png"
-                value={loading ? "…" : statValues.pendingLeaves}
-                onClick={() => navigate("/leave/request")}
-              />
-              <StatCard
-                title="My Team"
-                icon="icons/red-employees.png"
-                value="View"
-                onClick={() => navigate("/employees?scope=team")}
-              />
-              <StatCard
-                title="My Projects"
-                icon="icons/red-projects.png"
-                value={loading ? "…" : statValues.activeProjects}
-                onClick={() => navigate("/projects?scope=assigned")}
-              />
-            </section>
-
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] mb-3">
-                  Pending Evaluations (To Do)
-                </h2>
-
-                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
-                  <table className="min-w-[420px] w-full text-sm">
-                    <thead className="bg-[#ad3332] text-white">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium">
-                          Employee
-                        </th>
-                        <th className="px-4 py-2 text-left font-medium">
-                          Due Date
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!loading && summary.pendingEvaluations.length ? (
-                        summary.pendingEvaluations.slice(0, 5).map((row) => (
-                          <tr
-                            key={String(row.evaluation_id || row.employee_id)}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              const eid = row?.evaluation_id;
-                              if (!eid) return;
-                              navigate(
-                                `/evaluation/upload?evaluationId=${encodeURIComponent(
-                                  String(eid)
-                                )}`
-                              );
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter" && e.key !== " ") return;
-                              const eid = row?.evaluation_id;
-                              if (!eid) return;
-                              navigate(
-                                `/evaluation/upload?evaluationId=${encodeURIComponent(
-                                  String(eid)
-                                )}`
-                              );
-                            }}
-                            className="bg-white cursor-pointer hover:bg-gray-50"
-                          >
-                            <td className="px-4 py-2 text-gray-900">
-                              {(row.employee_code || row.employee_name)
-                                ? `${row.employee_code || ""}${
-                                    row.employee_code && row.employee_name
-                                      ? " - "
-                                      : ""
-                                  }${row.employee_name || ""}`.trim()
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-2 text-gray-900">
-                              {formatShortDate(row.evaluation_date)}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="bg-white">
-                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
-                            {loading ? "Loading…" : "No pending evaluations."}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    View Evaluation History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/leave/history")}
-                  >
-                    My Leave History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/profile")}
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
-                    onClick={() => setIsCalendarOpen(true)}
-                  >
-                    Calendar
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">- Team meeting</p>
-                      <p className="pb-1.5 text-sm">- Evaluation schedule</p>
-                      <p className="pb-1.5 text-sm">- Leave reminders</p>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Weekly reminders for your team and deliverables.
-                </p>
-              </div>
-            </section>
-          </>
-        ) : (
-          <>
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-              <StatCard
-                title="Leave Remarks"
-                icon="icons/red-leave.png"
-                value="View"
-                onClick={() => navigate("/leave/history")}
-              />
-              <StatCard
-                title="Next Evaluation"
-                icon="icons/sidenav/red-evaluation.png"
-                value={loading ? "…" : nextEval.date}
-                onClick={() => navigate("/evaluation/history")}
-              />
-              {isProjectBased ? null : (
-                <StatCard
-                  title="Projects"
-                  icon="icons/red-projects.png"
-                  value={loading ? "…" : statValues.activeProjects}
-                  onClick={() => navigate("/projects")}
-                />
-              )}
-              <StatCard
-                title="Leave Request"
-                icon="icons/red-leave.png"
-                value="Open"
-                onClick={() => navigate("/leave/request")}
-              />
-            </section>
-
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                  Dates to Remember (This Week)
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">- Weekly check-in</p>
-                      <p className="pb-1.5 text-sm">- Evaluation reminders</p>
-                      <p className="pb-1.5 text-sm">- Project updates</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    My Evaluation History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/leave/history")}
-                  >
-                    My Leave History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/profile")}
-                  >
-                    My Profile
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
-                    onClick={() => setIsCalendarOpen(true)}
-                  >
-                    Calendar
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    Upcoming Evaluation
-                  </h2>
-                  <span
-                    className={`text-xs px-3 py-1 rounded-full ${
-                      hasUpcomingEval
-                        ? "bg-[#ad3332] text-white"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    {hasUpcomingEval ? "Scheduled" : "None"}
-                  </span>
-                </div>
-
-                <div className="mt-4 rounded-lg border border-gray-200 p-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Date
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-gray-900">
-                    {loading ? "…" : nextEval.date}
-                  </p>
-
-                  <div className="mt-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Type
-                    </p>
-                    <p className="mt-1 text-sm text-gray-900">
-                      {loading ? "…" : nextEval.type || "—"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/evaluation/history")}
-                  >
-                    View Evaluation History
-                  </button>
-                  <button
-                    type="button"
-                    className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332]"
-                    onClick={() => setIsCalendarOpen(true)}
-                  >
-                    Open Calendar
-                  </button>
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Keep track of your next evaluation schedule and prepare early.
-                </p>
-              </div>
-            </section>
-          </>
         )}
       </div>
 
-      <CalendarModal
-        open={isCalendarOpen}
-        onClose={() => setIsCalendarOpen(false)}
-      />
+      <CalendarModal open={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
     </div>
   );
 }
