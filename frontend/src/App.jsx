@@ -37,6 +37,7 @@ import EmployeeProjects from './pages/employees/self/employee-projects.jsx';
 import EmployeeProjectMembers from './pages/employees/self/employee-project-members.jsx';
 import CalendarPage from './pages/calendar/calendar.jsx';
 import MyDocuments from './pages/employees/self/employee-documents.jsx';
+import MyLeaves from './pages/leave/self/myLeaves.jsx';
 
 function TitleManager() {
   const location = useLocation();
@@ -65,6 +66,7 @@ function TitleManager() {
         '/leave/request': 'ARISE | LEAVE REQUEST',
         '/leave/credits': 'ARISE | LEAVE CREDITS',
         '/leave/history': 'ARISE | LEAVE HISTORY',
+        '/leave/my-leaves' : 'ARISE | MY LEAVES',
 
         '/evaluation': 'ARISE | EVALUATION',
         '/evaluation/history': 'ARISE | EVALUATION HISTORY',
@@ -253,6 +255,7 @@ function App() {
           <Route path="/leave/request" element={<LeaveRequest />} />
           <Route path="/leave/credits" element={<LeaveCredits />} />
           <Route path="/leave/history" element={<LeaveHistory />} />
+          <Route path="/leave/my-leaves" element={<MyLeaves />} />
 
           <Route
             path="/analytics"
