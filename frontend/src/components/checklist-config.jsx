@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { get, put } from '../services/api';
+import ConfirmModal from "./confirm-modal.jsx";
 
 function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 	const [checklist, setChecklist] = useState([]);
@@ -7,6 +8,32 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [saving, setSaving] = useState(false);
+
+	//FOR MODAL
+	const [modal, setModal] = useState({
+		open: false,
+		title: '',
+		message: '',
+		confirmText: 'OK',
+		cancelText: null,
+		onConfirm: null,
+	});
+
+	const openModal = (config) => {
+		setModal({
+			open: true,
+			title: '',
+			message: '',
+			confirmText: 'OK',
+			cancelText: null,
+			onConfirm: closeModal,
+			...config,
+		});
+	};
+
+	const closeModal = () => {
+		setModal(prev => ({ ...prev, open: false }));
+	};
 
 	useEffect(() => {
 		if (employeeId) {
@@ -55,7 +82,12 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 			);
 
 			if (changedItems.length === 0) {
-				alert('No changes to save');
+				setSaving(false);
+				openModal({
+					title: 'No Changes',
+					message: 'There are no changes to save.',
+					onConfirm: closeModal,
+				});
 				return;
 			}
 
@@ -68,7 +100,11 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 
 			await Promise.all(updatePromises);
 
-			alert(`Successfully updated ${changedItems.length} checklist item(s)`);
+			openModal({
+				title: 'Successfully Updated',
+				message: `Successfully updated ${changedItems.length} checklist item(s).`,
+				onConfirm: closeModal,
+			});
 
 			// update original checklist to match current state
 			setOriginalChecklist([...checklist]);
@@ -76,20 +112,34 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 			if (onUpdate) {
 				onUpdate();
 			}
-		} catch (err) {
-			console.error('Failed to update checklist:', err);
-			alert(err.message || 'Failed to save changes');
-		} finally {
-			setSaving(false);
-		}
-	};
+			} catch (err) {
+				console.error('Failed to update checklist:', err);
+				openModal({
+					title: 'Save Failed',
+					message: err.message || 'Failed to save changes. Please try again.',
+					onConfirm: closeModal,
+				});
+			} finally {
+				setSaving(false);
+			}
+		};
 
 	const handleCancel = () => {
-		if (hasUnsavedChanges()) {
-			const confirmDiscard = window.confirm('You have unsaved changes. Discard them?');
-			if (!confirmDiscard) return;
+		if (!hasUnsavedChanges()) {
+			onClose();
+			return;
 		}
-		onClose();
+
+		openModal({
+			title: 'Unsaved Changes',
+			message: 'You have unsaved changes. Do you want to close without saving?',
+			confirmText: 'OK',
+			cancelText: 'Cancel',
+			onConfirm: () => {
+				closeModal();
+				onClose();
+			},
+		});
 	};
 
 	if (loading) {
@@ -117,22 +167,20 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 	return (
 		<div className="space-y-4">
 			{/* Header */}
-			<div className="flex items-center justify-between mb-4">
+			<div className="flex items-center justify-between mb-4 bg-[#990100] lg:py-[13px] py-[10px] md:px-4 px-3 rounded-lg">
 				<div>
-					<h2 className="text-xl font-bold text-[#990100]">
+					<h2 className="text-xl text-white font-bold">
 						Configure Checklist Requirements
 					</h2>
 					{employeeName && (
-						<p className="text-sm text-gray-600 mt-1">
+						<p className="text-sm text-white mt-1">
 							Employee: <span className="font-medium">{employeeName}</span>
 						</p>
 					)}
 				</div>
 				{onClose && (
-					<button onClick={handleCancel} className="text-gray-500 hover:text-gray-700 transition" disabled={saving}>
-						<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-						</svg>
+					<button onClick={handleCancel} className="text-white text-2xl font-bold hover:scale-110 transition disabled:opacity-50 cursor-pointer" disabled={saving}>
+						✕
 					</button>
 				)}
 			</div>
@@ -216,7 +264,7 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 						className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition ${
 							saving || !hasUnsavedChanges()
 								? 'bg-gray-400 cursor-not-allowed'
-								: 'bg-[#990100] hover:bg-[#7a0100] hover:scale-105'
+								: 'green-button'
 						}`}
 					>
 						{saving ? 'Saving...' : 'Save Changes'}
@@ -224,12 +272,21 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 					<button
 						onClick={handleCancel}
 						disabled={saving}
-						className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+						className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
 					>
 						{hasUnsavedChanges() ? 'Cancel' : 'Close'}
 					</button>
 				</div>
 			</div>
+			<ConfirmModal
+				open={modal.open}
+				title={modal.title}
+				message={modal.message}
+				confirmText={modal.confirmText}
+				cancelText={modal.cancelText}
+				onCancel={modal.cancelText ? closeModal : undefined}
+				onConfirm={modal.onConfirm}
+			/>
 		</div>
 	);
 }
