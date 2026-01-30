@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Navbar from "../../components/navbar";
 import { get, post, upload } from '../../services/api';
 import { ONBOARDING_STATUSES } from '../../constants/config';
@@ -159,6 +159,25 @@ const modalFiles = [
     },
 
 ]
+
+
+function ChipButton({ active, children, onClick, title }) {
+    return (
+        <button
+            type="button"
+            title={title}
+            onClick={onClick}
+            className={[
+                "px-3 py-1 rounded-full text-xs font-semibold border transition cursor-pointer",
+                active
+                    ? "bg-[#990100] text-white border-[#990100]"
+                    : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+            ].join(" ")}
+        >
+            {children}
+        </button>
+    );
+}
 
 function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openConfirm}){
 
@@ -680,6 +699,46 @@ function OnboardingFiles (){
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const [filtersOpen, setFiltersOpen] = useState(false);
+
+    const [personnelTypeFilter, setPersonnelTypeFilter] = useState("ALL");
+    const [remarksFilter, setRemarksFilter] = useState("ALL");
+    const [sortOrder, setSortOrder] = useState("name_az");
+
+    const [draftPersonnelType, setDraftPersonnelType] = useState("ALL");
+    const [draftRemarks, setDraftRemarks] = useState("ALL");
+    const [draftSortOrder, setDraftSortOrder] = useState("name_az");
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filtersWrapRef = useRef(null);
+
+    const personnelTypeOptions = [
+        { value: "ALL", label: "All" },
+        { value: "STANDARD", label: "Probationary/Regular" },
+        { value: "PROJECT_BASED", label: "Project-Based" },
+    ];
+
+    const remarksOptions = [
+        { value: "ALL", label: "All" },
+        { value: "COMPLETE", label: "Complete" },
+        { value: "INCOMPLETE", label: "Incomplete" },
+    ];
+
+    const sortOptions = [
+        { value: "name_az", label: "Name: A–Z" },
+        { value: "name_za", label: "Name: Z–A" },
+        { value: "employee_id_asc", label: "Employee ID: Asc" },
+        { value: "employee_id_desc", label: "Employee ID: Desc" },
+        { value: "hire_date_newest", label: "Hire Date: Newest" },
+        { value: "hire_date_oldest", label: "Hire Date: Oldest" },
+    ];
+
+    const activeFilterCount =
+        (personnelTypeFilter !== "ALL" ? 1 : 0) +
+        (remarksFilter !== "ALL" ? 1 : 0) +
+        (sortOrder !== "name_az" ? 1 : 0);
+
+
     // checklist configuration modal state
     const [isChecklistConfigOpen, setChecklistConfigOpen] = useState(false);
     const [configEmployee, setConfigEmployee] = useState(null);
@@ -720,6 +779,71 @@ function OnboardingFiles (){
 
     const [itemOffset, setItemOffset] = useState(0);
     const itemsPerPage = 15;
+
+    // Reset pagination when filters/search change
+    useEffect(() => {
+        setItemOffset(0);
+    }, [searchTerm, personnelTypeFilter, remarksFilter, sortOrder]);
+
+    // Apply filters + search + sorting to the table data
+    const filteredEmployees = useMemo(() => {
+        let rows = Array.isArray(employeesFiles) ? [...employeesFiles] : [];
+
+        // SEARCH (id, name, personnel type)
+        const q = searchTerm.trim().toLowerCase();
+        if (q) {
+            rows = rows.filter((r) => {
+            const id = String(r.id ?? "").toLowerCase();
+            const name = String(r.name ?? "").toLowerCase();
+            const pt = String(r.personnelType ?? "").toLowerCase();
+            return id.includes(q) || name.includes(q) || pt.includes(q);
+            });
+        }
+
+        // PERSONNEL TYPE FILTER
+        if (personnelTypeFilter !== "ALL") {
+            rows = rows.filter((r) => {
+            const pt = String(r.personnelType ?? "");
+            const isProjectBased = pt.toLowerCase().includes("project");
+            return personnelTypeFilter === "PROJECT_BASED" ? isProjectBased : !isProjectBased;
+            });
+        }
+
+        // REMARKS FILTER (your rows already have row.remarks)
+        if (remarksFilter !== "ALL") {
+            rows = rows.filter((r) => String(r.remarks ?? "").toUpperCase() === remarksFilter);
+        }
+
+        // SORTING
+        const idCompare = (a, b) =>
+            String(a ?? "").localeCompare(String(b ?? ""), undefined, { numeric: true, sensitivity: "base" });
+
+        const dateValue = (v) => {
+            const d = new Date(v);
+            return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+        };
+
+        rows.sort((a, b) => {
+            switch (sortOrder) {
+            case "name_za":
+                return String(b.name ?? "").localeCompare(String(a.name ?? ""), undefined, { sensitivity: "base" });
+            case "employee_id_asc":
+                return idCompare(a.id, b.id);
+            case "employee_id_desc":
+                return idCompare(b.id, a.id);
+            case "hire_date_newest":
+                return dateValue(b.hireDate) - dateValue(a.hireDate);
+            case "hire_date_oldest":
+                return dateValue(a.hireDate) - dateValue(b.hireDate);
+            case "name_az":
+            default:
+                return String(a.name ?? "").localeCompare(String(b.name ?? ""), undefined, { sensitivity: "base" });
+            }
+        });
+
+        return rows;
+    }, [employeesFiles, searchTerm, personnelTypeFilter, remarksFilter, sortOrder]);
+
 
     // fetch employee checklists from API
     useEffect(() => {
@@ -1007,10 +1131,10 @@ function OnboardingFiles (){
     }
     
     //REACT-PAGINATE
-    
+
     const endOffset = itemOffset + itemsPerPage;
-    const currentLogs = employeesFiles.slice(itemOffset, endOffset);
-    const pageCount = Math.ceil(employeesFiles.length / itemsPerPage);
+    const currentLogs = filteredEmployees.slice(itemOffset, endOffset);
+    const pageCount = Math.ceil(filteredEmployees.length / itemsPerPage);
     const multiPages = pageCount > 1;
     
     const handlePageClick = (event) => {
@@ -1031,16 +1155,153 @@ function OnboardingFiles (){
                     </div>
 
                     <div className="flex items-center justify-end md:gap-4 gap-3">
-                        <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
-                            <input type="search" name="search" placeholder="Search" className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none" />
+                        {/* Filters Button */}
+                        <div className="relative" ref={filtersWrapRef}>
                             <button
+                                type="button"
+                                onClick={() => {
+                                    setFiltersOpen((p) => {
+                                        const next = !p;
+                                        if (next) {
+                                            setDraftPersonnelType(personnelTypeFilter);
+                                            setDraftRemarks(remarksFilter);
+                                            setDraftSortOrder(sortOrder);
+                                        }
+                                        return next;
+                                    });
+                                }}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
+                                aria-haspopup="dialog"
+                                aria-expanded={filtersOpen}
+                            >
+                                <span className="font-medium">Filters</span>
+                                {activeFilterCount ? (
+                                    <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                                        {activeFilterCount}
+                                    </span>
+                                ) : null}
+                                <span className="text-xs">▾</span>
+                            </button>
+
+                            {/* Filters Modal */}
+                            {filtersOpen ? (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                                    <div
+                                        className="absolute inset-0 bg-black/40"
+                                        onClick={() => setFiltersOpen(false)}
+                                    />
+                                    <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl p-4 z-10">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <p className="text-sm font-semibold text-[#111827]">Filters</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFiltersOpen(false)}
+                                                className="text-[#990100] hover:opacity-70 text-lg leading-none"
+                                                aria-label="Close"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-4 max-h-[65vh] overflow-y-auto">
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-700 mb-2">Personnel Type</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {personnelTypeOptions.map((opt) => (
+                                                        <ChipButton
+                                                            key={opt.value}
+                                                            active={draftPersonnelType === opt.value}
+                                                            onClick={() => setDraftPersonnelType(opt.value)}
+                                                            title={opt.label}
+                                                        >
+                                                            {opt.label}
+                                                        </ChipButton>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-700 mb-2">Remarks</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {remarksOptions.map((opt) => (
+                                                        <ChipButton
+                                                            key={opt.value}
+                                                            active={draftRemarks === opt.value}
+                                                            onClick={() => setDraftRemarks(opt.value)}
+                                                            title={opt.label}
+                                                        >
+                                                            {opt.label}
+                                                        </ChipButton>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-xs font-semibold text-gray-700 mb-2">Sort</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {sortOptions.map((opt) => (
+                                                        <ChipButton
+                                                            key={opt.value}
+                                                            active={draftSortOrder === opt.value}
+                                                            onClick={() => setDraftSortOrder(opt.value)}
+                                                            title={opt.label}
+                                                        >
+                                                            {opt.label}
+                                                        </ChipButton>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between pt-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setDraftPersonnelType("ALL");
+                                                    setDraftRemarks("ALL");
+                                                    setDraftSortOrder("name_az");
+                                                }}
+                                                className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
+                                            >
+                                                Clear all
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPersonnelTypeFilter(draftPersonnelType);
+                                                    setRemarksFilter(draftRemarks);
+                                                    setSortOrder(draftSortOrder);
+                                                    setFiltersOpen(false);
+                                                }}
+                                                className="bg-[#990100] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
+                                            >
+                                                Apply
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Search */}
+                        <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
+                            <input
+                                type="search"
+                                name="search"
+                                placeholder="Search"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
+                            />
+                                <button
                                 type="submit"
                                 className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
                             >
                                 <img
-                                src="/icons/red-search.png"
-                                className="lg:w-5 lg:h-5 w-4 h-4 items-center"
-                                alt="search"
+                                    src="/icons/red-search.png"
+                                    className="lg:w-5 lg:h-5 w-4 h-4 items-center"
+                                    alt="search"
                                 />
                             </button>
                         </div>
@@ -1066,7 +1327,7 @@ function OnboardingFiles (){
                             </tr>
                         </thead>
                         <tbody className='tbody-style'>
-                            {employeesFiles.length === 0 ? (
+                            {filteredEmployees.length === 0 ? (
                                 <tr>
                                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                                         No employees found
@@ -1145,8 +1406,7 @@ function OnboardingFiles (){
                     )}
                     <br />
                     <div className="lg:flex items-center lg:justify-between">
-                        <p className='lg:text-md text-sm'>Showing <b>{currentLogs.length}</b> of <b>{employeesFiles.length}</b> employee{employeesFiles.length !== 1 ? 's' : ''}</p>
-                        
+                        <p className='lg:text-md text-sm'>Showing <b>{currentLogs.length}</b> of <b>{filteredEmployees.length}</b> employee{employeesFiles.length !== 1 ? 's' : ''}</p>
                         <div className=" ">
                             <ReactPaginate
                             breakLabel="..."
