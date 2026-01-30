@@ -117,3 +117,26 @@ export const deleteEmployee = async (req, res, next) => {
     next(error);
   }
 };
+
+// regularize employee controller
+export const regularizeEmployee = async (req, res, next) => {
+  try {
+    const { employee_id } = req.params;
+    const { regularization_date } = req.body;
+    const userId = req.user.id;
+
+    const regularizedEmployee = await employeeService.regularizeEmployee(
+      employee_id,
+      regularization_date,
+      userId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Employee regularized successfully',
+      data: regularizedEmployee
+    });
+  } catch (error) {
+    next(error);
+  }
+};

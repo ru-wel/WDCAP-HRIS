@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
+import RegularizationModal from '../../components/RegularizationModal.jsx';
 import ARISEEvaluationForm from '../../components/ARISEEvaluationForm.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ROLES } from '../../constants/config.js';
@@ -55,6 +56,10 @@ export default function EvaluationUpload() {
   const [finalProgress, setFinalProgress] = useState(null);
 
   const [submissionMode, setSubmissionMode] = useState('files');
+
+  // regularization modal state
+  const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
+  const [employeeForRegularization, setEmployeeForRegularization] = useState(null);
 
   const {
     formScores,
@@ -658,6 +663,49 @@ export default function EvaluationUpload() {
     );
   };
 
+  const handleRegularize = async ({ employeeId, regularizationDate }) => {
+    try {
+      const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const url = base.endsWith('/api')
+        ? `${base}/employees/${encodeURIComponent(employeeId)}/regularize`
+        : `${base}/api/employees/${encodeURIComponent(employeeId)}/regularize`;
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          regularization_date: regularizationDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.message || 'Failed to regularize employee');
+      }
+
+      setRegularizationModalOpen(false);
+      setEmployeeForRegularization(null);
+
+      setConfirmState({
+        open: true,
+        title: 'Success',
+        message: 'Employee regularized successfully! Evaluation has been submitted.',
+        confirmText: 'OK',
+        cancelText: null,
+        onConfirm: async () => {
+          const empId = encodeURIComponent(String(selectedEmployeeId));
+          navigate(`/evaluation/history?employeeId=${empId}&ts=${Date.now()}`);
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const trySaving = async () => {
     if (!evaluationId) {
       openInfo({
@@ -672,13 +720,12 @@ export default function EvaluationUpload() {
       return;
     }
 
-    const hasExistingBreakdown = Boolean(currentDocs?.breakdown?.fileName);
-    const hasExistingFinal = Boolean(currentDocs?.final?.fileName);
+    const hasExistingEvaluationForm = Boolean(currentDocs?.breakdown?.fileName);
 
     if (submissionMode === 'files') {
-      const hasAnyFile = Boolean(breakdownFile || finalFile || hasExistingBreakdown || hasExistingFinal);
-      if (!hasAnyFile) {
-        openInfo({ title: 'Error', message: 'Please upload at least one document (Breakdown or Last Page).' });
+      const hasEvaluationForm = Boolean(breakdownFile || hasExistingEvaluationForm);
+      if (!hasEvaluationForm) {
+        openInfo({ title: 'Error', message: 'Please upload the evaluation form document.' });
         return;
       }
     } else if (submissionMode === 'form') {
@@ -709,27 +756,50 @@ export default function EvaluationUpload() {
 
       if (submissionMode === 'files') {
         if (breakdownFile) form.append('breakdown_file', breakdownFile);
-        if (finalFile) form.append('final_file', finalFile);
       }
 
-      // One progress bar callback; we mirror it to both when present.
+      // progress bar for file upload
       if (submissionMode === 'files') {
         if (breakdownFile) setBreakdownProgress(0);
-        if (finalFile) setFinalProgress(0);
       }
 
       await postFormWithProgress(`/evaluations/${encodeURIComponent(String(evaluationId))}/submit`, form, (pct) => {
         if (submissionMode === 'files') {
           if (breakdownFile) setBreakdownProgress(pct);
-          if (finalFile) setFinalProgress(pct);
         }
       });
 
       if (submissionMode === 'files') {
         if (breakdownFile) setBreakdownProgress(100);
-        if (finalFile) setFinalProgress(100);
       }
 
+      // check if this is a probationary evaluation that should prompt regularization
+      const isProbationary = String(typeLabel || '').toLowerCase().includes('probationary');
+
+      if (isProbationary) {
+
+        try {
+          const empRes = await get(`/employees/${encodeURIComponent(String(selectedEmployeeId))}`);
+          const empData = empRes?.data;
+
+          // only show regularization prompt if employee is still probationary
+          if (empData && String(empData?.personnel_type).trim() === 'Probationary') {
+            setEmployeeForRegularization({
+              id: empData.id,
+              name: `${empData.first_name || ''} ${empData.last_name || ''}`.trim(),
+              employeeCode: empData.employee_id,
+              position: empData?.positions?.position_title || 'N/A',
+            });
+            setRegularizationModalOpen(true);
+            resetForm();
+            return; 
+          }
+        } catch (e) {
+          console.warn('Failed to fetch employee for regularization prompt:', e);
+        }
+      }
+
+      // normal success flow (non-Probationary or already Regular)
       setConfirmState({
         open: true,
         title: 'Success',
@@ -752,9 +822,9 @@ export default function EvaluationUpload() {
 
   const handleResetClick = () => {
     if (saving) return;
-    const hasFiles = Boolean(breakdownFile || finalFile);
-    const hasText = Boolean(String(score || '').trim() || String(remarks || '').trim());
-    if (!hasFiles && !hasText && !evaluationType) {
+    const hasFiles = Boolean(breakdownFile);
+    const hasFormData = submissionMode === 'form' && (totalScore > 0 || Boolean(memo));
+    if (!hasFiles && !hasFormData && !evaluationType) {
       resetForm();
       return;
     }
@@ -784,10 +854,7 @@ export default function EvaluationUpload() {
     });
   };
 
-  const scoreFilled = Boolean(String(score || '').trim());
-  const remarksFilled = Boolean(String(remarks || '').trim());
   const breakdownFilled = Boolean(breakdownFile || currentDocs?.breakdown?.fileName);
-  const finalFilled = Boolean(finalFile || currentDocs?.final?.fileName);
 
   if (loading) {
     return (
@@ -934,35 +1001,14 @@ export default function EvaluationUpload() {
                     checked={submissionMode === 'files'}
                     onChange={() => setSubmissionMode('files')}
                   />
-                  <span className="text-sm text-gray-800">Upload document(s)</span>
+                  <span className="text-sm text-gray-800">Upload document</span>
                 </label>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                ARISE form mode computes the score automatically. Upload mode requires at least one document.
+                {submissionMode === 'form'
+                  ? 'ARISE form mode computes the score automatically.'
+                  : 'Upload the complete evaluation form document.'}
               </p>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Score (optional)</label>
-                <input
-                  type="text"
-                  className={`input-select ${scoreFilled ? 'border-[#198C19] focus:border-[#198C19]' : ''}`}
-                  placeholder="e.g., 95"
-                  value={score}
-                  onChange={(e) => setScore(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Remarks (optional)</label>
-                <input
-                  type="text"
-                  className={`input-select ${remarksFilled ? 'border-[#198C19] focus:border-[#198C19]' : ''}`}
-                  placeholder="Remarks"
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                />
-              </div>
             </div>
 
             {submissionMode === 'form' ? (
@@ -983,13 +1029,12 @@ export default function EvaluationUpload() {
             ) : null}
 
             {submissionMode === 'files' ? (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Breakdown of Evaluation</label>
+              <div className="mt-8">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Evaluation Form</label>
                 <div
                   className={`border rounded-lg p-5 text-center ${breakdownFilled ? 'border-[#198C19] bg-[#198C19]/5' : 'border-gray-300'}`}
                 >
-                  <div className="font-semibold">Upload Files</div>
+                  <div className="font-semibold">Upload Evaluation Form</div>
                   <div className="text-xs text-gray-500 mt-1">Files Supported: PDF, DOCX, PNG, JPG</div>
 
                   <FilePicker value={breakdownFile} onChange={setBreakdownFile} inputKey={breakdownPickerKey} />
@@ -1023,47 +1068,6 @@ export default function EvaluationUpload() {
                   <ProgressBar value={breakdownProgress} />
                 </div>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Last Page of Evaluation</label>
-                <div
-                  className={`border rounded-lg p-5 text-center ${finalFilled ? 'border-[#198C19] bg-[#198C19]/5' : 'border-gray-300'}`}
-                >
-                  <div className="font-semibold">Upload Files</div>
-                  <div className="text-xs text-gray-500 mt-1">Files Supported: PDF, DOCX, PNG, JPG</div>
-
-                  <FilePicker value={finalFile} onChange={setFinalFile} inputKey={finalPickerKey} />
-
-                  {currentDocs?.final?.fileName ? (
-                    <div className="mt-3 text-xs text-gray-700 flex items-center justify-center gap-2">
-                      <span className="truncate max-w-[220px]">Current: {currentDocs.final.fileName}</span>
-                      <button
-                        type="button"
-                        className="text-[#990100] font-medium hover:underline"
-                        disabled={saving}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          openServerDoc('final');
-                        }}
-                      >
-                        Preview
-                      </button>
-                    </div>
-                  ) : null}
-
-                  <LocalPreview
-                    file={finalFile}
-                    onRemove={() => {
-                      setFinalFile(null);
-                      setFinalPickerKey((k) => k + 1);
-                    }}
-                  />
-
-                  <ProgressBar value={finalProgress} />
-                </div>
-              </div>
-            </div>
             ) : null}
 
             <div className="mt-8 flex items-center justify-end gap-4">
@@ -1109,6 +1113,19 @@ export default function EvaluationUpload() {
         downloadUrl={previewState.downloadUrl}
         employeeCode={selectedEmployeeCode}
         onClose={closePreview}
+      />
+
+      <RegularizationModal
+        open={regularizationModalOpen}
+        onClose={() => {
+          setRegularizationModalOpen(false);
+          setEmployeeForRegularization(null);
+          // Redirect to history after skipping
+          const empId = encodeURIComponent(String(selectedEmployeeId));
+          navigate(`/evaluation/history?employeeId=${empId}&ts=${Date.now()}`);
+        }}
+        employee={employeeForRegularization}
+        onRegularize={handleRegularize}
       />
     </div>
   );

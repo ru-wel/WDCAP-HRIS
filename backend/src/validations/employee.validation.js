@@ -122,3 +122,14 @@ export const employeeIdSchema = Joi.object({
     'any.required': 'Employee ID is required'
   })
 });
+
+export const regularizeEmployeeSchema = Joi.object({
+  employee_id: Joi.string().uuid().required().messages({
+    'string.guid': 'Invalid employee ID format',
+    'any.required': 'Employee ID is required'
+  }),
+  regularization_date: Joi.string().isoDate().required().messages({
+    'string.isoDate': 'Regularization date must be a valid ISO date (YYYY-MM-DD)',
+    'any.required': 'Regularization date is required'
+  })
+});

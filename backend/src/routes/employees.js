@@ -28,6 +28,9 @@ router.get('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), val
 // update employee
 router.put('/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeValidation.updateEmployeeSchema), employeeController.updateEmployee);
 
+// regularize employee
+router.put('/:employee_id/regularize', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeValidation.regularizeEmployeeSchema), employeeController.regularizeEmployee);
+
 // delete employee - Executive only
 router.delete('/:id', authorizeRoles(ROLES.EXECUTIVE), validate(employeeValidation.employeeIdSchema), employeeController.deleteEmployee);
 

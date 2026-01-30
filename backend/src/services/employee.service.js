@@ -1,8 +1,9 @@
 import { supabase } from "../config/supabase.js";
-import { NotFoundError, InternalServerError, ConflictError } from "../utils/errors.js";
+import { NotFoundError, InternalServerError, ConflictError, BadRequestError } from "../utils/errors.js";
 import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 import { createChecklistForEmployee } from "./onboarding.service.js";
+import { autoScheduleInitialEvaluation, ensureSchedule } from "./evaluation.service.js";
 
 // this will be changed later on kapag alam na yung mga fields na need idisplay
 const employeeFields = 
@@ -136,6 +137,15 @@ export const createNewEmployee = async (employeeData, userId) => {
       logger.info(`Onboarding checklist auto-created for employee: ${completeEmployee.employee_id}`);
     } catch (checklistError) {
       logger.error(`Failed to create onboarding checklist for employee ${completeEmployee.employee_id}:`, checklistError);
+    }
+
+    // auto-schedule initial evaluation based on personnel type
+    try {
+      const userObj = { id: userId };
+      await autoScheduleInitialEvaluation(completeEmployee, userObj);
+      logger.info(`Initial evaluation auto-scheduled for employee: ${completeEmployee.employee_id}`);
+    } catch (evalError) {
+      logger.error(`Failed to auto-schedule evaluation for employee ${completeEmployee.employee_id}:`, evalError);
     }
 
     return completeEmployee;
@@ -309,6 +319,13 @@ export const updateEmployee = async (employeeId, updateData, userId) => {
 
     logger.info(`Employee updated: ${updatedEmployee.employee_id} - ${updatedEmployee.first_name} ${updatedEmployee.last_name}`);
 
+    // imployment status changed to Inactive, clean up pending evaluations
+    if (updateData.employment_status === EMPLOYMENT_STATUSES.INACTIVE &&
+        existingEmployee.employment_status !== EMPLOYMENT_STATUSES.INACTIVE) {
+      await cleanupPendingEvaluations(employeeId, userId);
+      logger.info(`Employee terminated - pending evaluations cleaned up for ${updatedEmployee.employee_id}`);
+    }
+
     return updatedEmployee;
 
   } catch (error) {
@@ -364,9 +381,204 @@ export const deleteEmployee = async (employeeId, userId) => {
 
     logger.info(`Employee archived (set inactive): ${archivedEmployee.employee_id} - ${archivedEmployee.first_name} ${archivedEmployee.last_name}`);
 
+    // clean up pending evaluations when employee is archived/deleted
+    await cleanupPendingEvaluations(employeeId, userId);
+    logger.info(`Pending evaluations cleaned up for archived employee ${archivedEmployee.employee_id}`);
+
     return archivedEmployee;
   } catch (error) {
     logger.error(`Error deleting employee ${employeeId}:`, error);
+    throw error;
+  }
+};
+
+const cleanupPendingEvaluations = async (employeeId, userId) => {
+  try {
+    const today = toIsoDate(new Date());
+    const now = new Date().toISOString();
+
+    const { data: evaluationsToDelete, error: fetchError } = await supabase
+      .from('performance_evaluations')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .gte('evaluation_date', today)
+      .is('evaluation_notes', null)
+      .is('evaluation_document_path', null);
+
+    if (fetchError) {
+      logger.error(`Failed to fetch pending evaluations for cleanup (employee ${employeeId}):`, fetchError);
+      return 0;
+    }
+
+    const evaluations = Array.isArray(evaluationsToDelete) ? evaluationsToDelete : [];
+
+    if (evaluations.length === 0) {
+      logger.info(`No pending evaluations to clean up for employee ${employeeId}`);
+      return 0;
+    }
+
+    // delete the evaluations
+    const { data: deleted, error: deleteError } = await supabase
+      .from('performance_evaluations')
+      .delete()
+      .eq('employee_id', employeeId)
+      .gte('evaluation_date', today)
+      .is('evaluation_notes', null)
+      .is('evaluation_document_path', null)
+      .select();
+
+    if (deleteError) {
+      logger.error(`Failed to delete pending evaluations for employee ${employeeId}:`, deleteError);
+      return 0;
+    }
+
+    // create audit log entries for each deleted evaluation
+    if (userId) {
+      const auditEntries = evaluations.map(evaluation => ({
+        user_id: userId,
+        action_type: AUDIT_ACTIONS.DELETE,
+        table_name: 'performance_evaluations',
+        record_id: String(evaluation.evaluation_id),
+        old_values: evaluation,
+        new_values: null,
+        timestamp: now
+      }));
+
+      try {
+        const { error: auditError } = await supabase
+          .from('audit_logs')
+          .insert(auditEntries);
+
+        if (auditError) {
+          logger.warn(`Failed to create audit logs for deleted evaluations:`, auditError);
+        } else {
+          logger.info(`Created ${auditEntries.length} audit log(s) for deleted evaluations`);
+        }
+      } catch (auditErr) {
+        logger.warn(`Error creating audit logs for evaluation cleanup:`, auditErr);
+      }
+    }
+
+    const count = Array.isArray(deleted) ? deleted.length : 0;
+    logger.info(`Cleaned up ${count} pending evaluation(s) for terminated employee ${employeeId}`);
+    return count;
+  } catch (e) {
+    logger.error(`Error during evaluation cleanup for employee ${employeeId}:`, e);
+    return 0;
+  }
+};
+
+// date manipulation
+const toIsoDate = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  try {
+    return new Date(value).toISOString().slice(0, 10);
+  } catch {
+    return '';
+  }
+};
+
+const parseIsoDateUtc = (iso) => {
+  const s = String(iso || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  return new Date(`${s}T00:00:00Z`);
+};
+
+const addMonthsUtcClamped = (dt, months) => {
+  if (!(dt instanceof Date) || Number.isNaN(dt.getTime())) return null;
+  const baseY = dt.getUTCFullYear();
+  const baseM = dt.getUTCMonth();
+  const baseD = dt.getUTCDate();
+
+  const targetMonthStart = new Date(Date.UTC(baseY, baseM + Number(months || 0), 1));
+  const y = targetMonthStart.getUTCFullYear();
+  const m = targetMonthStart.getUTCMonth();
+  const maxDay = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const d = Math.min(baseD, maxDay);
+  return new Date(Date.UTC(y, m, d));
+};
+
+const toUtcIsoDate = (dt) => {
+  if (!(dt instanceof Date) || Number.isNaN(dt.getTime())) return '';
+  return dt.toISOString().slice(0, 10);
+};
+
+// regularizes a probationary employee to regular status
+
+export const regularizeEmployee = async (employeeId, regularizationDate, userId) => {
+  try {
+
+    const employee = await getEmployeeById(employeeId);
+
+    if (!employee) {
+      throw new NotFoundError('Employee not found');
+    }
+
+    // check if already regularized
+    if (employee.personnel_type === 'Regular') {
+      throw new BadRequestError('Employee is already regularized');
+    }
+
+    const now = new Date().toISOString();
+    const regDate = toIsoDate(regularizationDate) || toIsoDate(now);
+
+    // update employee to Regular status
+    const { data: updated, error } = await supabase
+      .from('employees')
+      .update({
+        personnel_type: 'Regular',
+        regularization_date: regDate,
+        updated_at: now
+      })
+      .eq('id', employeeId)
+      .select(employeeFields)
+      .single();
+
+    if (error) {
+      logger.error('Error regularizing employee:', error);
+      throw new InternalServerError(error.message);
+    }
+
+    // audit log
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id: userId,
+        action_type: AUDIT_ACTIONS.UPDATE,
+        table_name: 'employees',
+        record_id: String(employeeId),
+        old_values: employee,
+        new_values: updated,
+        timestamp: now
+      });
+    } catch (e) {
+      logger.warn('Regularization audit log failed:', e?.message || e);
+    }
+
+    // schedule Annual evaluation (regularization_date + 10 months)
+    try {
+      const regDateObj = parseIsoDateUtc(regDate);
+      const evaluationDate = addMonthsUtcClamped(regDateObj, 10);
+      const evalDateIso = toUtcIsoDate(evaluationDate);
+
+      const userObj = { id: userId };
+      await ensureSchedule({
+        employee_id: employeeId,
+        evaluation_type: 'Annual',
+        evaluation_date: evalDateIso
+      }, userObj);
+
+      logger.info(`Scheduled Annual evaluation for regularized employee ${updated.employee_id} on ${evalDateIso}`);
+    } catch (e) {
+      logger.warn('Failed to schedule Annual evaluation after regularization:', e?.message || e);
+    }
+
+    logger.info(`Employee regularized: ${updated.employee_id} - ${updated.first_name} ${updated.last_name} (regularization_date: ${regDate})`);
+
+    return updated;
+
+  } catch (error) {
+    logger.error('Error regularizing employee:', error);
     throw error;
   }
 };

@@ -264,6 +264,25 @@ function ModalEmployees({
   const handleChange = (a) => {
     const { name, value } = a.target;
 
+    // detect if changing employment_status to Inactive
+    if (name === "employment_status" && value === EMPLOYMENT_STATUSES.INACTIVE) {
+      const currentStatus = data.employment_status;
+
+      // only show warning if changing from Active to Inactive
+      if (currentStatus === EMPLOYMENT_STATUSES.ACTIVE) {
+        openConfirm({
+          title: "Terminate Employee",
+          message: `You are about to mark ${data.first_name} ${data.last_name} (${data.employee_id}) as Inactive. This will:\n\n• Change their employment status to Inactive\n• Delete all pending (unsubmitted) evaluations\n• Keep all completed evaluation records\n\nAre you sure you want to proceed?`,
+          confirmText: "Yes, Mark as Inactive",
+          cancelText: "Cancel",
+          onConfirm: () => {
+            setData((prev) => ({ ...prev, [name]: value }));
+          },
+        });
+        return;
+      }
+    }
+
     if (name === "department_id") {
       setData((prev) => ({ ...prev, [name]: value, position_id: "" }));
     } else {
@@ -297,8 +316,17 @@ function ModalEmployees({
       return;
     }
 
+    // Check if marking employee as Inactive (termination)
+    const isTerminating =
+      initialData.employment_status === EMPLOYMENT_STATUSES.ACTIVE &&
+      data.employment_status === EMPLOYMENT_STATUSES.INACTIVE;
+
+    const confirmMessage = isTerminating
+      ? `You are about to mark this employee as Inactive. This action will delete all pending evaluations. Are you sure you want to save these changes?`
+      : "Are you sure you want to save these changes?";
+
     openConfirm({
-      message: "Are you sure you want to save these changes?",
+      message: confirmMessage,
       confirmText: "OK",
       cancelText: "Cancel",
       onConfirm: async () => {

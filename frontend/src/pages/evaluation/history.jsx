@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
+import RegularizationModal from '../../components/RegularizationModal.jsx';
+import ViewARISEFormModal from '../../components/ViewARISEFormModal.jsx';
 import ReportModal from '../../components/report-modal.jsx';
 import ReactPaginate from 'react-paginate';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -200,7 +202,7 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
   );
 }
 
-function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading, onOpenDoc, onUpdateEvaluation, canUpdate }) {
+function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading, onOpenDoc, onUpdateEvaluation, canUpdate, onRegularize, onViewARISEForm }) {
   const formatNotesForCell = (raw) => {
     const text = String(raw || '').replace(/\r\n/g, '\n');
     if (!text.trim()) return '—';
@@ -242,6 +244,20 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
     return latest ? formatUpdated(latest.toISOString()) : '';
   }, [evaluations]);
 
+  // check if employee should show regularization prompt
+  const shouldShowRegularization = useMemo(() => {
+    if (!employee || !canUpdate) return false;
+    if (personnelType !== 'Probationary') return false;
+
+    // check if there's at least one completed Probationary evaluation
+    const hasProbationaryEval = sortedEvals.some(
+      (ev) => String(ev?.evaluation_type || '').toLowerCase().includes('probationary') &&
+              (ev?.evaluation_notes || ev?.evaluation_document_path)
+    );
+
+    return hasProbationaryEval;
+  }, [employee, canUpdate, personnelType, sortedEvals]);
+
   if (!open) return null;
 
   
@@ -273,6 +289,24 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
               <div className="flex gap-2"><span className="font-semibold">Hire Date:</span><span>{hireDate}</span></div>
             </div>
 
+            {shouldShowRegularization && (
+              <div className="mt-4 mx-4 p-3 bg-yellow-50 border border-yellow-300 rounded-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 mb-1">
+                      ⚠️ Regularization Pending
+                    </p>
+                    <p className="text-xs text-gray-700">
+                      This employee has completed their probationary evaluation but has not been regularized yet.
+                    </p>
+                  </div>
+                  <button type="button" className="flex-shrink-0 bg-[#990100] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#ad3332] transition" onClick={() => onRegularize?.(employee)}>
+                    Regularize
+                  </button>
+                </div>
+              </div>
+            )}
+
             <hr className="mt-4 border-[#990100]/40" />
 
             <div className="mt-4">
@@ -286,15 +320,13 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                         <th className="th-style rounded-tl-lg rounded-bl-lg">Evaluation Type</th>
                         <th className="th-style">Date</th>
                         <th className="th-style">Score/Remarks</th>
-                        <th className="th-style">Breakdown</th>
-                        <th className="th-style">Final</th>
-                        <th className="th-style rounded-tr-lg rounded-br-lg">Actions</th>
+                        <th className="th-style rounded-tr-lg rounded-br-lg">Documents</th>
                       </tr>
                     </thead>
                     <tbody className="tbody-style">
                       {sortedEvals.length === 0 ? (
                         <tr className="tr-style">
-                          <td className="td-style" colSpan={6}>
+                          <td className="td-style" colSpan={4}>
                             <span className="text-sm text-gray-600">No evaluation records found.</span>
                           </td>
                         </tr>
@@ -305,9 +337,16 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                           const finalDoc = docs?.final || null;
                           const legacyFile = docs?.file || null;
                           const formDoc = docs?.form || null;
+                          const formData = docs?.form_data || null; // ARISE form data
+                          const hasARISEForm = Boolean(formData);
                           const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
                           const finalLabel = finalDoc?.fileName || 'Final';
                           const formLabel = formDoc?.fileName || 'Evaluation Form';
+
+                          // Check if evaluation has been submitted (has notes or any documents)
+                          const hasNotes = Boolean(ev?.evaluation_notes);
+                          const hasAnyDocument = Boolean(breakdown || finalDoc || legacyFile || formDoc || formData);
+                          const isSubmitted = hasNotes || hasAnyDocument;
 
                           return (
                             <tr key={ev?.evaluation_id} className="tr-style">
@@ -315,43 +354,44 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                               <td className="td-style">{formatShortDate(ev?.evaluation_date) || '—'}</td>
                               <td className="td-style whitespace-pre-wrap">{formatNotesForCell(ev?.evaluation_notes)}</td>
                               <td className="td-style">
-                                {breakdown || legacyFile ? (
-                                  <button
-                                    type="button"
-                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                    onClick={() => onOpenDoc(ev?.evaluation_id, breakdown ? 'breakdown' : 'file', breakdownLabel)}
-                                  >
-                                    {breakdownLabel}
-                                  </button>
-                                ) : (
-                                  <span className="text-gray-500 text-xs">—</span>
-                                )}
-                              </td>
-                              <td className="td-style">
-                                {finalDoc ? (
-                                  <button
-                                    type="button"
-                                    className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                    onClick={() => onOpenDoc(ev?.evaluation_id, 'final', finalLabel)}
-                                  >
-                                    {finalLabel}
-                                  </button>
-                                ) : (
-                                  <span className="text-gray-500 text-xs">—</span>
-                                )}
-                              </td>
-                              <td className="td-style">
-                                {canUpdate ? (
-                                  <div className="flex md:flex-row flex-col items-center gap-2">
-                                    {formDoc ? (
-                                      <button
-                                        type="button"
-                                        className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                        onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
-                                      >
-                                        Form
-                                      </button>
-                                    ) : null}
+                                <div className="flex flex-col gap-2">
+                                  {/* ARISE Form - highest priority */}
+                                  {hasARISEForm ? (
+                                    <button
+                                      type="button"
+                                      className="bg-[#990100] text-white px-4 py-1 rounded-md text-xs hover:bg-[#ad3332] transition"
+                                      onClick={() => onViewARISEForm?.({
+                                        formData,
+                                        employeeName: employee?.name || 'Employee',
+                                        evaluationType: ev?.evaluation_type || 'Evaluation',
+                                        evaluationDate: ev?.evaluation_date || '',
+                                      })}
+                                    >
+                                      View Form
+                                    </button>
+                                  ) : formDoc ? (
+                                    /* Uploaded Form Document */
+                                    <button
+                                      type="button"
+                                      className="bg-[#990100] text-white px-4 py-1 rounded-md text-xs hover:bg-[#ad3332] transition"
+                                      onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
+                                    >
+                                      {formLabel}
+                                    </button>
+                                  ) : breakdown || legacyFile ? (
+                                    /* Breakdown Document */
+                                    <button
+                                      type="button"
+                                      className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
+                                      onClick={() => onOpenDoc(ev?.evaluation_id, breakdown ? 'breakdown' : 'file', breakdownLabel)}
+                                    >
+                                      {breakdownLabel}
+                                    </button>
+                                  ) : isSubmitted ? (
+                                    /* Submitted but no documents */
+                                    <span className="text-gray-500 text-xs">Submitted</span>
+                                  ) : canUpdate ? (
+                                    /* Pending - allow upload */
                                     <button
                                       type="button"
                                       className="bg-green-600 text-white px-3 py-1 rounded-md text-xs hover:bg-green-700 transition"
@@ -359,20 +399,10 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                                     >
                                       Upload/Update
                                     </button>
-                                  </div>
-                                ) : (
-                                  formDoc ? (
-                                    <button
-                                      type="button"
-                                      className="bg-white border border-gray-300 rounded-md px-3 py-1 text-xs hover:bg-gray-50"
-                                      onClick={() => onOpenDoc(ev?.evaluation_id, 'form', formLabel)}
-                                    >
-                                      Form
-                                    </button>
                                   ) : (
                                     <span className="text-gray-500 text-xs">—</span>
-                                  )
-                                )}
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -420,21 +450,25 @@ export default function EvaluationHistory() {
   const [rows, setRows] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOrder, setSortOrder] = useState('employee_id_asc');
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = 'employee_id_asc';
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+  const [draftIncludeInactive, setDraftIncludeInactive] = useState(includeInactive);
 
   const activeFiltersCount = useMemo(() => {
     let n = 0;
     if (sortOrder !== defaultSort) n += 1;
+    if (includeInactive) n += 1;
     return n;
-  }, [sortOrder]);
+  }, [sortOrder, includeInactive]);
 
   useEffect(() => {
     if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
-  }, [filtersOpen, sortOrder]);
+    setDraftIncludeInactive(includeInactive);
+  }, [filtersOpen, sortOrder, includeInactive]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -447,10 +481,12 @@ export default function EvaluationHistory() {
 
   const clearFilters = () => {
     setDraftSortOrder(defaultSort);
+    setDraftIncludeInactive(false);
   };
 
   const applyDraftFilters = () => {
     setSortOrder(draftSortOrder);
+    setIncludeInactive(draftIncludeInactive);
     setFiltersOpen(false);
   };
 
@@ -501,6 +537,13 @@ export default function EvaluationHistory() {
 
   const [reportOpen, setReportOpen] = useState(false);
   const [reportMode, setReportMode] = useState('evaluations');
+
+  const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
+  const [employeeForRegularization, setEmployeeForRegularization] = useState(null);
+
+  const [ariseFormModalOpen, setAriseFormModalOpen] = useState(false);
+  const [ariseFormData, setAriseFormData] = useState(null);
+  const [ariseFormMeta, setAriseFormMeta] = useState({ employeeName: '', evaluationType: '', evaluationDate: '' });
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -570,7 +613,8 @@ export default function EvaluationHistory() {
         return;
       }
 
-      const res = await get('/employees');
+      const endpoint = includeInactive ? '/employees?include_inactive=true' : '/employees';
+      const res = await get(endpoint);
       const list = Array.isArray(res?.data) ? res.data : [];
       const formatted = list.map((e) => ({
         id: e?.id,
@@ -580,6 +624,7 @@ export default function EvaluationHistory() {
         hireDate: formatShortDate(e?.hire_date),
         hireDateRaw: e?.hire_date || '',
         type: e?.personnel_type || 'N/A',
+        employmentStatus: e?.employment_status || 'N/A',
       }));
       setRows(formatted);
     } catch (e) {
@@ -593,7 +638,7 @@ export default function EvaluationHistory() {
 
   useEffect(() => {
     fetchEmployees();
-  }, [isEmployee]);
+  }, [isEmployee, includeInactive]);
 
   useEffect(() => {
     const targetId = searchParams.get('employeeId');
@@ -682,6 +727,56 @@ export default function EvaluationHistory() {
     setDetailsOpen(false);
     setDetailsEmployee(null);
     setDetailsEvals([]);
+  };
+
+  const handleRegularizeFromHistory = (employee) => {
+    setEmployeeForRegularization({
+      id: employee?.id,
+      name: employee?.name,
+      employeeCode: employee?.employeeCode,
+      position: employee?.position,
+    });
+    setRegularizationModalOpen(true);
+  };
+
+  const handleRegularize = async ({ employeeId, regularizationDate }) => {
+    try {
+      const base = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const url = base.endsWith('/api')
+        ? `${base}/employees/${encodeURIComponent(employeeId)}/regularize`
+        : `${base}/api/employees/${encodeURIComponent(employeeId)}/regularize`;
+
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          regularization_date: regularizationDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.message || 'Failed to regularize employee');
+      }
+
+      setRegularizationModalOpen(false);
+      setEmployeeForRegularization(null);
+
+      closeDetails();
+
+      openInfo({
+        title: 'Success',
+        message: 'Employee regularized successfully!',
+      });
+
+      await fetchEmployees();
+    } catch (error) {
+      throw error; 
+    }
   };
 
 
@@ -929,18 +1024,38 @@ export default function EvaluationHistory() {
                       </button>
                     </div>
 
-                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortOptions.map((opt) => (
+                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto space-y-4">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
+                        <div className="flex flex-wrap gap-2">
+                          {sortOptions.map((opt) => (
+                            <ChipButton
+                              key={opt.value}
+                              active={draftSortOrder === opt.value}
+                              onClick={() => setDraftSortOrder(opt.value)}
+                            >
+                              {opt.label}
+                            </ChipButton>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Employment Status</p>
+                        <div className="flex flex-wrap gap-2">
                           <ChipButton
-                            key={opt.value}
-                            active={draftSortOrder === opt.value}
-                            onClick={() => setDraftSortOrder(opt.value)}
+                            active={!draftIncludeInactive}
+                            onClick={() => setDraftIncludeInactive(false)}
                           >
-                            {opt.label}
+                            Active Only
                           </ChipButton>
-                        ))}
+                          <ChipButton
+                            active={draftIncludeInactive}
+                            onClick={() => setDraftIncludeInactive(true)}
+                          >
+                            Include Inactive
+                          </ChipButton>
+                        </div>
                       </div>
                     </div>
 
@@ -1017,24 +1132,32 @@ export default function EvaluationHistory() {
                     </td>
                   </tr>
                 ) : (
-                  currentRows.map((r) => (
-                    <tr key={r.id} className="tr-style">
-                      <td className="td-style">{r.employeeCode || '—'}</td>
-                      <td className="td-style">{r.name || '—'}</td>
-                      <td className="td-style">{r.position || 'N/A'}</td>
-                      <td className="td-style">{r.hireDate || '—'}</td>
-                      <td className="td-style">{r.type || '—'}</td>
-                      <td className="td-style">
-                        <button
-                          type="button"
-                          className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
-                          onClick={() => openDetails(r)}
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                  currentRows.map((r) => {
+                    const isInactive = r.employmentStatus === 'Inactive';
+                    return (
+                      <tr key={r.id} className={`tr-style ${isInactive ? 'opacity-60' : ''}`}>
+                        <td className="td-style">{r.employeeCode || '—'}</td>
+                        <td className="td-style">
+                          <div className="flex items-center gap-2">
+                            <span>{r.name || '—'}</span>
+                            {isInactive && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="td-style">{r.position || 'N/A'}</td>
+                        <td className="td-style">{r.hireDate || '—'}</td>
+                        <td className="td-style">{r.type || '—'}</td>
+                        <td className="td-style">
+                          <button type="button" className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer" onClick={() => openDetails(r)}>
+                            View Details
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -1110,6 +1233,12 @@ export default function EvaluationHistory() {
           navigate(`/evaluation/upload?evaluationId=${encodeURIComponent(String(ev.evaluation_id))}`);
           closeDetails();
         }}
+        onRegularize={handleRegularizeFromHistory}
+        onViewARISEForm={({ formData, employeeName, evaluationType, evaluationDate }) => {
+          setAriseFormData(formData);
+          setAriseFormMeta({ employeeName, evaluationType, evaluationDate });
+          setAriseFormModalOpen(true);
+        }}
       />
 
       <PreviewModal
@@ -1139,6 +1268,29 @@ export default function EvaluationHistory() {
         cancelText={confirmState.cancelText}
         onConfirm={closeConfirm}
         onCancel={closeConfirm}
+      />
+
+      <RegularizationModal
+        open={regularizationModalOpen}
+        onClose={() => {
+          setRegularizationModalOpen(false);
+          setEmployeeForRegularization(null);
+        }}
+        employee={employeeForRegularization}
+        onRegularize={handleRegularize}
+      />
+
+      <ViewARISEFormModal
+        open={ariseFormModalOpen}
+        onClose={() => {
+          setAriseFormModalOpen(false);
+          setAriseFormData(null);
+          setAriseFormMeta({ employeeName: '', evaluationType: '', evaluationDate: '' });
+        }}
+        formData={ariseFormData}
+        employeeName={ariseFormMeta.employeeName}
+        evaluationType={ariseFormMeta.evaluationType}
+        evaluationDate={ariseFormMeta.evaluationDate}
       />
     </div>
   );

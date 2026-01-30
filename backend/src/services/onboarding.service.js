@@ -5,6 +5,7 @@ import { AUDIT_ACTIONS, DOCUMENT_TYPES, ONBOARDING_STATUSES } from '../config/co
 import logger from '../utils/logger.js';
 import { ROLES, PERSONNEL_TYPES } from '../config/constants.js';
 import { sendEmail } from './mail.service.js';
+import { autoScheduleInitialEvaluation } from './evaluation.service.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -439,6 +440,15 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
         logger.error(`Failed to create checklist: ${checklistError.message}`);
       }
 
+      // auto-schedule initial evaluation based on personnel type
+      try {
+        const userObj = createdUserId ? { id: createdUserId } : null;
+        await autoScheduleInitialEvaluation(completeEmployee, userObj);
+        logger.info(`Initial evaluation auto-scheduled for employee: ${completeEmployee.employee_id}`);
+      } catch (evalError) {
+        logger.error(`Failed to auto-schedule evaluation for employee ${completeEmployee.employee_id}:`, evalError);
+      }
+
       logger.info(`Project-based employee onboarded successfully: ${completeEmployee.employee_id}`);
 
       emailSend = {
@@ -719,6 +729,15 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       await createChecklistForEmployee(completeEmployee.id, createdUserId);
     } catch (checklistError) {
       logger.error(`Failed to create checklist: ${checklistError.message}`);
+    }
+
+    // auto-schedule initial evaluation based on personnel type
+    try {
+      const userObj = newUser ? { id: newUser.id } : null;
+      await autoScheduleInitialEvaluation(completeEmployee, userObj);
+      logger.info(`Initial evaluation auto-scheduled for employee: ${completeEmployee.employee_id}`);
+    } catch (evalError) {
+      logger.error(`Failed to auto-schedule evaluation for employee ${completeEmployee.employee_id}:`, evalError);
     }
 
     logger.info(`Employee onboarded successfully: ${completeEmployee.employee_id} - ${normalizedEmail}`);

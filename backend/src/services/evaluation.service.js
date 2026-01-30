@@ -365,38 +365,6 @@ export const createSchedule = async (payload, user) => {
     logger.warn('Evaluation audit log failed:', e?.message || e);
   }
 
-  // notify employee (best-effort)
-  try {
-    const recipientEmail = await getEmployeeRecipientEmail(employee);
-    if (recipientEmail) {
-      const logoAttachment = await getEmailLogoAttachment();
-      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
-
-      const html = buildEvaluationEmailHtml({
-        title: 'Evaluation Scheduled',
-        message: 'Your performance evaluation has been scheduled. Please check the details below.',
-        recipientName: employee.first_name || formatEmployeeName(employee) || 'Employee',
-        statusPill: { label: 'SCHEDULED', bg: WEBSITE_COLORS.mustard },
-        logoSrc,
-        date: created.evaluation_date,
-        details: [
-          { label: 'Type', value: created.evaluation_type },
-          { label: 'Date', value: toIsoDate(created.evaluation_date) }
-        ]
-      });
-
-      await sendEmail({
-        to: recipientEmail,
-        subject: 'WDCAP HRIS — Evaluation Scheduled',
-        text: `Your evaluation has been scheduled.\nType: ${created.evaluation_type}\nDate: ${toIsoDate(created.evaluation_date)}`,
-        html,
-        attachments: logoAttachment ? [logoAttachment] : undefined
-      });
-    }
-  } catch (e) {
-    logger.warn('Evaluation schedule email failed (continuing):', e?.message || e);
-  }
-
   return {
     ...created,
     employee_name: formatEmployeeName(created.employees),
@@ -485,6 +453,57 @@ export const ensureSchedule = async (payload, user) => {
     position_title: created.employees?.positions?.position_title || null,
     personnel_type: created.employees?.personnel_type || null
   };
+};
+
+// auto-schedules initial evaluation when employee is created
+
+export const autoScheduleInitialEvaluation = async (employee, user) => {
+  if (!employee?.id || !employee?.hire_date) {
+    logger.warn('Cannot auto-schedule evaluation: missing employee data');
+    return null;
+  }
+
+  const personnelType = String(employee?.personnel_type || '').trim();
+
+  let evaluationDate = null;
+  let evaluationType = null;
+
+  if (personnelType === 'Probationary') {
+    // Probationary: hire_date + 4 months
+    const hireDateObj = parseIsoDateUtc(employee.hire_date);
+    evaluationDate = addMonthsUtcClamped(hireDateObj, 4);
+    evaluationType = 'Probationary';
+
+  } else if (personnelType === 'Regular') {
+    // Regular: regularization_date + 10 months (fallback to hire_date if not set)
+    const baseDate = employee.regularization_date || employee.hire_date;
+    const baseDateObj = parseIsoDateUtc(baseDate);
+    evaluationDate = addMonthsUtcClamped(baseDateObj, 10);
+    evaluationType = 'Annual';
+  }
+
+  if (!evaluationDate || !evaluationType) {
+    logger.warn(`Cannot determine evaluation schedule for personnel_type: ${personnelType}`);
+    return null;
+  }
+
+  const evalDateIso = toUtcIsoDate(evaluationDate);
+
+  // Use ensureSchedule to prevent duplicates
+  try {
+    const scheduled = await ensureSchedule({
+      employee_id: employee.id,
+      evaluation_type: evaluationType,
+      evaluation_date: evalDateIso
+    }, user);
+
+    logger.info(`Auto-scheduled ${evaluationType} evaluation for employee ${employee.employee_id} on ${evalDateIso}`);
+    return scheduled;
+
+  } catch (error) {
+    logger.error('Failed to auto-schedule evaluation:', error);
+    return null;
+  }
 };
 
 export const listPendingDueEvaluations = async ({ year, quarter } = {}) => {
@@ -623,44 +642,6 @@ export const updateSchedule = async (evaluationId, payload, user) => {
     });
   } catch (e) {
     logger.warn('Evaluation audit log failed:', e?.message || e);
-  }
-
-  // notify employee (best-effort)
-  try {
-    const { data: employee } = await supabase
-      .from('employees')
-      .select('id, user_id, employee_id, first_name, last_name')
-      .eq('id', updated.employee_id)
-      .maybeSingle();
-
-    const recipientEmail = await getEmployeeRecipientEmail(employee);
-    if (recipientEmail) {
-      const logoAttachment = await getEmailLogoAttachment();
-      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
-
-      const html = buildEvaluationEmailHtml({
-        title: 'Evaluation Schedule Updated',
-        message: 'Your performance evaluation schedule has been updated.',
-        recipientName: employee?.first_name || formatEmployeeName(employee) || 'Employee',
-        statusPill: { label: 'UPDATED', bg: WEBSITE_COLORS.green },
-        logoSrc,
-        date: updated.evaluation_date,
-        details: [
-          { label: 'Type', value: updated.evaluation_type },
-          { label: 'Date', value: toIsoDate(updated.evaluation_date) }
-        ]
-      });
-
-      await sendEmail({
-        to: recipientEmail,
-        subject: 'WDCAP HRIS — Evaluation Schedule Updated',
-        text: `Your evaluation schedule has been updated.\nType: ${updated.evaluation_type}\nDate: ${toIsoDate(updated.evaluation_date)}`,
-        html,
-        attachments: logoAttachment ? [logoAttachment] : undefined
-      });
-    }
-  } catch (e) {
-    logger.warn('Evaluation reschedule email failed (continuing):', e?.message || e);
   }
 
   return {
@@ -851,36 +832,23 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     logger.warn('Evaluation audit log failed:', e?.message || e);
   }
 
-  // notify employee that result is available (best-effort)
+  // auto-schedule next year's annual evaluation (recurring)
   try {
-    const recipientEmail = await getEmployeeRecipientEmail(employee);
-    if (recipientEmail) {
-      const logoAttachment = await getEmailLogoAttachment();
-      const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+    if (hydrated.evaluation_type === 'Annual') {
+      const currentEvalDate = parseIsoDateUtc(hydrated.evaluation_date);
+      const nextYearDate = addMonthsUtcClamped(currentEvalDate, 12);
+      const nextYearIso = toUtcIsoDate(nextYearDate);
 
-      const html = buildEvaluationEmailHtml({
-        title: 'Evaluation Updated',
-        message: 'Your performance evaluation has been updated. You can now view your score/remarks and attached document(s) in the HRIS.',
-        recipientName: employee.first_name || formatEmployeeName(employee) || 'Employee',
-        statusPill: { label: 'UPDATED', bg: WEBSITE_COLORS.green },
-        logoSrc,
-        date: updated.evaluation_date,
-        details: [
-          { label: 'Type', value: updated.evaluation_type },
-          { label: 'Date', value: toIsoDate(updated.evaluation_date) }
-        ]
-      });
+      await ensureSchedule({
+        employee_id: hydrated.employee_id,
+        evaluation_type: 'Annual',
+        evaluation_date: nextYearIso
+      }, user);
 
-      await sendEmail({
-        to: recipientEmail,
-          subject: 'WDCAP HRIS — Evaluation Updated',
-        text: `Your evaluation has been updated.\nType: ${updated.evaluation_type}\nDate: ${toIsoDate(updated.evaluation_date)}`,
-        html,
-        attachments: logoAttachment ? [logoAttachment] : undefined
-      });
+      logger.info(`Auto-scheduled next Annual evaluation for employee ${hydrated.employees?.employee_id || hydrated.employee_id} on ${nextYearIso}`);
     }
   } catch (e) {
-    logger.warn('Evaluation updated email failed (continuing):', e?.message || e);
+    logger.warn('Failed to schedule next annual evaluation:', e?.message || e);
   }
 
   return {
@@ -955,4 +923,160 @@ export const deleteEvaluationDocumentsBestEffort = async (evaluation) => {
 
   // Supabase cleanup intentionally omitted (needs bucket + remove).
   // Can be implemented when needed.
+};
+
+// gets emails of Executives, Managers, and HR for notifications
+
+const getNotificationRecipients = async () => {
+  // TEST MODES
+  const adminEmails = process.env.ADMIN_NOTIFICATION_EMAILS;
+
+  if (adminEmails && adminEmails.trim().length > 0) {
+    const emails = adminEmails
+      .split(',')
+      .map(email => email.trim())
+      .filter(email => email.length > 0);
+
+    logger.info(`[TEST MODE] Using ADMIN_NOTIFICATION_EMAILS: ${emails.join(', ')}`);
+
+    return emails.map(email => ({ email, role: 'TEST' }));
+  }
+
+  // for production,, query database for actual recipients
+  const { ROLES, EMPLOYMENT_STATUSES } = await import('../config/constants.js');
+
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('email, role, employees!inner(employment_status)')
+    .in('role', [ROLES.EXECUTIVE, ROLES.MANAGER, ROLES.HR])
+    .eq('employees.employment_status', EMPLOYMENT_STATUSES.ACTIVE)
+    .not('email', 'is', null);
+
+  if (error) {
+    logger.error('Failed to get notification recipients:', error);
+    return [];
+  }
+
+  logger.info(`[PRODUCTION MODE] Found ${users?.length || 0} active recipients from database`);
+  return Array.isArray(users) ? users : [];
+};
+
+// sends reminder email to Executives, Managers, and HR
+const sendReminderEmail = async (evaluation) => {
+  const employee = evaluation.employees;
+  const employeeName = formatEmployeeName(employee);
+  const evalType = evaluation.evaluation_type;
+
+  // get HR/Executive/Manager emails
+  const recipients = await getNotificationRecipients();
+
+  if (recipients.length === 0) {
+    logger.warn('No notification recipients found for evaluation reminder');
+    return;
+  }
+
+  const logoAttachment = await getEmailLogoAttachment();
+  const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
+  const html = buildEvaluationEmailHtml({
+    title: 'Evaluation Reminder',
+    message: `This is a reminder that ${employeeName}'s ${evalType} evaluation is due in 7 days (1 week).`,
+    recipientName: 'Team',
+    statusPill: { label: 'REMINDER', bg: WEBSITE_COLORS.mustard },
+    logoSrc,
+    date: evaluation.evaluation_date,
+    details: [
+      { label: 'Employee', value: employeeName },
+      { label: 'Employee ID', value: employee?.employee_id || '—' },
+      { label: 'Position', value: employee?.positions?.position_title || '—' },
+      { label: 'Evaluation Type', value: evalType },
+      { label: 'Due Date', value: toIsoDate(evaluation.evaluation_date) }
+    ]
+  });
+
+  // send to all recipients
+  for (const recipient of recipients) {
+    try {
+      await sendEmail({
+        to: recipient.email,
+        subject: `WDCAP HRIS — Evaluation Reminder: ${employeeName}`,
+        text: `Reminder: ${employeeName}'s ${evalType} evaluation is due on ${formatLetterDate(evaluation.evaluation_date)}`,
+        html,
+        attachments: logoAttachment ? [logoAttachment] : undefined
+      });
+      logger.info(`Sent evaluation reminder to ${recipient.email} for employee ${employeeName}`);
+    } catch (e) {
+      logger.error(`Failed to send reminder email to ${recipient.email}:`, e);
+    }
+  }
+};
+
+ // sends reminders for evaluations due in 7 days (1 week)
+ // called by cron job daily
+export const sendEvaluationReminders = async () => {
+  try {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + 7);
+    const targetIso = toUtcIsoDate(targetDate);
+
+    logger.info(`Checking for evaluations due on ${targetIso} (7 days from now)`);
+
+    // find evaluations due in exactly 7 days that haven't been reminded
+    const { data: evaluations, error } = await supabase
+      .from('performance_evaluations')
+      .select(`
+        evaluation_id,
+        employee_id,
+        evaluation_type,
+        evaluation_date,
+        reminder_sent_at,
+        employees (
+          id,
+          user_id,
+          employee_id,
+          first_name,
+          last_name,
+          positions (position_title)
+        )
+      `)
+      .eq('evaluation_date', targetIso)
+      .is('reminder_sent_at', null);
+
+    if (error) throw new InternalServerError(error.message);
+
+    const evaluationList = Array.isArray(evaluations) ? evaluations : [];
+    const results = { sent: 0, failed: 0, total: evaluationList.length };
+
+    if (evaluationList.length === 0) {
+      logger.info('No evaluations due in 7 days - no reminders to send');
+      return results;
+    }
+
+    logger.info(`Found ${evaluationList.length} evaluation(s) due in 7 days`);
+
+    for (const evaluation of evaluationList) {
+      try {
+        await sendReminderEmail(evaluation);
+
+        // mark reminder as sent
+        await supabase
+          .from('performance_evaluations')
+          .update({ reminder_sent_at: new Date().toISOString() })
+          .eq('evaluation_id', evaluation.evaluation_id);
+
+        results.sent++;
+      } catch (e) {
+        logger.error(`Failed to send reminder for evaluation ${evaluation.evaluation_id}:`, e);
+        results.failed++;
+      }
+    }
+
+    logger.info(`Evaluation reminders complete: ${results.sent} sent, ${results.failed} failed out of ${results.total} total`);
+    return results;
+
+  } catch (error) {
+    logger.error('Error sending evaluation reminders:', error);
+    throw error;
+  }
 };

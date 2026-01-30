@@ -15,6 +15,7 @@ import dashboardRoutes from './dashboard.js';
 import analyticsRoutes from './analytics.js';
 import evaluationRoutes from './evaluations.js';
 import calendarRoutes from './calendar.js';
+import cronRoutes from './cron.js';
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.use('/dashboard', dashboardRoutes); // localhost:3000/api/dashboard/...
 router.use('/analytics', analyticsRoutes); // localhost:3000/api/analytics/...
 router.use('/evaluations', evaluationRoutes); // localhost:3000/api/evaluations/...
 router.use('/calendar', calendarRoutes); // localhost:3000/api/calendar/...
+router.use('/cron', cronRoutes); // localhost:3000/api/cron/... (protected by CRON_SECRET)
 
 export default router;
