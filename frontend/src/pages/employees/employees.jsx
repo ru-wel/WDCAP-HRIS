@@ -704,13 +704,13 @@ function ModalEmployees({
                 >
                   Update Record
                 </button>
-                <button
+                {/*<button
                   onClick={handleDelete}
                   disabled={loading}
                   className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                 >
                   {loading ? "Archiving ..." : "Archive Employee"}
-                </button>
+                </button>*/}
               </div>
             ) : (
               <div className="flex justify-end gap-4">

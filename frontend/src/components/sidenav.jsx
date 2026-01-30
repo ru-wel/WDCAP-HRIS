@@ -238,10 +238,10 @@ export default function Sidenav({
           type: "dropdown",
           path: null,
           children: [
-            { label: "201 Files", path: "/employees/201-files" },
+            //{ label: "201 Files", path: "/employees/201-files" },
             { label: "My Documents", path: "/employees/my-documents" },
-            { label: "Departments", path: "/employees/departments" },
-            { label: "User Account", path: "/profile" },
+            //{ label: "Departments", path: "/employees/departments" },
+            //{ label: "User Account", path: "/profile" },
           ],
         },
         ...items.filter((item) => {

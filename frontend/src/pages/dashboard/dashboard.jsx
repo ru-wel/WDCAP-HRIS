@@ -741,6 +741,112 @@ function Dashboard() {
               />
             </section>
 
+            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                    Pending Evaluations
+                  </h2>
+                  <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
+                    {loading ? "…" : statValues.pendingEvaluations}
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
+                  <table className="min-w-[420px] w-full text-sm">
+                    <thead className="bg-[#ad3332] text-white">
+                      <tr>
+                        <th className="px-4 py-2 text-left font-medium">Name</th>
+                        <th className="px-4 py-2 text-left font-medium">
+                          Position
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {!loading && summary.pendingEvaluations.length ? (
+                        summary.pendingEvaluations.slice(0, 5).map((row) => (
+                          <tr
+                            key={String(row.evaluation_id || row.employee_id)}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              const id = row?.employee_id;
+                              if (!id) return;
+                              navigate(
+                                `/evaluation/history?employeeId=${encodeURIComponent(
+                                  String(id)
+                                )}`
+                              );
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key !== "Enter" && e.key !== " ") return;
+                              const id = row?.employee_id;
+                              if (!id) return;
+                              navigate(
+                                `/evaluation/history?employeeId=${encodeURIComponent(
+                                  String(id)
+                                )}`
+                              );
+                            }}
+                            className="bg-white cursor-pointer hover:bg-gray-50"
+                          >
+                            <td className="px-4 py-2 text-gray-900">
+                              {row.employee_code || row.employee_name
+                                ? `${row.employee_code || ""}${
+                                    row.employee_code && row.employee_name
+                                      ? " - "
+                                      : ""
+                                  }${row.employee_name || ""}`.trim()
+                                : "—"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-900">
+                              {row.position_title || "N/A"}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="bg-white">
+                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
+                            {loading ? "Loading…" : "No pending evaluations."}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-500">
+                  Monitor employees who are due for performance evaluation.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <h2 className="text-lg md:text-xl font-semibold text-[#990100] ">
+                  Events for the Week
+                </h2>
+
+                <div className="px-2">
+                  <div className="border-b border-[#f0dede] py-3">
+                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
+                      Jan 12 | Monday
+                    </p>
+
+                    <div className="px-4 md:grid md:grid-cols-2 ">
+                      <p className="pb-1.5 text-sm">
+                        - Birthday of Reuel Christian Sundiam!
+                      </p>
+                      <p className="pb-1.5 text-sm">
+                        - Evaluation of Carl Paldeng
+                      </p>
+                      <p className="pb-1.5 text-sm">
+                        - Meeting of the Executives with a Client
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             {canSeeAuditDashboard ? (
               <section className="mt-8 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -870,111 +976,6 @@ function Dashboard() {
               </section>
             ) : null}
 
-            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    Pending Evaluations
-                  </h2>
-                  <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
-                    {loading ? "…" : statValues.pendingEvaluations}
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
-                  <table className="min-w-[420px] w-full text-sm">
-                    <thead className="bg-[#ad3332] text-white">
-                      <tr>
-                        <th className="px-4 py-2 text-left font-medium">Name</th>
-                        <th className="px-4 py-2 text-left font-medium">
-                          Position
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {!loading && summary.pendingEvaluations.length ? (
-                        summary.pendingEvaluations.slice(0, 5).map((row) => (
-                          <tr
-                            key={String(row.evaluation_id || row.employee_id)}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              const id = row?.employee_id;
-                              if (!id) return;
-                              navigate(
-                                `/evaluation/history?employeeId=${encodeURIComponent(
-                                  String(id)
-                                )}`
-                              );
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key !== "Enter" && e.key !== " ") return;
-                              const id = row?.employee_id;
-                              if (!id) return;
-                              navigate(
-                                `/evaluation/history?employeeId=${encodeURIComponent(
-                                  String(id)
-                                )}`
-                              );
-                            }}
-                            className="bg-white cursor-pointer hover:bg-gray-50"
-                          >
-                            <td className="px-4 py-2 text-gray-900">
-                              {row.employee_code || row.employee_name
-                                ? `${row.employee_code || ""}${
-                                    row.employee_code && row.employee_name
-                                      ? " - "
-                                      : ""
-                                  }${row.employee_name || ""}`.trim()
-                                : "—"}
-                            </td>
-                            <td className="px-4 py-2 text-gray-900">
-                              {row.position_title || "N/A"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr className="bg-white">
-                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
-                            {loading ? "Loading…" : "No pending evaluations."}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500">
-                  Monitor employees who are due for performance evaluation.
-                </p>
-              </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] ">
-                  Events for the Week
-                </h2>
-
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">
-                        - Birthday of Reuel Christian Sundiam!
-                      </p>
-                      <p className="pb-1.5 text-sm">
-                        - Evaluation of Carl Paldeng
-                      </p>
-                      <p className="pb-1.5 text-sm">
-                        - Meeting of the Executives with a Client
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
           </>
         )}
       </div>

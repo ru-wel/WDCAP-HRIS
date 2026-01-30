@@ -293,21 +293,21 @@ function EventDetailsModal({ open, data, onClose, onEdit, onDelete, isConfirmMod
 
           {/* Action Buttons at Bottom */}
           {(canEditDelete || viewDetailsLink) && (
-            <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
-              <div className="flex gap-2">
+            <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
+              <div className="flex gap-2 justify-end">
                 {canEditDelete && (
                   <>
-                    <button type="button" onClick={() => onEdit(data)} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-[#990100] text-[#990100] bg-white hover:bg-[#990100]/10 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={() => onEdit(data)} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-[#990100] text-[#990100] bg-white hover:text-[#990100]/70 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition duration-300">
                       Edit
                     </button>
-                    <button type="button" onClick={() => onDelete(data)} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg bg-[#990100] text-white hover:bg-red-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button type="button" onClick={() => onDelete(data)} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg bg-[#990100] text-white hover:bg-red-700 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition duration-300">
                       {isProcessing ? 'Deleting...' : 'Delete'}
                     </button>
                   </>
                 )}
               </div>
               {viewDetailsLink && (
-                <a href={viewDetailsLink} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-semibold flex items-center">
+                <a href={viewDetailsLink} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-[#990100] text-[#990100] bg-white hover:text-[#990100]/70 text-sm font-semibold flex items-center hover:scale-105 transition duration-300">
                   View Details
                 </a>
               )}
@@ -673,10 +673,10 @@ function DateCreateModal({
             </div>
 
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button type="button" onClick={onClose} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={onClose} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg border border-[#990100] text-[#990100] bg-white hover:text-[#990100]/70 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition duration-300">
                 Cancel
               </button>
-              <button type="button" onClick={onSave} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg bg-[#990100] text-white hover:bg-[#990100]/90 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed">
+              <button type="button" onClick={onSave} disabled={isProcessing} className="lg:h-10 md:h-9 h-8 px-4 rounded-lg bg-[#990100] text-white hover:bg-[#990100]/90 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition duration-300">
                 {isProcessing ? (isEditMode ? "Updating..." : "Saving...") : (isEditMode ? "Update" : "Save")}
               </button>
             </div>
