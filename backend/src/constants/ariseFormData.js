@@ -61,7 +61,7 @@ export const ARISE_FORM_ITEMS = {
       id: 5,
       title: 'V. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuna )',
       items: [
-        { number: 18, text: 'Sumusunod sa oras ng pagpasok (Hindi lumiliko at nahuhuli sa trabaho)' },
+        { number: 18, text: 'Sumusunod sa oras ng pagpasok (Hindi lumiliban at nahuhuli sa trabaho)' },
         {
           number: 19,
           text: 'Sumusunod sa ibang polisiya, patakaran at alituntunin ng kumpanya (memorandum and company handbook)'

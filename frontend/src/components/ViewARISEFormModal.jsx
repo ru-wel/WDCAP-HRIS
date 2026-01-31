@@ -56,7 +56,7 @@ function ViewARISEFormModal({ open, onClose, formData, employeeName, evaluationT
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-4" role="dialog" aria-modal="true" aria-label="View ARISE Form" data-lenis-prevent>
       <div className="w-full max-w-5xl h-[90vh] rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-5 py-3 bg-[#990100] flex items-center justify-between gap-3 flex-shrink-0">
+        <div className="px-5 py-3 bg-[#990100] flex items-center justify-between gap-3 flex-shrink-0 m-4 rounded-lg">
           <h2 className="text-white text-base font-semibold tracking-wide">
             ARISE Performance Evaluation Form - {employeeName}
           </h2>
@@ -144,7 +144,7 @@ function ViewARISEFormModal({ open, onClose, formData, employeeName, evaluationT
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-800 mb-2 font-bold">
-                Komento / Rekomendasyon / Pagyamanilad:
+                Komento / Rekomendasyon / Pagpapaunlad:
               </label>
               <div className="input-select w-full min-h-32 bg-gray-100 cursor-not-allowed whitespace-pre-wrap">
                 {memo || '—'}

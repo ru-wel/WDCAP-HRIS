@@ -126,7 +126,7 @@ export default function ARISEEvaluationForm({
 
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-800 mb-2 font-bold">
-                Komento / Rekomendasyon / Pagyamanilad:
+                Komento / Rekomendasyon / Pagpapaunlad:
               </label>
               <textarea
                 className="input-select w-full h-32"

@@ -114,6 +114,7 @@ export default function Sidenav({
       "/evaluation": { main: "Evaluation", sub: null },
       "/evaluation/history": { main: "Evaluation", sub: "Evaluation History" },
       "/evaluation/upload": { main: "Evaluation", sub: "Upload Result" },
+      "/evaluation/my-evaluations": { main: "Evaluation", sub: "My Evaluations" },
 
       "/departments": { main: "Departments", sub: null },
 
@@ -205,7 +206,8 @@ export default function Sidenav({
       type: "dropdown",
       path: "/evaluation",
       children: [
-        { label: "Evaluation History", path: "/evaluation/history" },
+        ...(!isEmployee ? [{ label: "Evaluation History", path: "/evaluation/history" }] : []),
+        { label: "My Evaluations", path: "/evaluation/my-evaluations" },
         ...(!isEmployee ? [{ label: "Upload Result", path: "/evaluation/upload" }] : []),
       ],
     },
@@ -247,7 +249,6 @@ export default function Sidenav({
         ...items.filter((item) => {
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
-          if (item.label === "Evaluation") return false;
           if (item.label === "Analytics") return false;
           if (item.label === "Audit Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;

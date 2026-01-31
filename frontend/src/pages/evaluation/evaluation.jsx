@@ -1,11 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
-import interactionPlugin from '@fullcalendar/interaction';
 import { useNavigate } from 'react-router-dom';
 import DropDownFilter from '../../components/dropdownfilter.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
-import Preloader from '../../components/preloader.jsx';
 import { ROLES } from '../../constants/config.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { get, post, put } from '../../services/api.js';
@@ -18,28 +16,6 @@ const toIsoDate = (value) => {
     return new Date(value).toISOString().slice(0, 10);
   } catch {
     return '';
-  }
-};
-
-const hasScoreOrRemarks = (notes) => {
-  const s = String(notes || '');
-  return /\bScore\s*:\s*\S+/i.test(s) || /\bRemarks\s*:\s*\S+/i.test(s);
-};
-
-const docHasFiles = (value) => {
-  if (!value) return false;
-  const raw = typeof value === 'string' ? value : JSON.stringify(value);
-  const trimmed = String(raw || '').trim();
-  if (!trimmed) return false;
-
-  try {
-    const obj = typeof value === 'object' && value ? value : JSON.parse(trimmed);
-    if (!obj || typeof obj !== 'object') return false;
-    const candidates = [obj.file, obj.breakdown, obj.final, obj.form].filter(Boolean);
-    return candidates.some((c) => (c?.fileId || c?.path));
-  } catch {
-    // If it's not JSON but a non-empty string, treat as present.
-    return trimmed.length > 0;
   }
 };
 
@@ -588,8 +564,6 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
   );
 }
 
-
-
 export default function Evaluation() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -611,9 +585,6 @@ export default function Evaluation() {
   const [draftTypeFilter, setDraftTypeFilter] = useState('all');
   const [draftSearchTerm, setDraftSearchTerm] = useState('');
 
-  const [duePending, setDuePending] = useState([]);
-  const [duePendingLoading, setDuePendingLoading] = useState(false);
-  const [duePendingError, setDuePendingError] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -906,35 +877,7 @@ export default function Evaluation() {
     };
   }, [filtersOpen]);
 
-  const autoDueEvents = useMemo(() => {
-    if (!canManage) return [];
-    const rows = Array.isArray(duePending) ? duePending : [];
-    return rows
-      .filter((r) => r?.due_date)
-      .map((r) => {
-        const date = String(r.due_date).slice(0, 10);
-        const employeeName = String(r.employee_name || '').trim();
-        const type = String(r.evaluation_type || 'Evaluation').trim();
-        const title = isEmployee ? type : `${employeeName} - ${type}`.trim();
-        return {
-          id: `auto-due-${String(r.employee_db_id || '')}-${date}-${type}`,
-          title,
-          start: date,
-          dotColor: '#F59E0B',
-          pillBg: '#FFE1A3',
-          pillText: '#FF8A00',
-          employeeName: employeeName || null,
-          employeeId: r.employee_db_id,
-          employeeCode: r.employee_code || null,
-          evaluationType: type,
-          date,
-          hasResult: false,
-          isAutoDue: true,
-        };
-      });
-  }, [canManage, duePending, isEmployee]);
-
-  const effectiveEvents = useMemo(() => [...rawEvents, ...autoDueEvents], [rawEvents, autoDueEvents]);
+  const effectiveEvents = useMemo(() => rawEvents, [rawEvents]);
 
   const typeOptions = useMemo(() => {
     const types = Array.from(
@@ -982,33 +925,14 @@ export default function Evaluation() {
 
   const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
 
-  useEffect(() => {
-    if (!canManage) {
-      setDuePending([]);
-      setDuePendingLoading(false);
-      setDuePendingError('');
-      return;
-    }
-
-    const fetchDue = async () => {
-      try {
-        setDuePendingLoading(true);
-        setDuePendingError('');
-        const res = await get(`/evaluations/pending?year=${encodeURIComponent(String(quarterInfo.year))}&quarter=${encodeURIComponent(String(quarterInfo.quarter))}`);
-        const rows = Array.isArray(res?.data) ? res.data : [];
-        setDuePending(rows);
-      } catch (e) {
-        console.error('Failed to load pending due evaluations:', e);
-        setDuePending([]);
-        setDuePendingError(e?.message || 'Failed to load pending evaluations');
-      } finally {
-        setDuePendingLoading(false);
-      }
-    };
-
-    fetchDue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canManage, quarterInfo.year, quarterInfo.quarter]);
+  const quarterEvaluations = useMemo(() => {
+    if (!canManage) return [];
+    const { startIso, endIso } = quarterInfo;
+    return rawEvents.filter((ev) => {
+      const evDate = String(ev?.date || ev?.start || '').slice(0, 10);
+      return evDate >= startIso && evDate <= endIso;
+    });
+  }, [canManage, rawEvents, quarterInfo]);
 
   const calendarEvents = useMemo(
     () =>
@@ -1161,7 +1085,7 @@ export default function Evaluation() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-3 bg-white rounded-xl border border-gray-300 shadow-sm px-6 py-5">
               <FullCalendar
-                plugins={[dayGridPlugin, interactionPlugin]}
+                plugins={[dayGridPlugin]}
                 initialView="dayGridMonth"
                 height="auto"
                 fixedWeekCount={false}
@@ -1195,33 +1119,6 @@ export default function Evaluation() {
                   handleOpenCreate(info?.dateStr);
                 }}
                 eventClick={(info) => {
-                  if (info.event.extendedProps?.isAutoDue) {
-                    const ev = info.event.extendedProps;
-                    openConfirm({
-                      title: 'Pending evaluation',
-                      message: 'This evaluation is auto-generated from hire date. Do you want to upload the result now?',
-                      confirmText: 'Upload Result',
-                      cancelText: 'Cancel',
-                      onConfirm: async () => {
-                        try {
-                          const ensured = await post('/evaluations/ensure-schedule', {
-                            employee_id: ev?.employeeId,
-                            evaluation_type: ev?.evaluationType,
-                            evaluation_date: ev?.date,
-                          });
-
-                          const evalId = ensured?.data?.evaluation_id;
-                          if (!evalId) throw new Error('Evaluation ID is missing');
-
-                          navigate(`/evaluation/upload?evaluationId=${encodeURIComponent(String(evalId))}`);
-                        } catch (e) {
-                          console.error('Failed to ensure schedule for upload:', e);
-                          notify({ type: 'error', title: 'Error', message: e?.message || 'Failed to prepare evaluation upload.' });
-                        }
-                      },
-                    });
-                    return;
-                  }
                   const x = info.jsEvent?.clientX ?? 200;
                   const y = info.jsEvent?.clientY ?? 200;
                   setAnchor({ x, y });
@@ -1241,22 +1138,17 @@ export default function Evaluation() {
 
               <div className="mt-5">
                 <div className="text-sm font-semibold text-[#990100]">
-                  Pending evaluations (Q{quarterInfo.quarter} {quarterInfo.year})
+                  Evaluations (Q{quarterInfo.quarter} {quarterInfo.year})
                 </div>
                 <div className="mt-2 max-h-[360px] overflow-auto rounded-lg border border-gray-200 bg-white">
-                  {duePendingLoading ? (
-                    <Preloader fullScreen={false} text="LOADING…" />
-                  ) : duePendingError ? (
-                    <div className="px-3 py-3 text-xs text-red-700">{duePendingError}</div>
-                  ) : duePending.length ? (
+                  {quarterEvaluations.length ? (
                     <ul className="divide-y divide-gray-100">
-                      {duePending.map((p) => {
-                        const key = `due-${String(p?.employee_db_id || '')}-${String(p?.due_date || '').slice(0, 10)}-${String(p?.evaluation_type || '')}`;
-                        const name = String(p?.employee_name || '').trim();
-                        const type = String(p?.evaluation_type || '').trim();
-                        const date = String(p?.due_date || '').slice(0, 10);
+                      {quarterEvaluations.map((ev) => {
+                        const name = String(ev?.employeeName || '').trim();
+                        const type = String(ev?.evaluationType || '').trim();
+                        const date = String(ev?.date || ev?.start || '').slice(0, 10);
                         return (
-                          <li key={key} className="px-3 py-2 text-xs text-gray-700">
+                          <li key={ev.id} className="px-3 py-2 text-xs text-gray-700">
                             <div className="font-medium text-gray-900 truncate" title={name}>
                               {name || 'Employee'}
                             </div>
@@ -1268,7 +1160,7 @@ export default function Evaluation() {
                       })}
                     </ul>
                   ) : (
-                    <div className="px-3 py-3 text-xs text-gray-600">No pending evaluations for this quarter.</div>
+                    <div className="px-3 py-3 text-xs text-gray-600">No evaluations scheduled for this quarter.</div>
                   )}
                 </div>
               </div>

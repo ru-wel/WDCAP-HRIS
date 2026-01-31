@@ -25,3 +25,4 @@ coverage/
 *.txt
 
 scripts/tests/
+migrations/

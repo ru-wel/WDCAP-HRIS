@@ -11,12 +11,12 @@ export const ARISE_FORM_ITEMS = {
     {
       value: 2,
       title: 'SAPAT',
-      text: 'katamtaman lamang , nakatutugon ngunit paminsan-minsan ay may pagkukulang at hindi lubos na nagagampanan ang trabaho, nakatutupad sa mga alituntunin, proseso at patakaran ng kumpanya ngunit hindi sa lahat ng pagkakataon.'
+      text: 'Katamtaman lamang , nakatutugon ngunit paminsan-minsan ay may pagkukulang at hindi lubos na nagagampanan ang trabaho, nakatutupad sa mga alituntunin, proseso at patakaran ng kumpanya ngunit hindi sa lahat ng pagkakataon.'
     },
     {
       value: 1,
       title: 'HINDI  SUMASANG-AYON',
-      text: 'lubos na hindi nagagampanan ang trabaho, walang kahusayan na naipapamalas, at hindi nakatutugon at nakakasunod sa mga alituntunin, proseso at patakaran ng kumpanya.'
+      text: 'Lubos na hindi nagagampanan ang trabaho, walang kahusayan na naipapamalas, at hindi nakatutugon at nakakasunod sa mga alituntunin, proseso at patakaran ng kumpanya.'
     }
   ],
   sections: [
@@ -123,7 +123,7 @@ export const ARISE_FORM_ITEMS = {
       items: [
         {
           number: 18,
-          text: "Sumusunod sa oras ng pagpasok (Hindi lumiliko at nahuhuli sa trabaho)"
+          text: "Sumusunod sa oras ng pagpasok (Hindi lumiliban at nahuhuli sa trabaho)"
         },
         {
           number: 19,
@@ -149,7 +149,7 @@ export const ARISE_FORM_ITEMS = {
     equivalentPercentage: "Equivalent Percentage:",
     reliable: "Itutuloy ba ang employment? (Bilugan, i-shade o i-tsek ang kasagutan)",
     reliableOptions: ["Oo itutuloy", "Hindi na Itutuloy"],
-    memo: "Komento / Rekomendasyon / Pagyamanilad:"
+    memo: "Komento / Rekomendasyon / Pagpapaunlad:"
   },
 
   performanceRating: [

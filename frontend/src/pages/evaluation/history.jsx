@@ -759,8 +759,14 @@ export default function EvaluationHistory() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.message || 'Failed to regularize employee');
+        let errorMessage = 'Failed to regularize employee';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorMessage;
+        } catch {
+          // response is not JSON, use default message
+        }
+        throw new Error(errorMessage);
       }
 
       setRegularizationModalOpen(false);
@@ -799,7 +805,7 @@ export default function EvaluationHistory() {
         end_date: endDate || null,
         row_count: rowsForExport.length,
         source: 'employees',
-      }).catch(() => {});
+      }).catch((err) => console.debug('Audit log failed:', err));
 
       const columns = [
         { header: 'Employee ID', value: (r) => r?.employeeCode || '' },
@@ -832,7 +838,7 @@ export default function EvaluationHistory() {
       end_date: endDate || null,
       row_count: rowsForExport.length,
       source: 'performance_evaluations',
-    }).catch(() => {});
+    }).catch((err) => console.debug('Audit log failed:', err));
 
     const columns = [
       { header: 'Employee ID', value: () => employee?.employeeCode || '' },

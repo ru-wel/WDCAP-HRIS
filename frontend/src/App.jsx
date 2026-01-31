@@ -33,6 +33,7 @@ import EmployeeDepartmentMembers from './pages/employees/self/employee-departmen
 import EvaluationHistory from './pages/evaluation/history.jsx';
 import EvaluationUpload from './pages/evaluation/upload.jsx';
 import Evaluation from './pages/evaluation/evaluation.jsx';
+import MyEvaluations from './pages/evaluation/self/my-evaluations.jsx';
 import EmployeeProjects from './pages/employees/self/employee-projects.jsx';
 import EmployeeProjectMembers from './pages/employees/self/employee-project-members.jsx';
 import CalendarPage from './pages/calendar/calendar.jsx';
@@ -71,6 +72,7 @@ function TitleManager() {
         '/evaluation': 'ARISE | EVALUATION',
         '/evaluation/history': 'ARISE | EVALUATION HISTORY',
         '/evaluation/upload': 'ARISE | EVALUATION UPLOAD',
+        '/evaluation/my-evaluations': 'ARISE | MY EVALUATIONS',
 
         '/analytics': 'ARISE | ANALYTICS',
 
@@ -163,7 +165,7 @@ function App() {
           <Route
             path="/evaluation/history"
             element={
-              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]}>
                 <EvaluationHistory />
               </ProtectedRoute>
             }
@@ -173,6 +175,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER]}>
                 <EvaluationUpload />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/evaluation/my-evaluations"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]}>
+                <MyEvaluations />
               </ProtectedRoute>
             }
           />

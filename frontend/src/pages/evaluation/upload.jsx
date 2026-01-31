@@ -814,7 +814,7 @@ export default function EvaluationUpload() {
       resetForm();
     } catch (e) {
       console.error('Failed to upload evaluation documents:', e);
-      openInfo({ title: 'Error', message: e?.message || 'Failed to update evaluation' });
+      openInfo({ title: 'Error', message: e?.message || 'Failed to submit evaluation' });
     } finally {
       setSaving(false);
     }
