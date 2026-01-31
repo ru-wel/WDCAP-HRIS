@@ -16,6 +16,12 @@ router.post('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(employeeVal
 // get my employee profile (self)
 router.get('/me', employeeController.getMyEmployeeProfile);
 
+// get my documents (self)
+router.get('/me/documents', employeeController.getMyDocuments);
+
+// download my document (self)
+router.get('/me/documents/:id/download', employeeController.downloadMyDocument);
+
 // get all employees
 router.get('/', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), employeeController.getAllEmployees);
 

@@ -1076,23 +1076,19 @@ function OnboardingFiles (){
     };
 
     const getRemarks = (empFiles) =>{
-        const isComplete = empFiles.empContractStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empCVStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empApplicationStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empDataSheetStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empPhotoStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empSinumpaangSalaysayStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empWaiverMedicalStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empNDAStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empExamStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empDiplomaStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empTranscriptRecStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empSSS_Status === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empPhilhealthStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empPagibigStatus === ONBOARDING_STATUSES.APPROVED &&
-            empFiles.empValidIDStatus === ONBOARDING_STATUSES.APPROVED;
+        // only check REQUIRED documents for completion
+        const allRequiredDocsApproved = modalFiles.every(file => {
+            const isRequired = empFiles[file.required];
 
-        return isComplete ? "COMPLETE" : "INCOMPLETE";
+            // if document is not required, skip it
+            if (!isRequired) return true;
+
+            // if document is required, check if it's approved
+            const status = empFiles[file.status];
+            return status === ONBOARDING_STATUSES.APPROVED;
+        });
+
+        return allRequiredDocsApproved ? "COMPLETE" : "INCOMPLETE";
     }
 
     // loading state

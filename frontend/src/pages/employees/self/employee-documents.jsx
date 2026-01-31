@@ -143,7 +143,8 @@ function MyDocuments() {
 		try {
 			setLoading(true);
 
-			const response = await get(`/documents/${documentId}/download`);
+			// use the new /employees/me/documents endpoint for downloading own documents
+			const response = await get(`/employees/me/documents/${documentId}/download`);
 
 			if (response.success && response.data.signedUrl) {
 				// open download URL in new tab

@@ -17,6 +17,9 @@ export default function Profile() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('');
+  const [photoLoading, setPhotoLoading] = useState(false);
+
   const [confirmState, setConfirmState] = useState({
     open: false,
     title: 'Success',
@@ -55,6 +58,82 @@ export default function Profile() {
 
     load();
   }, []);
+
+  useEffect(() => {
+    if (!employeeDetails?.id) return;
+
+    let cancelled = false;
+    let objectUrl = '';
+
+    const loadPhoto = async () => {
+      try {
+        setPhotoLoading(true);
+        setPhotoPreviewUrl('');
+
+        // fetch documents using the 'me' endpoint for own documents
+        const res = await get(`/employees/me/documents`);
+        const docs = Array.isArray(res?.data) ? res.data : [];
+        const photoDoc = docs.find(
+          (d) => String(d?.document_name || '') === 'Employee Photo'
+        ) || null;
+
+        if (!photoDoc?.id) return;
+        if (cancelled) return;
+
+        const base = (
+          import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+        ).replace(/\/$/, '');
+        const apiBase = base.endsWith('/api') ? base : `${base}/api`;
+        const token = localStorage.getItem('access_token');
+        const downloadUrl = `${apiBase}/employees/me/documents/${photoDoc.id}/download?disposition=inline`;
+
+        const fileRes = await fetch(downloadUrl, {
+          method: 'GET',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!fileRes.ok) {
+          const msg = await fileRes.text();
+          throw new Error(msg || 'Failed to load photo');
+        }
+
+        const ct = String(
+          fileRes.headers.get('content-type') || ''
+        ).toLowerCase();
+        let blob;
+
+        if (ct.includes('application/json')) {
+          const json = await fileRes.json();
+          const signedUrl = json?.data?.signedUrl;
+          if (!signedUrl) throw new Error('Failed to load photo');
+          const signedRes = await fetch(signedUrl);
+          if (!signedRes.ok) throw new Error('Failed to load photo');
+          blob = await signedRes.blob();
+        } else {
+          blob = await fileRes.blob();
+        }
+
+        objectUrl = URL.createObjectURL(blob);
+        if (cancelled) return;
+        setPhotoPreviewUrl(objectUrl);
+      } catch {
+
+      } finally {
+        if (!cancelled) setPhotoLoading(false);
+      }
+    };
+
+    loadPhoto();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        try {
+          URL.revokeObjectURL(objectUrl);
+        } catch {}
+      }
+    };
+  }, [employeeDetails?.id]);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -135,7 +214,17 @@ export default function Profile() {
 
           <div className="flex justify-center items-center gap-5 pb-6">
               <div className="w-22 h-22 rounded-md border border-gray-300 bg-gray-50 overflow-hidden flex items-center justify-center">
-                  <img src = "/tab-logo.png"/>                   
+                {photoLoading ? (
+                  <div className="text-xs text-gray-500">Loading…</div>
+                ) : photoPreviewUrl ? (
+                  <img
+                    src={photoPreviewUrl}
+                    alt="Employee Photo"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img src="/tab-logo.png" alt="No Photo" className="w-full h-full object-contain p-2" />
+                )}
               </div>
 
               <div className="">

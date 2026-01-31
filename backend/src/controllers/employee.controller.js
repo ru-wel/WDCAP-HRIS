@@ -1,4 +1,6 @@
 import * as employeeService from '../services/employee.service.js';
+import * as documentsService from '../services/document.service.js';
+import { ForbiddenError } from '../utils/errors.js';
 
 // create employee controller
 export const createEmployee = async (req, res, next) => {
@@ -135,6 +137,59 @@ export const regularizeEmployee = async (req, res, next) => {
       success: true,
       message: 'Employee regularized successfully',
       data: regularizedEmployee
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// get my documents controller (employee accessing their own documents)
+export const getMyDocuments = async (req, res, next) => {
+  try {
+    const employeeDbId = req.user.employee_db_id;
+
+    if (!employeeDbId) {
+      throw new ForbiddenError('No employee record associated with this user');
+    }
+
+    const documents = await documentsService.getDocumentsByEmployee(employeeDbId);
+
+    res.status(200).json({
+      success: true,
+      message: 'My documents retrieved successfully',
+      data: documents
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// download my document controller (employee downloading their own document)
+export const downloadMyDocument = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const employeeDbId = req.user.employee_db_id;
+    const userId = req.user.id;
+
+    if (!employeeDbId) {
+      throw new ForbiddenError('No employee record associated with this user');
+    }
+
+    // verify ownership of document
+    const document = await documentsService.getDocumentById(id);
+
+    // verify ocument belongs to the current user
+    if (document.employee_id !== employeeDbId) {
+      throw new ForbiddenError('You can only download your own documents');
+    }
+
+    // once verified, proceed with download
+    const result = await documentsService.downloadDocument(id, userId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Document download URL generated successfully',
+      data: result
     });
   } catch (error) {
     next(error);
