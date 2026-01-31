@@ -37,6 +37,8 @@ export default function EvaluationUpload() {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(preselectedEmployeeId || '');
   const [selectedEmployeeCode, setSelectedEmployeeCode] = useState('');
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   const [evaluationId, setEvaluationId] = useState(preselectedEvaluationId || '');
   const [availableEvaluations, setAvailableEvaluations] = useState([]);
@@ -60,6 +62,7 @@ export default function EvaluationUpload() {
   // regularization modal state
   const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
   const [employeeForRegularization, setEmployeeForRegularization] = useState(null);
+  const [regularizationPersonnelType, setRegularizationPersonnelType] = useState('Probationary');
 
   const {
     formScores,
@@ -77,6 +80,34 @@ export default function EvaluationUpload() {
     resetForm: resetARISEForm,
     serializeFormData,
   } = useARISEForm();
+
+  // filter employees based on search term (with autocomplete)
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearchTerm.trim()) return [];
+    const search = employeeSearchTerm.toLowerCase();
+    return employees.filter((emp) => {
+      const name = String(emp.name || '').toLowerCase();
+      return name.includes(search);
+    });
+  }, [employees, employeeSearchTerm]);
+
+  // handle employee selection from autocomplete
+  const handleSelectEmployee = (employee) => {
+    setSelectedEmployee(employee);
+    setSelectedEmployeeId(employee.id);
+    setSelectedEmployeeCode(employee.employeeCode || '');
+    setEmployeeSearchTerm('');
+    if (!preselectedEvaluationId) setEvaluationId('');
+  };
+
+  // handle clearing selected employee
+  const handleClearEmployee = () => {
+    setSelectedEmployee(null);
+    setSelectedEmployeeId('');
+    setSelectedEmployeeCode('');
+    setEmployeeSearchTerm('');
+    if (!preselectedEvaluationId) setEvaluationId('');
+  };
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -215,17 +246,9 @@ export default function EvaluationUpload() {
         setScore('');
         setRemarks('');
 
-        setEmployees(
-          empId
-            ? [
-                {
-                  id: empId,
-                  name: empName || empId,
-                  employeeCode: empCode,
-                },
-              ]
-            : []
-        );
+        const empData = empId ? { id: empId, name: empName || empId, employeeCode: empCode, } : null;
+        setEmployees(empData ? [empData] : []);
+        setSelectedEmployee(empData);
         return;
       }
 
@@ -236,17 +259,9 @@ export default function EvaluationUpload() {
         const meCode = String(me?.employee_id || '').trim();
         setSelectedEmployeeId(meId);
         setSelectedEmployeeCode(meCode);
-        setEmployees(
-          meId
-            ? [
-                {
-                  id: meId,
-                  name: `${me?.first_name || ''} ${me?.last_name || ''}`.trim() || meId,
-                  employeeCode: meCode,
-                },
-              ]
-            : []
-        );
+        const meData = meId ? { id: meId, name: `${me?.first_name || ''} ${me?.last_name || ''}`.trim() || meId, employeeCode: meCode, } : null;
+        setEmployees(meData ? [meData] : []);
+        setSelectedEmployee(meData);
         return;
       }
 
@@ -263,9 +278,12 @@ export default function EvaluationUpload() {
         setSelectedEmployeeId(String(preselectedEmployeeId));
         const match = normalized.find((x) => String(x?.id) === String(preselectedEmployeeId));
         setSelectedEmployeeCode(String(match?.employeeCode || '').trim());
-      } else if (normalized.length > 0) {
-        setSelectedEmployeeId(String(normalized[0].id));
-        setSelectedEmployeeCode(String(normalized[0]?.employeeCode || '').trim());
+        setSelectedEmployee(match || null);
+      } else {
+        // Don't auto-select first employee - let user search and select
+        setSelectedEmployeeId('');
+        setSelectedEmployeeCode('');
+        setSelectedEmployee(null);
       }
     } catch (e) {
       console.error('Failed to init evaluation upload:', e);
@@ -293,7 +311,16 @@ export default function EvaluationUpload() {
       try {
         setLoadingEvaluations(true);
         const res = await get(`/evaluations/employee/${encodeURIComponent(String(selectedEmployeeId))}`);
-        setAvailableEvaluations(Array.isArray(res?.data) ? res.data : []);
+        const allEvaluations = Array.isArray(res?.data) ? res.data : [];
+
+        // Filter out completed evaluations (those with notes or documents uploaded)
+        const pendingEvaluations = allEvaluations.filter((evaluation) => {
+          const hasNotes = evaluation?.evaluation_notes && String(evaluation.evaluation_notes).trim();
+          const hasDocs = evaluation?.evaluation_document_path;
+          return !hasNotes && !hasDocs;
+        });
+
+        setAvailableEvaluations(pendingEvaluations);
       } catch (e) {
         console.error('Failed to load employee evaluations:', e);
         setAvailableEvaluations([]);
@@ -420,17 +447,17 @@ export default function EvaluationUpload() {
           </div>
 
           <div className="px-5 py-4">
-            {isPdf ? (
+            {isPdf && url ? (
               <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
                 <iframe title="Document preview" src={url} className="w-full h-[70vh]" />
               </div>
-            ) : isImg ? (
+            ) : isImg && url ? (
               <div className="border border-gray-200 rounded-md overflow-hidden bg-white flex items-center justify-center">
                 <img src={url} alt="Preview" className="max-h-[70vh] w-full object-contain" />
               </div>
             ) : (
               <div className="text-sm text-gray-700">
-                Preview isn’t available for this file type. Use Open/Download.
+                Preview isn't available for this file type. Use Open/Download.
               </div>
             )}
 
@@ -618,9 +645,9 @@ export default function EvaluationUpload() {
             </button>
           </div>
         </div>
-        {isImg ? (
+        {isImg && url ? (
           <img src={url} alt={file.name} className="w-full max-h-56 object-contain bg-white" />
-        ) : isPdf ? (
+        ) : isPdf && url ? (
           <iframe title={file.name} src={url} className="w-full h-56 bg-white" />
         ) : (
           <div className="p-3 text-xs text-gray-700">Preview not available for this file type (will download when opened).</div>
@@ -775,24 +802,36 @@ export default function EvaluationUpload() {
 
       // check if this is a probationary evaluation that should prompt regularization
       const isProbationary = String(typeLabel || '').toLowerCase().includes('probationary');
+      const isProjectBased = String(typeLabel || '').toLowerCase().includes('project');
 
-      if (isProbationary) {
+      if (isProbationary || isProjectBased) {
 
         try {
           const empRes = await get(`/employees/${encodeURIComponent(String(selectedEmployeeId))}`);
           const empData = empRes?.data;
 
-          // only show regularization prompt if employee is still probationary
-          if (empData && String(empData?.personnel_type).trim() === 'Probationary') {
-            setEmployeeForRegularization({
+          // only show regularization prompt if employee is still probationary or project-based
+          const currentPersonnelType = String(empData?.personnel_type || '').trim();
+          const personnelTypeLower = currentPersonnelType.toLowerCase();
+
+          const shouldPromptRegularization =
+            (isProbationary && (currentPersonnelType === 'Probationary' || personnelTypeLower === 'probationary')) ||
+            (isProjectBased && (currentPersonnelType === 'Project-Based' || personnelTypeLower === 'project-based' || personnelTypeLower === 'project based'));
+
+          if (empData && shouldPromptRegularization) {
+            const employeeForReg = {
               id: empData.id,
               name: `${empData.first_name || ''} ${empData.last_name || ''}`.trim(),
               employeeCode: empData.employee_id,
               position: empData?.positions?.position_title || 'N/A',
-            });
+              personnelType: currentPersonnelType,
+            };
+
+            setEmployeeForRegularization(employeeForReg);
+            setRegularizationPersonnelType(currentPersonnelType);
             setRegularizationModalOpen(true);
             resetForm();
-            return; 
+            return;
           }
         } catch (e) {
           console.warn('Failed to fetch employee for regularization prompt:', e);
@@ -904,30 +943,45 @@ export default function EvaluationUpload() {
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2">Name</label>
-                <select
-                  className="input-select"
-                  value={selectedEmployeeId}
-                  onChange={(e) => {
-                    const nextId = e.target.value;
-                    setSelectedEmployeeId(nextId);
-                    const match = employees.find((x) => String(x?.id) === String(nextId));
-                    setSelectedEmployeeCode(String(match?.employeeCode || '').trim());
-                    if (!preselectedEvaluationId) setEvaluationId('');
-                  }}
-                  disabled={isEmployee}
-                >
-                  {employees.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
-                </select>
+
+                {/* Search input for employee autocomplete */}
+                {!isEmployee && !preselectedEvaluationId && !selectedEmployee && (
+                  <>
+                    <input type="text" placeholder="Type employee name to search..." value={employeeSearchTerm} onChange={(e) => setEmployeeSearchTerm(e.target.value)} className="input-select"/>
+
+                    {/* Dropdown with filtered results */}
+                    {filteredEmployees.length > 0 && (
+                      <div className="mt-2 border rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
+                        {filteredEmployees.map((employee) => (
+                          <button key={employee.id} type="button" onClick={() => handleSelectEmployee(employee)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 border-b last:border-b-0">
+                            {employee.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Display selected employee */}
+                {selectedEmployee && (
+                  <div className="flex items-center gap-2">
+                    <input type="text" value={selectedEmployee.name} readOnly className="input-select flex-1 bg-gray-50"/>
+                    {!isEmployee && !preselectedEvaluationId && (
+                      <button type="button" onClick={handleClearEmployee} className="px-3 py-2 text-sm text-[#990100] hover:text-[#990100]/70 font-medium">
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 <p className="text-xs text-gray-500 mt-2">
                   {preselectedEvaluationId
                     ? 'This upload is tied to a scheduled evaluation.'
                     : isEmployee
                       ? 'You can only upload evaluations for yourself.'
-                      : 'Select an employee.'}
+                      : selectedEmployee
+                        ? 'Employee selected. Click Clear to change.'
+                        : 'Search and select an employee.'}
                 </p>
               </div>
 
@@ -942,6 +996,7 @@ export default function EvaluationUpload() {
                     >
                       <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
                       <option value="Probationary">Probationary</option>
+                      <option value="Project-based">Project-based</option>
                     </select>
                   </>
                 ) : (
@@ -956,16 +1011,26 @@ export default function EvaluationUpload() {
                         const match = availableEvaluations.find((ev) => String(ev?.evaluation_id) === String(nextId));
                         if (match?.evaluation_type) setEvaluationType(String(match.evaluation_type));
                       }}
-                      disabled={loadingEvaluations}
+                      disabled={loadingEvaluations || (!loadingEvaluations && availableEvaluations.length === 0)}
                     >
-                      <option value="">{loadingEvaluations ? 'Loading…' : 'Select schedule'}</option>
+                      <option value="">
+                        {loadingEvaluations
+                          ? 'Loading…'
+                          : availableEvaluations.length === 0
+                            ? 'No pending evaluations'
+                            : 'Select schedule'}
+                      </option>
                       {availableEvaluations.map((ev) => (
                         <option key={String(ev?.evaluation_id)} value={String(ev?.evaluation_id)}>
                           {formatShortDate(ev?.evaluation_date)} - {ev?.evaluation_type || 'Evaluation'}
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-2">Choose which scheduled evaluation you’re uploading results for.</p>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {availableEvaluations.length === 0 && !loadingEvaluations
+                        ? 'All evaluations for this employee have been completed.'
+                        : 'Choose which scheduled evaluation you are uploading results for. Completed evaluations are hidden.'}
+                    </p>
                   </>
                 )}
               </div>
@@ -1120,12 +1185,14 @@ export default function EvaluationUpload() {
         onClose={() => {
           setRegularizationModalOpen(false);
           setEmployeeForRegularization(null);
+          setRegularizationPersonnelType('Probationary');
           // Redirect to history after skipping
           const empId = encodeURIComponent(String(selectedEmployeeId));
           navigate(`/evaluation/history?employeeId=${empId}&ts=${Date.now()}`);
         }}
         employee={employeeForRegularization}
         onRegularize={handleRegularize}
+        fromPersonnelType={regularizationPersonnelType}
       />
     </div>
   );

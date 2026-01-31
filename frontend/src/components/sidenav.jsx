@@ -207,8 +207,8 @@ export default function Sidenav({
       path: "/evaluation",
       children: [
         ...(!isEmployee ? [{ label: "Evaluation History", path: "/evaluation/history" }] : []),
-        { label: "My Evaluations", path: "/evaluation/my-evaluations" },
         ...(!isEmployee ? [{ label: "Upload Result", path: "/evaluation/upload" }] : []),
+        { label: "My Evaluations", path: "/evaluation/my-evaluations" },
       ],
     },
     { label: "Analytics", icon: "analytics", type: "item", path: "/analytics" },

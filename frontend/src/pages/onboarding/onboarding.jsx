@@ -482,7 +482,6 @@ function Onboarding(){
                     open: true,
                     title: 'Success',
                     message: 'Action completed successfully.',
-                    confirmText: 'OK',
                     cancelText: null,
                     onConfirm: null,
                 };
@@ -643,7 +642,7 @@ function Onboarding(){
                                     closeConfirm();
                                     setChecklistConfigOpen(true);
                                 }}
-                                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                                className="flex-1 bg-[#990100] text-white px-4 py-2 rounded-lg hover:bg-[#770000] transition"
                             >
                                 Configure Checklist
                             </button>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function RegularizationModal({ open, onClose, employee, onRegularize }) {
+function RegularizationModal({ open, onClose, employee, onRegularize, fromPersonnelType = 'Probationary' }) {
   const [regularizationDate, setRegularizationDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -57,19 +57,18 @@ function RegularizationModal({ open, onClose, employee, onRegularize }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-5 py-5">
           {/* Success message */}
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
             <p className="text-sm text-green-800 font-medium">
-              ✓ Probationary Evaluation Submitted Successfully
+              ✓ {fromPersonnelType} Evaluation Submitted Successfully
             </p>
           </div>
 
           {/* Info */}
           <p className="text-sm text-gray-700 mb-4">
-            This employee has completed their probationary period evaluation.
-            Would you like to regularize <strong>{employeeName}</strong> ({employeeCode}) now?
+            This employee has completed their {fromPersonnelType.toLowerCase()} evaluation.
+            Would you like to convert <strong>{employeeName}</strong> ({employeeCode}) to a Regular employee now?
           </p>
 
           {/* Employee details */}

@@ -398,7 +398,8 @@ export const ensureSchedule = async (payload, user) => {
       employee_name: formatEmployeeName(existing.employees),
       employee_code: existing.employees?.employee_id || null,
       position_title: existing.employees?.positions?.position_title || null,
-      personnel_type: existing.employees?.personnel_type || null
+      personnel_type: existing.employees?.personnel_type || null,
+      alreadyExists: true
     };
   }
 
@@ -451,7 +452,8 @@ export const ensureSchedule = async (payload, user) => {
     employee_name: formatEmployeeName(created.employees),
     employee_code: created.employees?.employee_id || null,
     position_title: created.employees?.positions?.position_title || null,
-    personnel_type: created.employees?.personnel_type || null
+    personnel_type: created.employees?.personnel_type || null,
+    alreadyExists: false
   };
 };
 

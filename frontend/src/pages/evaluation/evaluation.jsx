@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import { useNavigate } from 'react-router-dom';
 import DropDownFilter from '../../components/dropdownfilter.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
@@ -65,6 +66,27 @@ const withEmployeePrefix = (employeeCode, fileName) => {
   if (!rawEmp) return rawName;
   if (rawName.toLowerCase().startsWith(`${rawEmp.toLowerCase()}_`)) return rawName;
   return `${rawEmp}_${rawName}`;
+};
+
+const docHasFiles = (documentPath) => {
+  if (!documentPath) return false;
+
+  if (typeof documentPath === 'object') {
+    return Object.keys(documentPath).length > 0;
+  }
+
+  const parsed = safeJsonParse(documentPath);
+  if (parsed && typeof parsed === 'object') {
+    return Object.keys(parsed).length > 0;
+  }
+
+  return String(documentPath).trim().length > 0;
+};
+
+const hasScoreOrRemarks = (notes) => {
+  if (!notes) return false;
+  const notesStr = String(notes).toLowerCase();
+  return notesStr.includes('score') || notesStr.includes('remark');
 };
 
 function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loading, onClose }) {
@@ -226,6 +248,7 @@ const getQuarterRange = (date) => {
 };
 
 function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResult, onOpenDoc, canManage }) {
+  const navigate = useNavigate();
   const ref = useRef(null);
 
   useEffect(() => {
@@ -261,6 +284,16 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
   const breakdownLabel = breakdown?.fileName || legacyFile?.fileName || 'Breakdown';
   const finalLabel = finalDoc?.fileName || 'Final';
   const formLabel = formDoc?.fileName || 'Evaluation Form';
+
+  const isCompleted = Boolean(data?.evaluation_notes || data?.evaluation_document_path);
+
+  const handleViewDetails = () => {
+    const employeeId = data?.employeeId;
+    if (!employeeId) return;
+
+    // navigate to user's history page
+    navigate(`/evaluation/history?employeeId=${encodeURIComponent(String(employeeId))}`);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -304,29 +337,25 @@ function EventPopover({ open, anchor, data, onClose, onReschedule, onUploadResul
 
           {canManage ? (
             <div className="mt-6 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                className="bg-white border border-[#990100] text-[#990100] hover:text-[#990100]/70 rounded-md px-4 py-2 text-sm hover:bg-gray-50 hover:scale-105 transition duration-300 ease-in-out"
-                onClick={() => onReschedule?.(data)}
-              >
-                Update Schedule
-              </button>
-              <button
-                type="button"
-                className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-                onClick={() => onUploadResult?.(data)}
-              >
-                {data?.hasResult ? 'Update Result' : 'Upload Result'}
-              </button>
+              {isCompleted ? (
+                <button type="button" className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={handleViewDetails}>
+                  View Details
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="bg-white border border-[#990100] text-[#990100] hover:text-[#990100]/70 rounded-md px-4 py-2 text-sm hover:bg-gray-50 hover:scale-105 transition duration-300 ease-in-out" onClick={() => onReschedule?.(data)}>
+                    Update Schedule
+                  </button>
+                  <button type="button" className="bg-[#990100] text-white rounded-md px-4 py-2 text-sm hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out" onClick={() => onUploadResult?.(data)}>
+                    {data?.hasResult ? 'Update Result' : 'Upload Result'}
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="mt-6 flex items-center justify-end gap-3">
               {formDoc ? (
-                <button
-                  type="button"
-                  className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50 "
-                  onClick={() => onOpenDoc?.(data, 'form', formLabel)}
-                >
+                <button type="button" className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50" onClick={() => onOpenDoc?.(data, 'form', formLabel)}>
                   Form
                 </button>
               ) : null}
@@ -389,7 +418,7 @@ function ModalShell({ open, title, onClose, children }) {
   );
 }
 
-function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNotify, openConfirm }) {
+function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNotify, openConfirm, isProjectBasedSchedule }) {
   const isUpdate = mode === 'update';
 
   const [employeeId, setEmployeeId] = useState('');
@@ -397,6 +426,13 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
   const [evaluationDate, setEvaluationDate] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  // filter only project-based employees if scheduling for project-based evaluation
+  const filteredEmployees = useMemo(() => {
+    return isProjectBasedSchedule
+      ? (employees || []).filter((e) => e.personnel_type.toLowerCase() === 'project-based')
+      : (employees || []);
+  }, [employees, isProjectBasedSchedule]);
 
   // FOR CONFIRMING WHEN SAVING
 
@@ -446,11 +482,11 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
       return;
     }
 
-    setEmployeeId(employees?.[0]?.id ? String(employees[0].id) : '');
-    setEvaluationType(`ANNUAL (${new Date().getFullYear()})`);
+    setEmployeeId(filteredEmployees?.[0]?.id ? String(filteredEmployees[0].id) : '');
+    setEvaluationType(isProjectBasedSchedule ? 'Project-based' : `ANNUAL (${new Date().getFullYear()})`);
     setEvaluationDate(toIsoDate(initial?.evaluation_date) || toIsoDate(new Date().toISOString()) || '');
     setNotes('');
-  }, [open, isUpdate, initial, employees]);
+  }, [open, isUpdate, initial, filteredEmployees, isProjectBasedSchedule]);
 
   const canSubmit = Boolean(employeeId && evaluationType && evaluationDate);
 
@@ -471,15 +507,30 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
         return;
       }
 
-      await post('/evaluations/schedule', {
+      // ensure-schedule for project-based evaluations to prevent duplicates
+      const endpoint = isProjectBasedSchedule ? '/evaluations/ensure-schedule' : '/evaluations/schedule';
+      const payload = {
         employee_id: employeeId,
         evaluation_type: evaluationType,
         evaluation_date: evaluationDate,
-        evaluation_notes: notes || null,
-      });
+      };
+
+      // only include notes for regular schedule endpoint
+      if (!isProjectBasedSchedule && notes) {
+        payload.evaluation_notes = notes;
+      }
+
+      const response = await post(endpoint, payload);
 
       onSaved?.();
-      onNotify?.({ type: 'success', title: 'Success', message: 'Evaluation scheduled successfully.' });
+
+      // check if schedule already existed
+      if (response?.data?.alreadyExists) {
+        onNotify?.({ type: 'error', title: 'Already Scheduled', message: 'An evaluation is already scheduled for this employee on this date.' });
+      } else {
+        onNotify?.({ type: 'success', title: 'Success', message: 'Evaluation scheduled successfully.' });
+      }
+
       onClose?.();
     } catch (e) {
       console.error('Failed to save evaluation schedule:', e);
@@ -489,8 +540,14 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
     }
   };
 
+  const modalTitle = isUpdate
+    ? 'Update Evaluation Schedule'
+    : isProjectBasedSchedule
+      ? 'Schedule Project-based Evaluation'
+      : 'Schedule Evaluation';
+
   return (
-    <ModalShell open={open} title={isUpdate ? 'Update Evaluation Schedule' : 'Schedule Evaluation'} onClose={handleClose}>
+    <ModalShell open={open} title={modalTitle} onClose={handleClose}>
       <div className="space-y-5 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
@@ -499,15 +556,23 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
               className="input-select disabled:text-gray-600"
               value={employeeId}
               onChange={(e) => {setEmployeeId(e.target.value); setUnsavedChanges(true);}}
-              disabled={isUpdate}
+              disabled={isUpdate || filteredEmployees.length === 0}
             >
-              {(employees || []).map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
+              {filteredEmployees.length === 0 ? (
+                <option value="">No project-based employees available</option>
+              ) : (
+                filteredEmployees.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))
+              )}
             </select>
-            {isUpdate ? <p className="text-xs text-gray-500 mt-2">Employee is fixed for an existing schedule.</p> : null}
+            {isUpdate ? (
+              <p className="text-xs text-gray-500 mt-2">Employee is fixed for an existing schedule.</p>
+            ) : isProjectBasedSchedule ? (
+              <p className="text-xs text-gray-500 mt-2">Showing only project-based employees.</p>
+            ) : null}
           </div>
 
           <div>
@@ -515,6 +580,7 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
             <select className="input-select" value={evaluationType} onChange={(e) => {setEvaluationType(e.target.value); setUnsavedChanges(true);}}>
               <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
               <option value="Probationary">Probationary</option>
+              <option value="Project-Based">Project-Based</option>
             </select>
           </div>
         </div>
@@ -528,18 +594,6 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
             onChange={(e) => {setEvaluationDate(e.target.value); setUnsavedChanges(true);}}
           />
         </div>
-
-        {!isUpdate ? (
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Notes (optional):</label>
-            <textarea
-              className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none w-full"
-              placeholder="Notes"
-              value={notes}
-              onChange={(e) => {setNotes(e.target.value); setUnsavedChanges(true);}}
-            />
-          </div>
-        ) : null}
 
         <div className="flex justify-end gap-3 pt-2">
           <button
@@ -594,6 +648,7 @@ export default function Evaluation() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleMode, setScheduleMode] = useState('create');
   const [scheduleInitial, setScheduleInitial] = useState(null);
+  const [isProjectBasedSchedule, setIsProjectBasedSchedule] = useState(false);
   
 
   const [confirmState, setConfirmState] = useState({
@@ -795,6 +850,7 @@ export default function Evaluation() {
             .map((e) => ({
               id: String(e?.id || ''),
               name: `${e?.employee_id || ''} - ${(e?.first_name || '') + ' ' + (e?.last_name || '')}`.trim(),
+              personnel_type: String(e?.personnel_type || '').trim(),
             }))
             .filter((e) => e.id)
         );
@@ -964,6 +1020,7 @@ export default function Evaluation() {
   const handleOpenCreate = (dateIso) => {
     setScheduleMode('create');
     setScheduleInitial({ evaluation_date: dateIso });
+    setIsProjectBasedSchedule(true);
     setScheduleOpen(true);
   };
 
@@ -976,6 +1033,7 @@ export default function Evaluation() {
       evaluation_date: ev?.date,
       evaluation_notes: ev?.evaluation_notes,
     });
+    setIsProjectBasedSchedule(false);
     setScheduleOpen(true);
   };
 
@@ -1085,7 +1143,7 @@ export default function Evaluation() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="lg:col-span-3 bg-white rounded-xl border border-gray-300 shadow-sm px-6 py-5">
               <FullCalendar
-                plugins={[dayGridPlugin]}
+                plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
                 height="auto"
                 fixedWeekCount={false}
@@ -1207,6 +1265,7 @@ export default function Evaluation() {
         onSaved={fetchInit}
         onNotify={notify}
         openConfirm={openConfirm}
+        isProjectBasedSchedule={isProjectBasedSchedule}
       />
 
       <ConfirmModal

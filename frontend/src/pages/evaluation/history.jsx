@@ -247,15 +247,27 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
   // check if employee should show regularization prompt
   const shouldShowRegularization = useMemo(() => {
     if (!employee || !canUpdate) return false;
-    if (personnelType !== 'Probationary') return false;
 
-    // check if there's at least one completed Probationary evaluation
-    const hasProbationaryEval = sortedEvals.some(
-      (ev) => String(ev?.evaluation_type || '').toLowerCase().includes('probationary') &&
-              (ev?.evaluation_notes || ev?.evaluation_document_path)
-    );
+    const personnelTypeLower = String(personnelType || '').toLowerCase();
+    const isProbationary = personnelTypeLower === 'probationary';
+    const isProjectBased = personnelTypeLower === 'project-based' || personnelTypeLower === 'project based';
 
-    return hasProbationaryEval;
+    if (!isProbationary && !isProjectBased) return false;
+
+    // check if there's at least one completed evaluation matching their personnel type
+    const hasCompletedEval = sortedEvals.some((ev) => {
+      const evalType = String(ev?.evaluation_type || '').toLowerCase();
+      const isCompleted = ev?.evaluation_notes || ev?.evaluation_document_path;
+
+      if (isProbationary) {
+        return evalType.includes('probationary') && isCompleted;
+      } else if (isProjectBased) {
+        return evalType.includes('project') && isCompleted;
+      }
+      return false;
+    });
+
+    return hasCompletedEval;
   }, [employee, canUpdate, personnelType, sortedEvals]);
 
   if (!open) return null;
@@ -297,7 +309,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                       ⚠️ Regularization Pending
                     </p>
                     <p className="text-xs text-gray-700">
-                      This employee has completed their probationary evaluation but has not been regularized yet.
+                      This employee has completed their {personnelType.toLowerCase()} evaluation but has not been converted to Regular yet.
                     </p>
                   </div>
                   <button type="button" className="flex-shrink-0 bg-[#990100] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#ad3332] transition" onClick={() => onRegularize?.(employee)}>
@@ -735,6 +747,7 @@ export default function EvaluationHistory() {
       name: employee?.name,
       employeeCode: employee?.employeeCode,
       position: employee?.position,
+      personnelType: employee?.personnelType,
     });
     setRegularizationModalOpen(true);
   };
@@ -1284,6 +1297,7 @@ export default function EvaluationHistory() {
         }}
         employee={employeeForRegularization}
         onRegularize={handleRegularize}
+        fromPersonnelType={employeeForRegularization?.personnelType || 'Probationary'}
       />
 
       <ViewARISEFormModal
