@@ -353,7 +353,7 @@ export default function EmployeeProjectMembers() {
                   <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                   <th className="th-style">Name</th>
                   <th className="th-style">Position</th>
-                  <th className="th-style rounded-tr-lg rounded-br-lg">Status</th>
+                  {/*<th className="th-style rounded-tr-lg rounded-br-lg">Status</th>*/}
                 </tr>
               </thead>
               <tbody className="tbody-style">
@@ -362,7 +362,7 @@ export default function EmployeeProjectMembers() {
                     <td className="td-style">{m.employee_id || '—'}</td>
                     <td className="td-style">{m.name || '—'}</td>
                     <td className="td-style">{m.position}</td>
-                    <td className="td-style">{m.status || '—'}</td>
+                    {/*<td className="td-style">{m.status || '—'}</td>*/}
                   </tr>
                 ))}
               </tbody>
