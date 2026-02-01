@@ -32,7 +32,6 @@ export default function Sidenav({
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [isProjectBased, setIsProjectBased] = useState(false);
 
-  // ✅ Detect mobile (no hover)
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.matchMedia("(max-width: 767px)").matches;
@@ -178,8 +177,9 @@ export default function Sidenav({
       label: "Employees",
       icon: "employees",
       type: "dropdown",
-      path: "/employees",
+      path:  null,
       children: [
+        { label: "Employee List", path: "/employees"},
         { label: "Onboarding", path: "/employees/onboarding" },
         ...(isExecutive || isHr ? [{ label: "User Accounts", path: "/employees/user-accounts" }] : []),
         { label: "201 Files", path: "/employees/201-files" },
@@ -192,24 +192,43 @@ export default function Sidenav({
       label: "Leave",
       icon: "leave",
       type: "dropdown",
-      path: "/leave",
-      children: [
+      path: null,
+      children: isEmployee || isManager  ? [ 
+        { label: "My Leaves", path:"/leave/my-leaves" },
+      ] : [
+        { label: "Leave Calendar", path: "/leave"},
         { label: "Leave Request", path: "/leave/request" },
         { label: "Leave Credits", path: "/leave/credits" },
         { label: "Leave History", path: "/leave/history" },
         { label: "My Leaves", path:"/leave/my-leaves" },
-      ],
+      ]
     },
     {
       label: "Evaluation",
       icon: "evaluation",
       type: "dropdown",
-      path: "/evaluation",
-      children: [
-        ...(!isEmployee ? [{ label: "Evaluation History", path: "/evaluation/history" }] : []),
-        ...(!isEmployee ? [{ label: "Upload Result", path: "/evaluation/upload" }] : []),
-        { label: "My Evaluations", path: "/evaluation/my-evaluations" },
-      ],
+      path: null ,
+      children: (() => {
+        if(isEmployee){
+          return [
+            { label: "My Evaluations", path: "/evaluation/my-evaluations" }]
+        }
+
+        if (isManager){
+          return [
+            { label: "Evaluation Calendar", path: "/evaluation"},
+            { label: "Evaluation History", path: "/evaluation/history" },
+            { label: "My Evaluations", path: "/evaluation/my-evaluations" }
+          ]
+        }
+
+        return[
+          { label: "Evaluation Calendar", path: "/evaluation"},
+          { label: "Evaluation History", path: "/evaluation/history" },
+          { label: "Upload Result", path: "/evaluation/upload" },
+          { label: "My Evaluations", path: "/evaluation/my-evaluations" },
+        ]
+      }) (),
     },
     { label: "Analytics", icon: "analytics", type: "item", path: "/analytics" },
     {
@@ -229,10 +248,12 @@ export default function Sidenav({
     },
   ];
 
-  const hrHiddenLabels = new Set(["Audit Logs"]);
+  //const hrHiddenLabels = new Set(["Audit Logs"]);
 
-  const finalVisibleItems = isEmployee
-    ? [
+  const finalVisibleItems = (() => {
+
+    if(isEmployee){
+      return [
         { label: "Dashboard", icon: "dashboard", type: "item", path: "/dashboard" },
         {
           label: "Employees",
@@ -255,10 +276,42 @@ export default function Sidenav({
           return true;
         }),
       ]
-    : items.filter((item) => {
+    }
+
+    if (isManager){
+      return [
+        { label: "Dashboard", icon: "dashboard", type: "item", path: "/dashboard" },
+        {
+          label: "Employees",
+          icon: "employees",
+          type: "dropdown",
+          path: null,
+          children: [
+            //{ label: "201 Files", path: "/employees/201-files" },
+            { label: "My Documents", path: "/employees/my-documents" },
+            //{ label: "Departments", path: "/employees/departments" },
+            //{ label: "User Account", path: "/profile" },
+          ],
+        },
+        ...items.filter((item) => {
+          if (item.label === "Dashboard") return false;
+          if (item.label === "Employees") return false;
+          if (item.label === "Analytics") return false;
+          if (item.label === "Audit Logs") return false;
+          if (isProjectBased && item.label === "Projects") return false;
+          return true;
+        }),
+      ]
+
+    }
+
+    return items;
+  }) ();
+
+    /*items.filter((item) => {
         if (isHr && hrHiddenLabels.has(item.label)) return false;
         return true;
-      });
+      });*/
 
   const handleMainClick = (item) => {
     if (item.path) {
