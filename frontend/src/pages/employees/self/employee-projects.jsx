@@ -5,6 +5,27 @@ import { get } from '../../../services/api.js';
 import { compareDate, compareText } from '../../../utils/sort.js';
 
 function ProjectCard({ project, onClick }) {
+
+  const statusStyle = (status) => {
+  const key = String(status || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '_');
+
+  switch (key) {
+    case 'ACTIVE':
+      return 'bg-[#C8C8FF] text-[#0000FF]';
+    case 'COMPLETED':
+      return 'bg-[#198C19]/25 text-[#198C19]';
+    case 'ON_HOLD':
+      return 'bg-[#FFA500]/25 text-[#FFA500]';
+    case 'CANCELLED':
+      return 'bg-[#CC0000]/25 text-[#CC0000]';
+    default:
+      return 'bg-gray-200 text-gray-700';
+  }
+};
+
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -37,7 +58,7 @@ function ProjectCard({ project, onClick }) {
         </div>
 
         <div className="mt-4">
-          <span className="inline-block px-6 py-2 rounded-xl text-sm font-semibold bg-gray-200 text-gray-700">
+          <span className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(project.status)}`}>
             {project.status || '—'}
           </span>
         </div>

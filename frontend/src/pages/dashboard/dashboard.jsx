@@ -786,7 +786,7 @@ function Dashboard() {
                 title="My Department"
                 icon="icons/red-departments.png"
                 value={departmentName}
-                onClick={() => navigate(departmentRoute)}
+                onClick={() => navigate()}
               />
               <StatCard
                 title="My Documents"
@@ -799,13 +799,13 @@ function Dashboard() {
                 title="Leave"
                 icon="icons/red-leave.png"
                 value={loading ? "…" : statValues.pendingLeaves}
-                onClick={() => navigate("/leave/request")}
+                onClick={() => navigate("/leave/my-leaves")}
               />
               <StatCard
                 title="Evaluation"
                 icon="icons/sidenav/red-evaluation.png"
                 value="View"
-                onClick={() => navigate("/evaluation/history")}
+                onClick={() => navigate("/evaluation/my-evaluations")}
               />
               {isEmployee && isProjectBased ? null : (
                 <StatCard
@@ -875,44 +875,24 @@ function Dashboard() {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="flex items-center justify-between gap-3">
+                <div className="">
                   <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
                     Department
                   </h2>
-                  <button
+                  <p className="mt-1 mb-3 text-xs text-gray-500">
+                  You’ll see department details based on where you’re assigned.
+                  </p>
+                  {/*<button
                     type="button"
                     onClick={() => navigate(departmentRoute)}
                     className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
                   >
                     Open
-                  </button>
+                  </button>*/}
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Assigned Department
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {departmentName}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Position
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {String(meDetails?.positions?.position_title || "—").trim() || "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Personnel Type
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {String(meDetails?.personnel_type || "—").trim() || "—"}
-                    </p>
-                  </div>
+                  
                   <div>
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       Employee ID
@@ -921,11 +901,38 @@ function Dashboard() {
                       {String(meDetails?.employee_id || meDetails?.employee_code || "—").trim() || "—"}
                     </p>
                   </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Personnel Type
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {String(meDetails?.personnel_type || "—").trim() || "—"}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Assigned Department
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {departmentName}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Position
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {String(meDetails?.positions?.position_title || "—").trim() || "—"}
+                    </p>
+                  </div>
+
+
                 </div>
 
-                <p className="mt-3 text-xs text-gray-500">
-                  You’ll see department details based on where you’re assigned.
-                </p>
+                
               </div>
             </section>
           </>
