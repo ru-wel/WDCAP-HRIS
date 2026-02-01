@@ -441,10 +441,33 @@ function Dashboard() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isEmployee = user?.role === ROLES.EMPLOYEE;
-  const canSeeAuditDashboard =
-    user?.role === ROLES.EXECUTIVE || user?.role === ROLES.HR;
+  // Support both legacy single-role (user.role) and multi-role (user.roles)
+  const userRoles = useMemo(() => {
+    const raw = Array.isArray(user?.roles) ? user.roles : [user?.role];
+    return raw
+      .filter(Boolean)
+      .map((r) => String(r).trim())
+      .filter(Boolean);
+  }, [user?.roles, user?.role]);
+
+  const isEmployee = userRoles.includes(ROLES.EMPLOYEE);
+  const isManager = userRoles.includes(ROLES.MANAGER);
+  const isExecutive = userRoles.includes(ROLES.EXECUTIVE);
+  const isHR = userRoles.includes(ROLES.HR);
+
+  // Self dashboard = employee/manager widgets (My Dept, My Docs, etc.)
+  const canSeeSelfDashboard = isEmployee || isManager;
+
+  // Admin dashboard = Executive/HR widgets (company-wide pending evals + analytics)
+  const canSeeAuditDashboard = isExecutive || isHR;
+  // Show the admin dashboard if user is not in self-dashboard roles, or if they are Exec/HR (e.g. Executive + Manager)
+  const showAdminDashboard = !canSeeSelfDashboard || canSeeAuditDashboard;
   const [isProjectBased, setIsProjectBased] = useState(false);
+
+  // Employee/Manager quick context
+  const [meDetails, setMeDetails] = useState(null);
+  const [meDocs, setMeDocs] = useState([]);
+  const [meDocsLoading, setMeDocsLoading] = useState(false);
 
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
@@ -454,16 +477,23 @@ function Dashboard() {
   const rawName = String(user?.name || "").trim();
   const safeName = rawName && !rawName.includes("@") ? rawName : "";
 
+  const roleLabel =
+    isExecutive && isManager
+      ? "Executive / Manager"
+      : isExecutive
+      ? "Executive"
+      : isHR
+      ? "HR"
+      : isManager
+      ? "Manager"
+      : isEmployee
+      ? "Employee"
+      : "";
+
   const displayName =
     safeName ||
     [user?.first_name, user?.last_name].filter(Boolean).join(" ").trim() ||
-    (user?.role === ROLES.EXECUTIVE
-      ? "Executive"
-      : user?.role === ROLES.HR
-      ? "HR"
-      : user?.role === ROLES.MANAGER
-      ? "Manager"
-      : "") ||
+    roleLabel ||
     user?.email ||
     "";
 
@@ -596,6 +626,52 @@ function Dashboard() {
     };
   }, [canSeeAuditDashboard]);
 
+  // Employee/Manager: load "me" details + a lightweight documents preview
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!canSeeSelfDashboard) {
+        setMeDetails(null);
+        setMeDocs([]);
+        setMeDocsLoading(false);
+        return;
+      }
+
+      try {
+        setMeDocsLoading(true);
+
+        const meRes = await get("/employees/me");
+        const details = meRes?.data && typeof meRes.data === "object" ? meRes.data : null;
+        if (cancelled) return;
+        setMeDetails(details);
+
+        const empId = details?.id;
+        if (!empId) {
+          setMeDocs([]);
+          return;
+        }
+
+        const docsRes = await get(`/documents/${empId}`);
+        const docs = Array.isArray(docsRes?.data) ? docsRes.data : [];
+        if (cancelled) return;
+        setMeDocs(docs);
+      } catch {
+        if (!cancelled) {
+          setMeDetails(null);
+          setMeDocs([]);
+        }
+      } finally {
+        if (!cancelled) setMeDocsLoading(false);
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeSelfDashboard]);
+
   // For employees: determine if project-based to hide Projects card
   useEffect(() => {
     let cancelled = false;
@@ -605,8 +681,13 @@ function Dashboard() {
         return;
       }
       try {
-        const res = await get("/employees/me");
-        const personnel = String(res?.data?.personnel_type || "")
+        const cached = meDetails?.personnel_type;
+        const personnelRaw =
+          typeof cached === "string" && cached.trim() ? cached : null;
+
+        const personnel = String(
+          personnelRaw ?? (await get("/employees/me"))?.data?.personnel_type ?? ""
+        )
           .trim()
           .toLowerCase();
         if (!cancelled)
@@ -621,7 +702,18 @@ function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [isEmployee]);
+  }, [isEmployee, meDetails?.personnel_type]);
+
+  const departmentName =
+    String(meDetails?.departments?.department_name || "").trim() || "—";
+  const departmentId =
+    meDetails?.departments?.department_id ?? meDetails?.department_id ?? null;
+  const departmentRoute = departmentId
+    ? `/employees/departments/${encodeURIComponent(String(departmentId))}`
+    : "/employees/departments";
+
+  const meDocsCount = Array.isArray(meDocs) ? meDocs.length : 0;
+  const meDocsPreview = Array.isArray(meDocs) ? meDocs.slice(0, 5) : [];
 
   const statValues = useMemo(() => {
     return {
@@ -681,15 +773,28 @@ function Dashboard() {
           </div>
         ) : null}
 
-        {isEmployee ? (
+        {canSeeSelfDashboard ? (
           <>
-            <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <section
+              className={`mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 ${
+                isManager || (isEmployee && !isProjectBased)
+                  ? "lg:grid-cols-5 xl:grid-cols-5"
+                  : "lg:grid-cols-4 xl:grid-cols-4"
+              }`}
+            >
               <StatCard
-                title="Employees"
-                icon="icons/red-employees.png"
-                value="Open"
-                onClick={() => navigate("/employees/departments")}
+                title="My Department"
+                icon="icons/red-departments.png"
+                value={departmentName}
+                onClick={() => navigate(departmentRoute)}
               />
+              <StatCard
+                title="My Documents"
+                icon="icons/red-employees.png"
+                value={meDocsLoading ? "…" : meDocsCount}
+                onClick={() => navigate("/employees/my-documents")}
+              />
+
               <StatCard
                 title="Leave"
                 icon="icons/red-leave.png"
@@ -702,7 +807,7 @@ function Dashboard() {
                 value="View"
                 onClick={() => navigate("/evaluation/history")}
               />
-              {isProjectBased ? null : (
+              {isEmployee && isProjectBased ? null : (
                 <StatCard
                   title="Projects"
                   icon="icons/red-projects.png"
@@ -711,8 +816,122 @@ function Dashboard() {
                 />
               )}
             </section>
+
+            <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                    My Documents
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/employees/my-documents")}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+                  >
+                    Open
+                  </button>
+                </div>
+
+                <div className="mt-3 rounded-lg border border-gray-200 overflow-hidden">
+                  <ul className="divide-y divide-gray-200">
+                    {meDocsLoading ? (
+                      <li className="px-4 py-3 text-sm text-gray-600">
+                        Loading documents…
+                      </li>
+                    ) : meDocsPreview.length ? (
+                      meDocsPreview.map((d, idx) => (
+                        <li
+                          key={String(d?.id || d?.document_id || d?.document_name || idx)}
+                          className="px-4 py-3 text-sm flex items-center justify-between gap-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-gray-900 font-medium truncate">
+                              {String(d?.document_name || d?.file_name || d?.filename || "Document").trim()}
+                            </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {String(d?.file_name || d?.filename || d?.file_path || "").trim() || "—"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate("/employees/my-documents")}
+                            className="shrink-0 text-xs px-3 py-1 rounded-md border border-gray-200 hover:bg-gray-50"
+                          >
+                            View
+                          </button>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-3 text-sm text-gray-600">
+                        No documents found.
+                      </li>
+                    )}
+                  </ul>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-500">
+                  Quick access to your 201 files and uploaded documents.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                    Department
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => navigate(departmentRoute)}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+                  >
+                    Open
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Assigned Department
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {departmentName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Position
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {String(meDetails?.positions?.position_title || "—").trim() || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Personnel Type
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {String(meDetails?.personnel_type || "—").trim() || "—"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Employee ID
+                    </p>
+                    <p className="mt-1 text-base font-semibold text-gray-900">
+                      {String(meDetails?.employee_id || meDetails?.employee_code || "—").trim() || "—"}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-500">
+                  You’ll see department details based on where you’re assigned.
+                </p>
+              </div>
+            </section>
           </>
-        ) : (
+        ) : null}
+
+        {showAdminDashboard ? (
           <>
             <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <StatCard
@@ -977,7 +1196,7 @@ function Dashboard() {
             ) : null}
 
           </>
-        )}
+        ) : null}
       </div>
 
       <CalendarModal open={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
