@@ -16,8 +16,8 @@ const formatDateShort = (iso) => {
   if (Number.isNaN(d.getTime())) return "";
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${mm}/${dd}/${yy}`;
+  const yyyy = String(d.getFullYear());
+  return `${mm}/${dd}/${yyyy}`;
 };
 
 const formatPrettyDate = (iso) => {
@@ -31,14 +31,32 @@ const formatPrettyDate = (iso) => {
   });
 };
 
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dateStr = formatDateShort(iso);
+  const timeStr = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${dateStr} at ${timeStr}`;
+};
+
 const formatRange = (startIso, endIso, mode) => {
+  if (mode === "short") {
+    const start = formatDateShort(startIso);
+    const end = formatDateShort(endIso);
+    if (!start && !end) return "";
+    if (!end || start === end) return start;
+    return `${start} - ${end}`;
+  }
+
   const start = formatPrettyDate(startIso);
   const end = formatPrettyDate(endIso);
   if (!start && !end) return "";
   if (!end || start === end) return start;
-  if (mode === "short") {
-    return `${formatDateShort(startIso)} - ${formatDateShort(endIso)}`;
-  }
   return `${start} to ${end}`;
 };
 
@@ -47,11 +65,12 @@ const mapApiRowToUi = (r) => ({
   id: r.employee_code || r.employee_id,
   name: r.employee_name || "",
   type: r.leave_type_name || "",
+  leave_purpose: r.leave_purpose || null,
   startDateRaw: r.start_date || "",
   endDateRaw: r.end_date || "",
   date: formatRange(r.start_date, r.end_date, "short"),
   status: r.status || "",
-  dateRequested: formatPrettyDate(r.created_at),
+  dateRequested: formatDateShort(r.created_at),
   createdAtTs: (() => {
     const ts = new Date(r.created_at).getTime();
     return Number.isNaN(ts) ? 0 : ts;
@@ -59,6 +78,14 @@ const mapApiRowToUi = (r) => ({
   position: r.position_title || "",
   dateLong: formatRange(r.start_date, r.end_date, "long"),
   reason: r.reason || "",
+  updated_by_name: r.updated_by_name || "",
+  updated_at: r.updated_by_timestamp || r.updated_at,
+  updatedAtTs: (() => {
+    const updatedAt = r.updated_by_timestamp || r.updated_at;
+    if (!updatedAt) return 0;
+    const ts = new Date(updatedAt).getTime();
+    return Number.isNaN(ts) ? 0 : ts;
+  })(),
   updatedBy: (() => {
     const email = r.updated_by_email || r.updatedByEmail || r.updated_by || "";
     const role = r.updated_by_role || r.updatedByRole || "";
@@ -156,10 +183,17 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
           <div>{row?.position ?? "Web Developer"}</div>
 
           <div className="font-semibold">Leave Type:</div>
-          <div>{row?.type ?? "SIL"}</div>
+          <div>
+            {row?.type ?? "SIL"}
+            {row?.leave_purpose && (  
+              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                {row.leave_purpose === 'vacation' ? 'Vacation' : 'Sick'}
+              </span>
+            )}
+          </div>
 
           <div className="font-semibold">Date:</div>
-          <div>{row?.dateLong ?? row?.date ?? ""}</div>
+          <div>{row?.date ?? ""}</div>
 
           <div className="font-semibold">Reason:</div>
           <textarea
@@ -188,9 +222,14 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
           </select>
         </div>
 
-        <div className="pt-2">
-          <span className="font-semibold">Update Made By:</span> {row?.updatedBy ?? ""}
-        </div>
+        {row?.updated_by_name && row?.updated_at && (
+          <div className="pt-2">
+            <span className="font-semibold">Update Made By: </span>
+            <span className="text-gray-700">
+              {row.updated_by_name} on {formatDateTime(row.updated_at)}
+            </span>
+          </div>
+        )}
 
         <div className="flex justify-center pt-3">
           <button
@@ -379,6 +418,8 @@ export default function LeaveHistory() {
       { value: "status_za", label: "Status: Z - A" },
       { value: "requested_newest", label: "Date Requested: Newest" },
       { value: "requested_oldest", label: "Date Requested: Oldest" },
+      { value: "approval_date_newest", label: "Approval Date: Newest" },
+      { value: "approval_date_oldest", label: "Approval Date: Oldest" },
     ],
     []
   );
@@ -488,6 +529,10 @@ export default function LeaveHistory() {
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
         case "requested_oldest":
           return (a?.createdAtTs || 0) - (b?.createdAtTs || 0);
+        case "approval_date_newest":
+          return (b?.updatedAtTs || 0) - (a?.updatedAtTs || 0);
+        case "approval_date_oldest":
+          return (a?.updatedAtTs || 0) - (b?.updatedAtTs || 0);
         default:
           return (b?.createdAtTs || 0) - (a?.createdAtTs || 0);
       }

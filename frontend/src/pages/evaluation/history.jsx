@@ -306,7 +306,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-gray-800 mb-1">
-                      ⚠️ Regularization Pending
+                      Regularization Pending
                     </p>
                     <p className="text-xs text-gray-700">
                       This employee has completed their {personnelType.toLowerCase()} evaluation but has not been converted to Regular yet.

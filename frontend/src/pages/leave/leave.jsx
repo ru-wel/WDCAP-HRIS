@@ -9,12 +9,50 @@ import ConfirmModal from "../../components/confirm-modal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES } from "../../constants/config.js";
 
-const getQuarterRange = (date) => {
-  const d = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date();
-  const year = d.getFullYear();
-  const month = d.getMonth();
-  const quarter = Math.floor(month / 3) + 1;
-  return { year, quarter };
+// LEAVE TYPE COLOR CONFIGURATION - PALITAN NIYO COLORS HERE
+const LEAVE_TYPE_COLORS = {
+  'Service Incentive Leave': {
+    dotColor: '#44688f',
+    pillBg: '#acbccd',
+    pillText: '#264668',
+  },
+  'Leave Without Pay': {
+    dotColor: '#6B7280',        // Gray
+    pillBg: '#D1D5DB',
+    pillText: '#374151',
+  },
+  'Maternity Leave': {
+    dotColor: '#EC4899',        // Pink
+    pillBg: '#FCE7F3',
+    pillText: '#9F1239',
+  },
+  'Paternity Leave': {
+    dotColor: '#3B82F6',        // Blue
+    pillBg: '#DBEAFE',
+    pillText: '#1E40AF',
+  },
+  'VAWC Leave': {
+    dotColor: '#8B5CF6',        // Purple
+    pillBg: '#EDE9FE',
+    pillText: '#5B21B6',
+  },
+  'Solo Parent Leave': {
+    dotColor: '#F59E0B',        // Amber/Orange
+    pillBg: '#FEF3C7',
+    pillText: '#92400E',
+  },
+  "Women's Leave": {
+    dotColor: '#EC4899',        // Pink
+    pillBg: '#FCE7F3',
+    pillText: '#9F1239',
+  },
+};
+
+// fefault color for any leave types not listed above
+const DEFAULT_LEAVE_COLOR = {
+  dotColor: '#6B7280',
+  pillBg: '#E5E7EB',
+  pillText: '#1F2937',
 };
 
 function formatPrettyDate(iso) {
@@ -126,6 +164,17 @@ function EventPopover({ open, data, onClose, onCancelClick, canCancel }) {
               <span className="gc-row-icon">📅</span>
               <span>{data.calendarName || "SIL"}</span>
             </div>
+            {data.leave_purpose && /service incentive/i.test(data.calendarName || '') && (
+              <div className="gc-row">
+                <span className="gc-row-icon">🏷️</span>
+                <span className="inline-flex items-center gap-2">
+                  Purpose:
+                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                    {String(data.leave_purpose).toLowerCase() === 'vacation' ? 'Vacation' : 'Sick'}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -147,11 +196,6 @@ export default function Leave() {
 
   const [_loading, setLoading] = useState(true);
   const [rawEvents, setRawEvents] = useState([]);
-
-  const [calendarCursor, setCalendarCursor] = useState(() => new Date());
-  const [duePending, setDuePending] = useState([]);
-
-  const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -177,57 +221,7 @@ export default function Leave() {
     };
   }, [filtersOpen]);
 
-  useEffect(() => {
-    if (!canManage) {
-      setDuePending([]);
-      return;
-    }
-
-    const fetchDue = async () => {
-      try {
-        const res = await get(
-          `/evaluations/pending?year=${encodeURIComponent(String(quarterInfo.year))}&quarter=${encodeURIComponent(String(quarterInfo.quarter))}`
-        );
-        const rows = Array.isArray(res?.data) ? res.data : [];
-        setDuePending(rows);
-      } catch (e) {
-        console.error('Failed to load pending due evaluations (leave calendar):', e);
-        setDuePending([]);
-      }
-    };
-
-    fetchDue();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canManage, quarterInfo.year, quarterInfo.quarter]);
-
-  const autoDueEvents = useMemo(() => {
-    if (!canManage) return [];
-    const rows = Array.isArray(duePending) ? duePending : [];
-    return rows
-      .filter((r) => r?.due_date)
-      .map((r) => {
-        const date = String(r.due_date).slice(0, 10);
-        const employeeName = String(r.employee_name || '').trim();
-        const type = String(r.evaluation_type || 'Evaluation').trim();
-        const title = `${employeeName} - ${type}`.trim();
-        return {
-          id: `eval-due-${String(r.employee_db_id || '')}-${date}-${type}`,
-          title,
-          start: date,
-          end: undefined,
-          dotColor: "#F59E0B",
-          pillBg: "#FFE1A3",
-          pillText: "#FF8A00",
-          category: "Evaluation",
-          calendarName: "Evaluation",
-          start_date: date,
-          end_date: date,
-          isAutoDue: true,
-        };
-      });
-  }, [canManage, duePending]);
-
-  const effectiveEvents = useMemo(() => [...rawEvents, ...autoDueEvents], [rawEvents, autoDueEvents]);
+  const effectiveEvents = useMemo(() => rawEvents, [rawEvents]);
 
   const fetchCalendar = async () => {
     try {
@@ -250,14 +244,17 @@ export default function Leave() {
           const start = r.start_date;
           const endInclusive = r.end_date || r.start_date;
 
+          // get colors based on leave type
+          const colors = LEAVE_TYPE_COLORS[leaveType] || DEFAULT_LEAVE_COLOR;
+
           return {
             id: String(r.leave_request_id || r.id || `${title}-${start}`),
             title,
             start,
             end: endInclusive ? addDaysIso(endInclusive, 1) : undefined,
-            dotColor: "#44688f",
-            pillBg: "#acbccd",
-            pillText: "#264668",
+            dotColor: colors.dotColor,
+            pillBg: colors.pillBg,
+            pillText: colors.pillText,
             category: "Leave",
             calendarName: leaveType,
             start_date: start,
@@ -266,6 +263,7 @@ export default function Leave() {
             leave_request_id: r.leave_request_id || r.id,
             employee_db_id: r.employee_db_id || r.employee_id,
             leave_type_name: r.leave_type_name || r.type,
+            leave_purpose: r.leave_purpose || null,
             status: r.status || 'APPROVED',
             _raw: r,
           };
@@ -309,7 +307,7 @@ export default function Leave() {
     const leaveTypeName = data.leave_type_name || data.calendarName || '';
     const start = data.start_date || data.start;
     const end = data.end_date || data.end_date;
-    const days = calcInclusiveDays(start, end);
+    const days = calcBusinessDays(start, end);
 
     // fetch leave credits to show sick leave balance if available
     let credits = [];
@@ -378,6 +376,22 @@ export default function Leave() {
     return list.filter((e) => String(e.title || "").toLowerCase().includes(q));
   }, [effectiveEvents, searchTerm, leaveTypeFilter]);
 
+  // get unique leave types for legend display
+  const uniqueLeaveTypes = useMemo(() => {
+    const types = Array.from(
+      new Set(
+        filteredEvents
+          .map((e) => e.calendarName)
+          .filter((v) => typeof v === 'string' && v.trim().length)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+
+    return types.map((leaveType) => ({
+      name: leaveType,
+      color: (LEAVE_TYPE_COLORS[leaveType] || DEFAULT_LEAVE_COLOR).dotColor,
+    }));
+  }, [filteredEvents]);
+
   const defaultLeaveType = "all";
 
   const activeFiltersCount = useMemo(() => {
@@ -425,6 +439,7 @@ export default function Leave() {
             dotColor: e.dotColor,
             category: e.category,
             calendarName: e.calendarName,
+            leave_purpose: e.leave_purpose,
             visibility: e.visibility,
             pillBg: e.pillBg,
             pillText: e.pillText,
@@ -476,12 +491,24 @@ export default function Leave() {
     }
   };
 
-  const calcInclusiveDays = (startIso, endIso) => {
+  // excludes weekends on leave credits calculation
+  const calcBusinessDays = (startIso, endIso) => {
     if (!startIso) return 0;
-    const s = new Date(startIso + 'T00:00:00');
-    const e = new Date((endIso || startIso) + 'T00:00:00');
-    const diff = Math.floor((e.getTime() - s.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.max(1, diff + 1);
+    const start = new Date(startIso + 'T00:00:00');
+    const end = new Date((endIso || startIso) + 'T00:00:00');
+
+    let count = 0;
+    const current = new Date(start);
+
+    while (current <= end) {
+      const dayOfWeek = current.getDay();             // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {       // not Sunday or Saturday
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return Math.max(0, count);
   };
 
   if (_loading) {
@@ -608,11 +635,6 @@ export default function Leave() {
                 right: "",
               }}
 
-              datesSet={(arg) => {
-                const cur = arg?.view?.currentStart;
-                if (cur instanceof Date && !Number.isNaN(cur.getTime())) setCalendarCursor(cur);
-              }}
-
               events={calendarEvents}
               eventContent={(arg) => {
                 const bg = arg.event.extendedProps?.pillBg || "#FFE1A3";
@@ -640,21 +662,20 @@ export default function Leave() {
           </div>
 
           <div className="gc-legend">
-            <div className="gc-legend-title">Calendars</div>
+            <div className="gc-legend-title">Leave Types</div>
             <div className="gc-legend-line" />
-            <div className="gc-legend-item">
-              <span
-                className="gc-legend-color"
-                style={{ background: "#44688f" }}
-              />
-              <span>SIL</span>
-            </div>
-            {canManage ? (
-              <div className="gc-legend-item">
-                <span className="gc-legend-color" style={{ background: "#F59E0B" }} />
-                <span>Evaluation</span>
+            {uniqueLeaveTypes.length > 0 ? (
+              uniqueLeaveTypes.map((type) => (
+                <div key={type.name} className="gc-legend-item">
+                  <span className="gc-legend-color" style={{ background: type.color }}/>
+                  <span>{type.name}</span>
+                </div>
+              ))
+            ) : (
+              <div className="gc-legend-item text-gray-500 text-sm">
+                No leave types to display
               </div>
-            ) : null}
+            )}
           </div>
         </div>
       </div>

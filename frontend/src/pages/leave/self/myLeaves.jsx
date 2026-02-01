@@ -6,6 +6,39 @@ import React, {
   useRef,
 } from "react";
 import ReactPaginate from "react-paginate";
+import { get, post, put } from "../../../services/api.js";
+import ConfirmModal from "../../../components/confirm-modal.jsx";
+
+const formatDateShort = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = String(d.getFullYear());
+  return `${mm}/${dd}/${yyyy}`;
+};
+
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const dateStr = formatDateShort(iso);
+  const timeStr = d.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `${dateStr} at ${timeStr}`;
+};
+
+const formatRange = (startIso, endIso) => {
+  const start = formatDateShort(startIso);
+  const end = formatDateShort(endIso);
+  if (!start && !end) return "";
+  if (!end || start === end) return start;
+  return `${start} - ${end}`;
+};
 
 function StatCard({ title, color, value, onClick }) {
   return (
@@ -27,91 +60,304 @@ function StatCard({ title, color, value, onClick }) {
   );
 }
 
-function RequestLeave ({onClose}){
-    return(
-        <div>
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
-                <div
-                    className="absolute inset-0 bg-black/20"
-                    aria-hidden="true"
-                />
+function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
+  const [loadingTypes, setLoadingTypes] = useState(false);
+  const [leaveTypes, setLeaveTypes] = useState([]);
+  const [leaveTypeId, setLeaveTypeId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [leavePurpose, setLeavePurpose] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [employeeProfile, setEmployeeProfile] = useState(null);
 
-                    <div className="relative w-full lg:max-w-xl md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
-                        <div className="p-4 sm:p-6">
-                        <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
-                            <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
-                            Leave Request
-                            </h1>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoadingTypes(true);
+        setError(null);
 
-                            <button
-                            type="button"
-                            className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer"
-                            aria-label="Close"
-                            onClick={onClose}
-                            >
-                            ✕
-                            </button>
-                        </div>
-                        <div className="mt-6 flex justify-center">
-                            <div className="w-full max-w-md">
-                                <div className="space-y-6 text-sm mt-6">
-                                    <div className="grid grid-cols-[140px_1fr] gap-4 items-start">
-                                        
-                                        <label className="text-left font-semibold pt-2 text-[#483D3D]  uppercase">
-                                        Leave Type:
-                                        </label>
-                                        <select className="border border-[#990100] rounded-md px-3 py-2 w-full">
-                                            <option value="">Select leave type</option>
-                                            <option>SIL</option>
-                                            <option>Leave without Pay</option>
-                                        </select>
+        // fetch employee profile
+        try {
+          const prof = await get("/employees/me");
+          setEmployeeProfile(prof?.data || null);
+        } catch {
+          setEmployeeProfile(null);
+        }
 
-                                        <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
-                                        Start Date:
-                                        </label>
-                                        <input
-                                        type="date"
-                                        className="border border-[#990100] rounded-md px-3 py-2 w-full"
-                                        />
+        // fetch leave types
+        const resp = await get("/leave/types");
+        const types = Array.isArray(resp?.data) ? resp.data : [];
+        setLeaveTypes(types);
 
-                                        <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
-                                        End Date:
-                                        </label>
-                                        <input
-                                        type="date"
-                                        className="border border-[#990100] rounded-md px-3 py-2 w-full"
-                                        />
+        const firstEnabled = types.find((t) => isTypeEnabled(t));
+        setLeaveTypeId(firstEnabled ? String(firstEnabled.leave_type_id ?? "") : "");
+      } catch (e) {
+        console.error("Failed to load leave types:", e);
+        setError("Failed to load leave types. Please try again.");
+        setLeaveTypes([]);
+        setLeaveTypeId("");
+      } finally {
+        setLoadingTypes(false);
+      }
+    };
 
-                                        <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
-                                        Reason:
-                                        </label>
-                                        <textarea
-                                        className="border border-[#990100] rounded-md px-3 py-2 h-28 resize-none w-full"
-                                        placeholder="Optional"
-                                        />
-                                    </div>
-                                </div>
+    fetchData();
+  }, []);
+
+  const isTypeEnabled = (t) => {
+    const name = String(t?.leave_type_name || "").toLowerCase();
+    const hireDateIso = String(employeeProfile?.hire_date || "").slice(0, 10);
+    const personnelType = String(employeeProfile?.personnel_type || "").toLowerCase();
+
+    let probationary = personnelType === "probationary";
+
+    if (probationary && hireDateIso) {
+      try {
+        const hired = new Date(`${hireDateIso}T00:00:00`);
+        const now = new Date();
+        const diffDays = Math.floor(
+          (now.getTime() - hired.getTime()) / (24 * 60 * 60 * 1000)
+        );
+        if (diffDays >= 365) probationary = false;
+      } catch {
+        // ignore
+      }
+    }
+
+    if (probationary) {
+      return name.includes("without pay");
+    }
+
+    return true;
+  };
+
+  const isSILSelected = useMemo(() => {
+    const selectedType = leaveTypes.find((t) =>
+      String(t.leave_type_id) === String(leaveTypeId)
+    );
+    return /service incentive/i.test(selectedType?.leave_type_name || '');
+  }, [leaveTypeId, leaveTypes]);
+
+  const selectedLeaveTypeName = useMemo(() => {
+    const selectedType = leaveTypes.find((t) =>
+      String(t.leave_type_id) === String(leaveTypeId)
+    );
+    return selectedType?.leave_type_name || '';
+  }, [leaveTypeId, leaveTypes]);
+
+  const currentBalance = useMemo(() => {
+    const credit = leaveCredits.find((c) =>
+      String(c.leave_type_name || "").toLowerCase() === selectedLeaveTypeName.toLowerCase()
+    );
+    return credit ? credit.current_balance : null;
+  }, [leaveCredits, selectedLeaveTypeName]);
+
+  // excludes weekends on leave credit calculation
+  const requestedDays = useMemo(() => {
+    if (!startDate || !endDate) return 0;
+    try {
+      const start = new Date(startDate + 'T00:00:00');
+      const end = new Date(endDate + 'T00:00:00');
+
+      let count = 0;
+      const current = new Date(start);
+
+      while (current <= end) {
+        const dayOfWeek = current.getDay();         // 0 = Sunday, 6 = Saturday
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {   // not Sunday or Saturday
+          count++;
+        }
+        current.setDate(current.getDate() + 1);
+      }
+
+      return Math.max(0, count);
+    } catch {
+      return 0;
+    }
+  }, [startDate, endDate]);
+
+  const hasInsufficientBalance = useMemo(() => {
+    if (currentBalance === null) return false;
+    return requestedDays > currentBalance;
+  }, [currentBalance, requestedDays]);
+
+  useEffect(() => {
+    if (!isSILSelected && leavePurpose) {
+      setLeavePurpose("");
+    }
+  }, [isSILSelected, leavePurpose]);
+
+  const canSubmit = Boolean(
+    leaveTypeId &&
+    startDate &&
+    endDate &&
+    (!isSILSelected || leavePurpose)
+  );
+
+  const toApiLeaveTypeId = (value) => {
+    const v = String(value || "").trim();
+    if (!v) return "";
+    if (/^\d+$/.test(v)) return Number(v);
+    return v;
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit || submitting) return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      await post(
+        "/leave/requests",
+        {
+          leave_type_id: toApiLeaveTypeId(leaveTypeId),
+          start_date: startDate,
+          end_date: endDate,
+          reason: reason || null,
+          leave_purpose: isSILSelected ? leavePurpose : null,
+        },
+        true,
+        60000
+      );
+
+      onSuccess?.();
+      onClose?.();
+    } catch (e) {
+      console.error("Failed to create leave request:", e);
+      setError(e?.message || "Failed to submit leave request. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+
+        <div className="relative w-full lg:max-w-xl md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+          <div className="p-4 sm:p-6">
+            <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
+              <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
+                Leave Request
+              </h1>
+
+              <button type="button" className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer" aria-label="Close" onClick={onClose}>
+                ✕
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+                {error}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-center">
+              <div className="w-full max-w-md">
+                <div className="space-y-6 text-sm mt-6">
+                  <div className="grid grid-cols-[140px_1fr] gap-4 items-start">
+                    <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
+                      Leave Type:
+                    </label>
+                    <select className="border border-[#990100] rounded-md px-3 py-2 w-full bg-white" value={leaveTypeId} onChange={(e) => setLeaveTypeId(e.target.value)} disabled={loadingTypes || submitting}>
+                      {loadingTypes ? (
+                        <option value="">Loading…</option>
+                      ) : leaveTypes.length ? (
+                        leaveTypes.map((t) => (
+                          <option key={String(t.leave_type_id)} value={String(t.leave_type_id)} disabled={!isTypeEnabled(t)}>
+                            {t.leave_type_name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">No leave types available</option>
+                      )}
+                    </select>
+
+                    {currentBalance !== null && (
+                      <div className="col-span-2">
+                        <div className={`flex items-center justify-between px-3 py-2 rounded-md border ${hasInsufficientBalance ? 'bg-red-50 border-red-300' : 'bg-green-50 border-green-300'}`}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-600">
+                              Available:
+                            </span>
+                            <span className={`text-lg font-bold ${hasInsufficientBalance ? 'text-red-600' : 'text-green-600'}`}>
+                              {currentBalance} {currentBalance === 1 ? 'day' : 'days'}
+                            </span>
+                          </div>
+                          {requestedDays > 0 && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-medium text-gray-600">
+                                Requesting:
+                              </span>
+                              <span className="text-lg font-bold text-gray-700">
+                                {requestedDays} {requestedDays === 1 ? 'day' : 'days'}
+                              </span>
                             </div>
+                          )}
                         </div>
-                        <div className="flex justify-end mt-8">
-                            <button
-                            type="button"
-                            className="bg-[#990100] text-white text-sm px-6 py-2 rounded-md hover:bg-[#ad3332] transition disabled:opacity-60"
-                            >
-                            Submit
-                            </button>
-                        </div>
-                    </div>
+                      </div>
+                    )}
+
+                    {hasInsufficientBalance && (
+                      <div className="col-span-2 p-2 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded text-xs">
+                        Warning: Requested days ({requestedDays}) exceed available balance ({currentBalance})
+                      </div>
+                    )}
+
+                    <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
+                      Start Date:
+                    </label>
+                    <input type="date" className="border border-[#990100] rounded-md px-3 py-2 w-full" value={startDate} onChange={(e) => setStartDate(e.target.value)} disabled={submitting}/>
+
+                    <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
+                      End Date:
+                    </label>
+                    <input type="date" className="border border-[#990100] rounded-md px-3 py-2 w-full" value={endDate} onChange={(e) => setEndDate(e.target.value)} disabled={submitting} min={startDate || undefined}/>
+
+                    {isSILSelected && (
+                      <>
+                        <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
+                          Leave Purpose:
+                        </label>
+                        <select className="border border-[#990100] rounded-md px-3 py-2 w-full bg-white" value={leavePurpose} onChange={(e) => setLeavePurpose(e.target.value)} disabled={submitting}>
+                          <option value="">Select purpose</option>
+                          <option value="vacation">Vacation</option>
+                          <option value="sick">Sick</option>
+                        </select>
+                      </>
+                    )}
+
+                    <label className="text-left font-semibold pt-2 text-[#483D3D] uppercase">
+                      Reason:
+                    </label>
+                    <textarea className="border border-[#990100] rounded-md px-3 py-2 h-28 resize-none w-full" placeholder="Optional" value={reason} onChange={(e) => setReason(e.target.value)} disabled={submitting}/>
+                  </div>
                 </div>
-            </div>  
+              </div>
+            </div>
+            <div className="flex justify-end mt-8">
+              <button type="button" className="bg-[#990100] text-white text-sm px-6 py-2 rounded-md hover:bg-[#ad3332] transition disabled:opacity-60 disabled:cursor-not-allowed" onClick={handleSubmit} disabled={!canSubmit || submitting || loadingTypes}>
+                {submitting ? "Submitting…" : "Submit"}
+              </button>
+            </div>
+          </div>
         </div>
-    )
+      </div>
+    </div>
+  );
 }
 
 
-function ViewDetails ({ data, onClose }){
+function ViewDetails ({ data, onClose, onCancel }){
 
     if (!data) return null;
+
+    const status = String(data.status || "").toUpperCase();
+    const canCancel = status === "PENDING" || status === "APPROVED";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -135,10 +381,9 @@ function ViewDetails ({ data, onClose }){
 
 
           <div className="space-y-5 text-sm">
-            <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2">
+            <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 pt-6">
 
-
-            <div className="font-semibold pt-6">Date Requested:</div>
+            <div className="font-semibold">Date Requested:</div>
             <div>{data.dateRequested}</div>
 
             <div className="font-semibold">Employee Name:</div>
@@ -148,7 +393,14 @@ function ViewDetails ({ data, onClose }){
             <div>{data.position}</div>
 
             <div className="font-semibold">Leave Type:</div>
-            <div>{data.type}</div>
+            <div>
+              {data.type}
+              {data.leave_purpose && (
+                <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  {data.leave_purpose === 'vacation' ? '🏖️ Vacation' : '🏥 Sick'}
+                </span>
+              )}
+            </div>
 
             <div className="font-semibold">Date:</div>
             <div>{data.date}</div>
@@ -167,27 +419,27 @@ function ViewDetails ({ data, onClose }){
             <div className="flex items-center gap-4">
             <div className="font-semibold">Status:</div>
             <StatusPill status={data.status} />
-            <select
-                className="border border-gray-300 rounded-md px-4 py-2 text-sm bg-white w-full sm:w-56"
-            >
-                <option value="APPROVED">APPROVED</option>
-                <option value="REJECTED">REJECTED</option>
-                <option value="PENDING">PENDING</option>
-                <option value="CANCELLED">CANCELLED</option>
-            </select>
             </div>
 
-            <div className="pt-2">
-            <span className="font-semibold">Update Made By:</span>
-            </div>
+            {data.updated_by && data.updated_at && (
+              <div className="pt-2">
+                <span className="font-semibold">Update Made By: </span>
+                <span className="text-gray-700">
+                  {data.updated_by} on {formatDateTime(data.updated_at)}
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-end pt-3">
-            <button
-                type="button"
-                className="generate-report-button shadow-md px-6"
-            >
+            {canCancel ? (
+              <button type="button" className="bg-[#990100] hover:bg-red-700 text-white text-sm px-6 py-2 rounded-md transition shadow-md" onClick={() => onCancel?.(data)}>
                 Cancel Request
-            </button>
+              </button>
+            ) : (
+              <button type="button" className="bg-gray-600 hover:bg-gray-700 text-white text-sm px-6 py-2 rounded-md transition shadow-md" onClick={onClose}>
+                Close
+              </button>
+            )}
             </div>
         </div>
 
@@ -472,7 +724,7 @@ function WomenLeave ({onClose}){
     )
 }
 
-// FRO THE TABLE - STATUS OF LEAVE
+// FOR THE TABLE - STATUS OF LEAVE
 function StatusPill({ status }) {
   const normalized = String(status || "").toUpperCase();
   if (normalized === "APPROVED") {
@@ -504,27 +756,6 @@ function StatusPill({ status }) {
 }
 
 
-const leaveReq = [
-  {
-    id: "AC-00019",
-    name: "Gabrielle Delos Santos",
-    leaveType: "SIL",
-    date: "12/10/25",
-    status: "CANCELLED",
-  },
-  {
-    id: "AC-00019",
-    name: "Gabrielle Delos Santos",
-    leaveType: "SIL",
-    date: "02/4/26",
-    status: "PENDING",
-  },
-];
-
-
-
-
-
 function MyLeaves() {
     const [showLeaves, setShowLeaves] = useState(false);
     const [showRequestLeave, setShowRequestLeave] = useState(false);
@@ -535,8 +766,160 @@ function MyLeaves() {
     const [showVAWC, setShowVAWC] = useState(false)
     const [showSoloParent, setShowSoloParent] = useState(false)
     const [showWomenLeave, setShowWomenLeave] = useState(false)
-    const [rows, setRows] = useState(leaveReq);
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [showViewDetails, setShowViewDetails] = useState(false);
+    const [leaveCredits, setLeaveCredits] = useState([]);
+    const [confirmState, setConfirmState] = useState({
+      open: false,
+      title: "",
+      message: "",
+      onConfirm: null,
+    });
+    const [confirmBusy, setConfirmBusy] = useState(false);
+
+    const openConfirm = ({ title = "", message = "", onConfirm }) => {
+      setConfirmState({ open: true, title, message, onConfirm });
+    };
+
+    const closeConfirm = () => {
+      setConfirmState({ open: false, title: "", message: "", onConfirm: null });
+    };
+
+    const handleConfirm = async () => {
+      const fn = confirmState.onConfirm;
+      if (!fn) {
+        closeConfirm();
+        return;
+      }
+
+      try {
+        setConfirmBusy(true);
+        await fn();
+        closeConfirm();
+      } catch (e) {
+        openConfirm({
+          title: "Error",
+          message: e?.message || "Action failed",
+          onConfirm: null,
+        });
+      } finally {
+        setConfirmBusy(false);
+      }
+    };
+
+    const fetchLeaveCredits = async () => {
+      try {
+        const resp = await get("/leave/credits/me");
+        const apiCredits = Array.isArray(resp?.data) ? resp.data : [];
+        setLeaveCredits(apiCredits);
+      } catch (e) {
+        console.error("Failed to load leave credits:", e);
+        setLeaveCredits([]);
+      }
+    };
+
+    const fetchMyLeaves = async () => {
+      try {
+        setLoading(true);
+        const resp = await get("/leave/requests/me");
+        const apiRows = Array.isArray(resp?.data) ? resp.data : [];
+
+        const mapped = apiRows.map((r) => ({
+          leave_request_id: r.leave_request_id,
+          id: r.employee_code || r.employee_id,
+          name: r.employee_name || "",
+          type: r.leave_type_name || "",
+          leave_purpose: r.leave_purpose || null,
+          date: formatRange(r.start_date, r.end_date),
+          dateRequested: formatDateShort(r.created_at),
+          status: r.status || "PENDING",
+          position: r.position_title || "",
+          reason: r.reason || "",
+          updated_by: r.updated_by_name || r.updated_by || "",
+          updated_at: r.updated_at || r.created_at,
+        }));
+
+        setRows(mapped);
+      } catch (e) {
+        console.error("Failed to load leave requests:", e);
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    useEffect(() => {
+      fetchMyLeaves();
+      fetchLeaveCredits();
+    }, []);
+
+    const handleCancelRequest = (row) => {
+      if (!row?.leave_request_id) return;
+
+      // check if request can be cancelled
+      const status = String(row.status || "").toUpperCase();
+      if (status !== "PENDING" && status !== "APPROVED") {
+        openConfirm({
+          title: "Cannot Cancel",
+          message: "Only pending or approved leave requests can be cancelled.",
+          onConfirm: null,
+        });
+        return;
+      }
+
+      const computeDays = (r) => {
+        try {
+          if (!r?.date) return null;
+          const parts = String(r.date).split(" - ");
+          if (parts.length === 2) {
+            const start = new Date(parts[0]);
+            const end = new Date(parts[1]);
+            const diffTime = Math.abs(end - start);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            return diffDays;
+          }
+          return 1;
+        } catch {
+          return null;
+        }
+      };
+
+      const days = computeDays(row);
+
+      openConfirm({
+        title: "Confirm Cancellation",
+        message: `Are you sure you want to cancel this ${row.type} request?${
+          days ? `\n\nThis request is for ${days} day${days !== 1 ? "s" : ""}.` : ""
+        }\n\nCancelling may restore your leave credits.`,
+        onConfirm: async () => {
+          try {
+            await put(`/leave/requests/${row.leave_request_id}/cancel`, {});
+
+            // refresh data
+            await fetchMyLeaves();
+            await fetchLeaveCredits();
+
+            // close details modal
+            setShowViewDetails(false);
+
+            // show success
+            openConfirm({
+              title: "Success",
+              message: "Leave request cancelled successfully.",
+              onConfirm: null,
+            });
+          } catch (e) {
+            console.error("Failed to cancel leave request:", e);
+            openConfirm({
+              title: "Error",
+              message: e?.message || "Failed to cancel leave request",
+              onConfirm: null,
+            });
+          }
+        },
+      });
+    };
 
     // REACT PAGINATE
     const [itemOffset, setItemOffset] = useState(0);
@@ -552,6 +935,21 @@ function MyLeaves() {
     const newOffset = event.selected * itemsPerPage;
     setItemOffset(newOffset);
     };
+
+    const getLeaveBalance = (leaveTypeName) => {
+      const credit = leaveCredits.find((c) =>
+        String(c.leave_type_name || "").toLowerCase().includes(leaveTypeName.toLowerCase())
+      );
+      return credit ? credit.current_balance : 0;
+    };
+
+    const silBalance = useMemo(() => getLeaveBalance("service incentive"), [leaveCredits]);
+    const lwpBalance = useMemo(() => getLeaveBalance("without pay"), [leaveCredits]);
+    const maternityBalance = useMemo(() => getLeaveBalance("maternity"), [leaveCredits]);
+    const paternityBalance = useMemo(() => getLeaveBalance("paternity"), [leaveCredits]);
+    const vawcBalance = useMemo(() => getLeaveBalance("vawc"), [leaveCredits]);
+    const soloParentBalance = useMemo(() => getLeaveBalance("solo parent"), [leaveCredits]);
+    const womenBalance = useMemo(() => getLeaveBalance("women"), [leaveCredits]);
 
 
     return (
@@ -602,22 +1000,21 @@ function MyLeaves() {
                                 color = "#FE7F2D"
                                 onClick={() => setShowPayWOLeave(true)}
                             />
-                            {/* KINDLY PUT HERE NA LANG SIL LEAVE NI USER */}
                             <StatCard
                                 title="Service Incentive Leave"
-                                value="5"
+                                value={silBalance || 0}
                                 color = "#7ADAA5"
                                 onClick={() => setShowSIL(true)}
                             />
                             <StatCard
                                 title="Maternity Leave"
-                                value="By request"
+                                value={maternityBalance > 0 ? maternityBalance : "By request"}
                                 color = "#FF0087"
                                 onClick={() => setShowMaternity(true)}
                             />
                             <StatCard
                                 title="Paternity Leave"
-                                value="By request"
+                                value={paternityBalance > 0 ? paternityBalance : "By request"}
                                 color = "#3F9AAE"
                                 onClick={() => setShowPaternity(true)}
                             />
@@ -629,19 +1026,19 @@ function MyLeaves() {
                         <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-4">
                             <StatCard
                                 title="VAWC Leave"
-                                value="By request"
+                                value={vawcBalance > 0 ? vawcBalance : "By request"}
                                 color = "#B45253"
                                 onClick={() => setShowVAWC(true)}
                             />
                             <StatCard
                                 title="Parental Leave for Solo Parents"
-                                value="By request"
+                                value={soloParentBalance > 0 ? soloParentBalance : "By request"}
                                 color = "#8AA624"
                                 onClick={() => setShowSoloParent(true)}
                             />
                             <StatCard
                                 title="Special Leave Benefits for Women"
-                                value="By request"
+                                value={womenBalance > 0 ? womenBalance : "By request"}
                                 color = "#A376A2"
                                 onClick={() => setShowWomenLeave(true)}
                             />
@@ -666,7 +1063,13 @@ function MyLeaves() {
                         </thead>
                         
                         <tbody className="tbody-style">
-                        {currentRows.length === 0 ? (
+                        {loading ? (
+                            <tr>
+                            <td colSpan="6" className="td-style text-center text-gray-400">
+                              Loading...
+                            </td>
+                            </tr>
+                        ) : currentRows.length === 0 ? (
                             <tr>
                             <td colSpan="6" className="td-style text-center text-gray-400">
                                 No records found
@@ -674,10 +1077,10 @@ function MyLeaves() {
                             </tr>
                         ) : (
                             currentRows.map((row, index) => (
-                            <tr key={index} className="tr-style">
+                            <tr key={row.leave_request_id || index} className="tr-style">
                                 <td className="td-style font-medium">{row.id}</td>
                                 <td className="td-style font-medium">{row.name}</td>
-                                <td className="td-style font-medium">{row.leaveType}</td>
+                                <td className="td-style font-medium">{row.type}</td>
                                 <td className="td-style font-medium">{row.date}</td>
                                 <td className="td-style font-medium">
                                 <StatusPill status={row.status} />
@@ -747,7 +1150,17 @@ function MyLeaves() {
 
         {/* CALLING THE MODALS ABOVE */}
 
-        {showRequestLeave && ( <RequestLeave onClose={() => setShowRequestLeave(false)} /> )}
+        {showRequestLeave && (
+          <RequestLeave
+            onClose={() => setShowRequestLeave(false)}
+            onSuccess={() => {
+              fetchMyLeaves();
+              fetchLeaveCredits();
+              setShowRequestLeave(false);
+            }}
+            leaveCredits={leaveCredits}
+          />
+        )}
         {showPayWOLeave && ( <LeaveWOPay onClose={() => setShowPayWOLeave(false)} /> )}
         {showSIL && ( <SIL onClose={() => setShowSIL(false)} /> )}
         {showMaternity && ( <MaternityLeave onClose={() => setShowMaternity(false)} /> )}
@@ -755,7 +1168,24 @@ function MyLeaves() {
         {showVAWC && ( <VAWC onClose={() => setShowVAWC(false)} /> )}
         {showSoloParent && ( <SoloParents onClose={() => setShowSoloParent(false)} /> )}
         {showWomenLeave && ( <WomenLeave onClose={() => setShowWomenLeave(false)} /> )}    
-        {showViewDetails && ( <ViewDetails data={showViewDetails} onClose={() => setShowViewDetails(null)}/>)}
+        {showViewDetails && (
+          <ViewDetails
+            data={showViewDetails}
+            onClose={() => setShowViewDetails(null)}
+            onCancel={handleCancelRequest}
+          />
+        )}
+
+        <ConfirmModal
+          open={confirmState.open}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmBusy ? "Processing…" : "OK"}
+          cancelText={confirmState.onConfirm ? "Cancel" : null}
+          onConfirm={handleConfirm}
+          onCancel={closeConfirm}
+          confirmDisabled={confirmBusy}
+        />
         </div>
     )
 }

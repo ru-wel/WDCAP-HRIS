@@ -18,7 +18,7 @@ router.get('/requests', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER)
 router.get('/requests/me', validate(leaveValidation.listMyLeaveRequestsSchema), leaveController.listMyLeaveRequests);
 router.post('/requests', validate(leaveValidation.createLeaveRequestSchema), leaveController.createLeaveRequest);
 router.put('/requests/:leave_request_id/status', authorizeRoles(ROLES.EXECUTIVE, ROLES.MANAGER), validate(leaveValidation.updateLeaveRequestStatusSchema), leaveController.updateLeaveRequestStatus);
-router.put('/requests/:leave_request_id/cancel', authorizeRoles(ROLES.EMPLOYEE), validate(leaveValidation.cancelLeaveRequestSchema), leaveController.cancelLeaveRequest);
+router.put('/requests/:leave_request_id/cancel', validate(leaveValidation.cancelLeaveRequestSchema), leaveController.cancelLeaveRequest);
 
 // Leave history
 router.get('/history', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(leaveValidation.listLeaveHistorySchema), leaveController.listLeaveHistory);
@@ -28,5 +28,6 @@ router.get('/history/me', validate(leaveValidation.listMyLeaveHistorySchema), le
 router.get('/credits', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(leaveValidation.listLeaveCreditsSchema), leaveController.listLeaveCredits);
 router.get('/credits/me', validate(leaveValidation.listMyLeaveCreditsSchema), leaveController.listMyLeaveCredits);
 router.put('/credits/:leave_balance_id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(leaveValidation.updateLeaveCreditSchema), leaveController.updateLeaveCredit);
+router.post('/credits/generate-yearly', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(leaveValidation.generateYearlyLeaveCreditsSchema), leaveController.generateYearlyLeaveCredits);
 
 export default router;

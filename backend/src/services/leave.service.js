@@ -9,9 +9,12 @@ import { fileURLToPath } from 'node:url';
 
 const DEFAULT_LEAVE_TYPES = [
   { leave_type_name: 'Service Incentive Leave', default_credits: 5 },
-  { leave_type_name: 'Vacation Leave', default_credits: 5 },
-  { leave_type_name: 'Sick Leave', default_credits: 5 },
-  { leave_type_name: 'Leave Without Pay', default_credits: 0 }
+  { leave_type_name: 'Leave Without Pay', default_credits: 0 },
+  { leave_type_name: 'Maternity Leave', default_credits: 0 },
+  { leave_type_name: 'Paternity Leave', default_credits: 0 },
+  { leave_type_name: 'VAWC Leave', default_credits: 0 },
+  { leave_type_name: 'Solo Parent Leave', default_credits: 0 },
+  { leave_type_name: 'Special Leave for Women', default_credits: 0 }
 ];
 
 const escapeHtml = (value) => String(value ?? '')
@@ -251,6 +254,29 @@ const calcInclusiveDays = (startDateIso, endDateIso) => {
   return Math.max(1, diff + 1);
 };
 
+// excludes weekends on leaves credit count
+const calcBusinessDays = (startDateIso, endDateIso) => {
+  const s = toIsoDate(startDateIso);
+  const e = toIsoDate(endDateIso || startDateIso);
+  if (!s) return 0;
+
+  const start = new Date(`${s}T00:00:00Z`);
+  const end = new Date(`${e}T00:00:00Z`);
+
+  let count = 0;
+  const current = new Date(start);
+
+  while (current <= end) {
+    const dayOfWeek = current.getUTCDay();        // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {     // not Sunday or Saturday
+      count++;
+    }
+    current.setUTCDate(current.getUTCDate() + 1);
+  }
+
+  return Math.max(0, count);
+};
+
 const getYearFromIso = (iso) => {
   const d = toIsoDate(iso);
   if (!d) return new Date().getUTCFullYear();
@@ -290,7 +316,6 @@ const ensureAndDeductLeaveBalance = async ({ employeeId, leaveTypeId, year, days
         leave_type_id: leaveTypeId,
         year,
         current_balance: starting,
-        carried_over: 0,
         created_at: now,
         updated_at: now
       })
@@ -369,7 +394,6 @@ const ensureAndAddLeaveBalance = async ({ employeeId, leaveTypeId, year, days, u
         leave_type_id: leaveTypeId,
         year,
         current_balance: starting,
-        carried_over: 0,
         created_at: now,
         updated_at: now
       })
@@ -419,6 +443,7 @@ const LEAVE_REQUEST_FIELDS = `
   end_date,
   status,
   reason,
+  leave_purpose,
   approved_by,
   approved_date,
   created_at,
@@ -458,6 +483,7 @@ const toUiLeaveRow = (r) => {
     end_date: r.end_date,
     status: r.status,
     reason: r.reason,
+    leave_purpose: r.leave_purpose,
     approved_by: r.approved_by,
     approved_date: r.approved_date,
     created_at: r.created_at,
@@ -476,7 +502,12 @@ const getLatestLeaveRequestUpdaters = async (leaveRequestIds) => {
       timestamp,
       users (
         email,
-        role
+        role,
+        employee_id,
+        employees (
+          first_name,
+          last_name
+        )
       )
     `)
     .eq('table_name', 'leave_requests')
@@ -490,8 +521,13 @@ const getLatestLeaveRequestUpdaters = async (leaveRequestIds) => {
   for (const row of data || []) {
     const key = String(row.record_id || '').trim();
     if (!key || map.has(key)) continue;
+
+    const emp = row.users?.employees;
+    const name = emp ? formatEmployeeName(emp) : row.users?.email || 'Unknown';
+
     map.set(key, {
       email: row.users?.email || '',
+      name: name,
       role: row.users?.role || '',
       timestamp: row.timestamp || null
     });
@@ -562,7 +598,32 @@ export const listLeaveRequests = async ({ status, employee_id } = {}) => {
     const { data, error } = await query;
     if (error) throw new InternalServerError(error.message);
 
-    return (data || []).map(toUiLeaveRow);
+    const baseRows = (data || []).map(toUiLeaveRow);
+
+    // fetch updater information from audit logs
+    const updaterMap = await getLatestLeaveRequestUpdaters(baseRows.map((r) => r.leave_request_id));
+
+    return baseRows.map((r) => {
+      const info = updaterMap.get(String(r.leave_request_id));
+
+      // use name from audit log, fallback to email, or check approved_by
+      let updatedByName = info?.name || '';
+      let updatedAt = info?.timestamp || null;
+
+      // if no audit log info, try to fetch approver info
+      if (!updatedByName && r.approved_by) {
+        updatedByName = `Employee ID: ${r.approved_by}`;
+        updatedAt = r.approved_date || r.updated_at;
+      }
+
+      return {
+        ...r,
+        updated_by_name: updatedByName,
+        updated_by_email: info?.email || '',
+        updated_by_role: info?.role || '',
+        updated_by_timestamp: updatedAt || r.updated_at
+      };
+    });
   } catch (error) {
     logger.error('Error fetching leave requests:', error);
     throw error;
@@ -614,6 +675,58 @@ export const createLeaveRequest = async (payload, user) => {
       // If eligibility check fails unexpectedly, continue to avoid hard blocking
     }
 
+    // validate leave_purpose for SIL
+    if (payload.leave_type_id) {
+      const { data: leaveType } = await supabase
+        .from('leave_types')
+        .select('leave_type_id, leave_type_name')
+        .eq('leave_type_id', payload.leave_type_id)
+        .maybeSingle();
+
+      const leaveTypeName = String(leaveType?.leave_type_name || '');
+      const isSIL = leaveTypeName === 'Service Incentive Leave';
+
+      if (isSIL && !payload.leave_purpose) {
+        throw new BadRequestError('Please specify if this Service Incentive Leave is for vacation or sick leave.');
+      }
+
+      if (isSIL && payload.leave_purpose) {
+        const validPurposes = ['vacation', 'sick'];
+        if (!validPurposes.includes(payload.leave_purpose.toLowerCase())) {
+          throw new BadRequestError('Service Incentive Leave purpose must be either "vacation" or "sick".');
+        }
+      }
+    }
+
+    // validate sufficient leave balance before creating request
+    // skip balance validation for LWOP
+    const requestedDays = calcBusinessDays(payload.start_date, payload.end_date);
+    const year = getYearFromIso(payload.start_date);
+
+    const { data: balanceRow, error: balanceErr } = await supabase
+      .from('employee_leave_balances')
+      .select('current_balance, leave_types(leave_type_name)')
+      .eq('employee_id', payload.employee_id)
+      .eq('leave_type_id', payload.leave_type_id)
+      .eq('year', year)
+      .maybeSingle();
+
+    if (balanceErr) throw new InternalServerError(balanceErr.message);
+
+    const leaveTypeName = balanceRow?.leave_types?.leave_type_name || 'this leave type';
+    const isLWOP = /leave without pay/i.test(leaveTypeName);
+
+    // only validate balance for paid leave types (skip LWOP)
+    if (!isLWOP) {
+      const currentBalance = balanceRow?.current_balance ?? 0;
+
+      if (currentBalance < requestedDays) {
+        throw new BadRequestError(
+          `Insufficient leave credits. You have ${currentBalance} day${currentBalance !== 1 ? 's' : ''} available for ${leaveTypeName}, but you're requesting ${requestedDays} day${requestedDays !== 1 ? 's' : ''}.`
+        );
+      }
+    }
+
     const timestamp = new Date().toISOString();
     const insertPayload = {
       employee_id: payload.employee_id,
@@ -622,6 +735,7 @@ export const createLeaveRequest = async (payload, user) => {
       end_date: payload.end_date,
       status: 'PENDING',
       reason: payload.reason,
+      leave_purpose: payload.leave_purpose || null,
       approved_by: null,
       approved_date: null,
       created_at: timestamp,
@@ -779,12 +893,22 @@ export const updateLeaveRequestStatus = async (leaveRequestId, { status, reason 
       throw new BadRequestError('Employees cannot update leave request status');
     }
 
-    // If reverting an approved request, restore credits.
+    // check if this is LWOP, skip credit management for unpaid leave
+    const { data: leaveTypeData } = await supabase
+      .from('leave_types')
+      .select('leave_type_name')
+      .eq('leave_type_id', existing.leave_type_id)
+      .maybeSingle();
+
+    const isLWOP = /leave without pay/i.test(leaveTypeData?.leave_type_name || '');
+
+    // if reverting an approved request, restore credits (skip for LWOP)
     if (
+      !isLWOP &&
       String(existing.status || '').toUpperCase() === 'APPROVED' &&
       normalizedStatus !== 'APPROVED'
     ) {
-      const days = calcInclusiveDays(existing.start_date, existing.end_date);
+      const days = calcBusinessDays(existing.start_date, existing.end_date);
       const year = getYearFromIso(existing.start_date);
       await ensureAndAddLeaveBalance({
         employeeId: existing.employee_id,
@@ -795,10 +919,12 @@ export const updateLeaveRequestStatus = async (leaveRequestId, { status, reason 
       });
     }
 
-    // If approving for the first time, deduct leave credits first (so we can block approval if insufficient).
-    // Note: This assumes simple inclusive day-counting; adjust if you later add half-days/weekends/holidays.
-    if (normalizedStatus === 'APPROVED' && String(existing.status || '').toUpperCase() !== 'APPROVED') {
-      const days = calcInclusiveDays(existing.start_date, existing.end_date);
+    if (
+      !isLWOP &&
+      normalizedStatus === 'APPROVED' &&
+      String(existing.status || '').toUpperCase() !== 'APPROVED'
+    ) {
+      const days = calcBusinessDays(existing.start_date, existing.end_date);
       const year = getYearFromIso(existing.start_date);
       await ensureAndDeductLeaveBalance({
         employeeId: existing.employee_id,
@@ -922,8 +1048,31 @@ export const cancelLeaveRequest = async (leaveRequestId, user) => {
       throw new BadRequestError('You can only cancel your own leave request');
     }
 
-    if (String(existing.status || '').toUpperCase() !== 'PENDING') {
-      throw new BadRequestError('Only pending leave requests can be cancelled');
+    const status = String(existing.status || '').toUpperCase();
+    if (status !== 'PENDING' && status !== 'APPROVED') {
+      throw new BadRequestError('Only pending or approved leave requests can be cancelled');
+    }
+
+    // if reverting an approved request, restore credits (skip for LWOP)
+    const { data: leaveTypeData } = await supabase
+      .from('leave_types')
+      .select('leave_type_name')
+      .eq('leave_type_id', existing.leave_type_id)
+      .maybeSingle();
+
+    const isLWOP = /leave without pay/i.test(leaveTypeData?.leave_type_name || '');
+
+    // if cancelling an approved request, restore credits
+    if (status === 'APPROVED' && !isLWOP) {
+      const days = calcBusinessDays(existing.start_date, existing.end_date);
+      const year = getYearFromIso(existing.start_date);
+      await ensureAndAddLeaveBalance({
+        employeeId: existing.employee_id,
+        leaveTypeId: existing.leave_type_id,
+        year,
+        days,
+        userId: user.id
+      });
     }
 
     const timestamp = new Date().toISOString();
@@ -1100,6 +1249,7 @@ export const listLeaveHistory = async ({ employee_id } = {}) => {
       const info = updaterMap.get(String(r.leave_request_id));
       return {
         ...r,
+        updated_by_name: info?.name || '',
         updated_by_email: info?.email || '',
         updated_by_role: info?.role || '',
         updated_by_timestamp: info?.timestamp || null
@@ -1153,7 +1303,6 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
             leave_type_id: t.leave_type_id,
             year: effectiveYear,
             current_balance: Number(t.default_credits ?? 0),
-            carried_over: 0,
             created_at: now,
             updated_at: now
           }));
@@ -1193,7 +1342,6 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
                 leave_type_id: t.leave_type_id,
                 year: effectiveYear,
                 current_balance: Number(t.default_credits ?? 0),
-                carried_over: 0,
                 created_at: now,
                 updated_at: now
               });
@@ -1222,7 +1370,6 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
         leave_type_id,
         year,
         current_balance,
-        carried_over,
         created_at,
         updated_at,
         employees (employee_id, first_name, last_name),
@@ -1241,34 +1388,56 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
 
     const rows = data || [];
 
-    return rows.map((r) => ({
-      leave_balance_id: r.leave_balance_id,
-      employee_id: r.employee_id,
-      employee_code: r.employees?.employee_id || r.employee_id,
-      employee_name: formatEmployeeName(r.employees),
-      leave_type_id: r.leave_type_id,
-      leave_type_name: r.leave_types?.leave_type_name || '',
-      default_credits: r.leave_types?.default_credits ?? null,
-      year: r.year,
-      current_balance: r.current_balance,
-      carried_over: r.carried_over,
-      used_leave: (() => {
-        const base = Number(r.leave_types?.default_credits ?? 0);
-        const carried = Number(r.carried_over ?? 0);
-        const balance = Number(r.current_balance ?? 0);
-        const used = base + carried - balance;
-        return Number.isFinite(used) ? used : null;
-      })(),
-      created_at: r.created_at,
-      updated_at: r.updated_at
-    }));
+    // calculate actual used leave by querying approved leave requests
+    const employeeIds = [...new Set(rows.map(r => r.employee_id).filter(Boolean))];
+    const leaveTypeIds = [...new Set(rows.map(r => r.leave_type_id).filter(Boolean))];
+
+    let usedLeaveMap = new Map(); // key: "employee_id:leave_type_id:year"
+
+    if (employeeIds.length && leaveTypeIds.length) {
+      const { data: approvedLeaves, error: leavesErr } = await supabase
+        .from('leave_requests')
+        .select('employee_id, leave_type_id, start_date, end_date, status')
+        .in('employee_id', employeeIds)
+        .in('leave_type_id', leaveTypeIds)
+        .eq('status', 'APPROVED');
+
+      if (!leavesErr && approvedLeaves) {
+        for (const leave of approvedLeaves) {
+          const days = calcBusinessDays(leave.start_date, leave.end_date);
+          const year = getYearFromIso(leave.start_date);
+          const key = `${leave.employee_id}:${leave.leave_type_id}:${year}`;
+          usedLeaveMap.set(key, (usedLeaveMap.get(key) || 0) + days);
+        }
+      }
+    }
+
+    return rows.map((r) => {
+      const key = `${r.employee_id}:${r.leave_type_id}:${r.year}`;
+      const actualUsedLeave = usedLeaveMap.get(key) || 0;
+
+      return {
+        leave_balance_id: r.leave_balance_id,
+        employee_id: r.employee_id,
+        employee_code: r.employees?.employee_id || r.employee_id,
+        employee_name: formatEmployeeName(r.employees),
+        leave_type_id: r.leave_type_id,
+        leave_type_name: r.leave_types?.leave_type_name || '',
+        default_credits: r.leave_types?.default_credits ?? null,
+        year: r.year,
+        current_balance: r.current_balance,
+        used_leave: actualUsedLeave,
+        created_at: r.created_at,
+        updated_at: r.updated_at
+      };
+    });
   } catch (error) {
     logger.error('Error fetching leave credits:', error);
     throw error;
   }
 };
 
-export const updateLeaveCreditBalance = async (leaveBalanceId, { current_balance, carried_over }, user) => {
+export const updateLeaveCreditBalance = async (leaveBalanceId, { current_balance }, user) => {
   try {
     if (!leaveBalanceId) throw new BadRequestError('Leave balance id is required');
     if (!user?.id) throw new BadRequestError('User is required');
@@ -1276,14 +1445,6 @@ export const updateLeaveCreditBalance = async (leaveBalanceId, { current_balance
     const nextBalance = Number(current_balance);
     if (!Number.isFinite(nextBalance) || nextBalance < 0) {
       throw new BadRequestError('Current balance must be a non-negative number');
-    }
-
-    let nextCarried = null;
-    if (carried_over !== undefined) {
-      nextCarried = Number(carried_over);
-      if (!Number.isFinite(nextCarried) || nextCarried < 0) {
-        throw new BadRequestError('Carried over must be a non-negative number');
-      }
     }
 
     const { data: existing, error: fetchErr } = await supabase
@@ -1299,7 +1460,6 @@ export const updateLeaveCreditBalance = async (leaveBalanceId, { current_balance
       current_balance: nextBalance,
       updated_at: now
     };
-    if (nextCarried !== null) updatePayload.carried_over = nextCarried;
 
     const { data: updated, error: updErr } = await supabase
       .from('employee_leave_balances')
@@ -1328,6 +1488,128 @@ export const updateLeaveCreditBalance = async (leaveBalanceId, { current_balance
     return updated;
   } catch (error) {
     logger.error(`Error updating leave balance ${leaveBalanceId}:`, error);
+    throw error;
+  }
+};
+
+export const generateYearlyLeaveCredits = async ({ year, user_id, user_role } = {}) => {
+  try {
+    const targetYear = year || new Date().getFullYear();
+
+    // only Executive and HR can generate yearly credits
+    if (![ROLES.EXECUTIVE, ROLES.HR].includes(user_role)) {
+      throw new BadRequestError('Only Executive and HR can generate yearly leave credits');
+    }
+
+    // get all active Regular employees
+    const { data: employees, error: empErr } = await supabase
+      .from('employees')
+      .select('employee_id, first_name, last_name')
+      .eq('employment_status', EMPLOYMENT_STATUSES.ACTIVE)
+      .ilike('personnel_type', 'regular');
+
+    if (empErr) throw new InternalServerError(empErr.message);
+    if (!employees || employees.length === 0) {
+      return {
+        year: targetYear,
+        employees_processed: 0,
+        records_created: 0,
+        records_skipped: 0,
+        message: 'No active Regular employees found'
+      };
+    }
+
+    // get all leave types
+    const { data: leaveTypes, error: typesErr } = await supabase
+      .from('leave_types')
+      .select('leave_type_id, leave_type_name, default_credits');
+
+    if (typesErr) throw new InternalServerError(typesErr.message);
+    if (!leaveTypes || leaveTypes.length === 0) {
+      throw new InternalServerError('No leave types found in the system');
+    }
+
+    // check which employees already have records for this year
+    const employeeIds = employees.map(e => e.employee_id);
+    const leaveTypeIds = leaveTypes.map(t => t.leave_type_id);
+
+    const { data: existingRecords, error: existingErr } = await supabase
+      .from('employee_leave_balances')
+      .select('employee_id, leave_type_id')
+      .eq('year', targetYear)
+      .in('employee_id', employeeIds)
+      .in('leave_type_id', leaveTypeIds);
+
+    if (existingErr) throw new InternalServerError(existingErr.message);
+
+    const existingKeys = new Set((existingRecords || []).map(r => `${r.employee_id}:${r.leave_type_id}`));
+
+    // create missing records
+    const now = new Date().toISOString();
+    const recordsToCreate = [];
+
+    for (const employee of employees) {
+      for (const leaveType of leaveTypes) {
+        const key = `${employee.employee_id}:${leaveType.leave_type_id}`;
+        if (existingKeys.has(key)) continue;
+
+        recordsToCreate.push({
+          employee_id: employee.employee_id,
+          leave_type_id: leaveType.leave_type_id,
+          year: targetYear,
+          current_balance: Number(leaveType.default_credits ?? 0),
+          created_at: now,
+          updated_at: now
+        });
+      }
+    }
+
+    let recordsCreated = 0;
+    if (recordsToCreate.length > 0) {
+      // Insert in chunks of 500
+      const chunkSize = 500;
+      for (let i = 0; i < recordsToCreate.length; i += chunkSize) {
+        const chunk = recordsToCreate.slice(i, i + chunkSize);
+        const { error: insertErr } = await supabase
+          .from('employee_leave_balances')
+          .insert(chunk);
+
+        if (insertErr) throw new InternalServerError(insertErr.message);
+        recordsCreated += chunk.length;
+      }
+    }
+
+    const recordsSkipped = (employees.length * leaveTypes.length) - recordsCreated;
+
+    // audit logs
+    try {
+      await supabase.from('audit_logs').insert({
+        user_id,
+        action: AUDIT_ACTIONS.GENERATE_LEAVE_CREDITS,
+        table_name: 'employee_leave_balances',
+        description: `Generated ${targetYear} yearly leave credits for ${employees.length} Regular employees (${recordsCreated} new records created, ${recordsSkipped} skipped)`,
+        new_values: {
+          year: targetYear,
+          employees_count: employees.length,
+          records_created: recordsCreated,
+          records_skipped: recordsSkipped
+        }
+      });
+    } catch (auditErr) {
+      logger.error('Failed to create audit log for yearly credits generation:', auditErr);
+    }
+
+    logger.info(`Generated ${targetYear} yearly leave credits: ${recordsCreated} records created for ${employees.length} employees`);
+
+    return {
+      year: targetYear,
+      employees_processed: employees.length,
+      records_created: recordsCreated,
+      records_skipped: recordsSkipped,
+      message: `Successfully generated ${targetYear} leave credits for ${employees.length} Regular employees. Created ${recordsCreated} new records, skipped ${recordsSkipped} existing records.`
+    };
+  } catch (error) {
+    logger.error('Error generating yearly leave credits:', error);
     throw error;
   }
 };

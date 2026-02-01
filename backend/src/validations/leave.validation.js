@@ -25,6 +25,9 @@ export const createLeaveRequestSchema = Joi.object({
   }),
   reason: Joi.string().max(500).allow('', null).messages({
     'string.max': 'Reason cannot exceed 500 characters'
+  }),
+  leave_purpose: Joi.string().valid('vacation', 'sick').allow(null, '').optional().messages({
+    'any.only': 'Leave purpose must be either "vacation" or "sick"'
   })
 });
 
@@ -62,9 +65,14 @@ export const updateLeaveCreditSchema = Joi.object({
     'number.base': 'Current balance must be a number',
     'number.min': 'Current balance cannot be negative',
     'any.required': 'Current balance is required'
-  }),
-  carried_over: Joi.number().min(0).optional().messages({
-    'number.base': 'Carried over must be a number',
-    'number.min': 'Carried over cannot be negative'
+  })
+});
+
+export const generateYearlyLeaveCreditsSchema = Joi.object({
+  year: Joi.number().integer().min(2000).max(2100).optional().messages({
+    'number.base': 'Year must be a number',
+    'number.integer': 'Year must be an integer',
+    'number.min': 'Year must be 2000 or later',
+    'number.max': 'Year must be 2100 or earlier'
   })
 });

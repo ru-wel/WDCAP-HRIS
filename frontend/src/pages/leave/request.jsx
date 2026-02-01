@@ -134,7 +134,14 @@ function LeaveRequestDetailsModal({
           <div>{row?.position ?? "Web Developer"}</div>
 
           <div className="font-semibold">Leave Type:</div>
-          <div>{row?.type ?? "SIL"}</div>
+          <div>
+            {row?.type ?? "SIL"}
+            {row?.leave_purpose && (
+              <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                {row.leave_purpose === 'vacation' ? 'Vacation' : 'Sick'}
+              </span>
+            )}
+          </div>
 
           <div className="font-semibold">Date:</div>
           <div>{row?.dateLong ?? row?.date ?? ""}</div>
@@ -232,6 +239,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [leavePurpose, setLeavePurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [employeeProfile, setEmployeeProfile] = useState(null);
 
@@ -240,6 +248,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
     setStartDate("");
     setEndDate("");
     setReason("");
+    setLeavePurpose("");
     setSubmitting(false);
 
     const fetchTypes = async () => {
@@ -296,7 +305,25 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
     return true;
   };
 
-  const canSubmit = Boolean(leaveTypeId && startDate && endDate);
+  const isSILSelected = useMemo(() => {
+    const selectedType = leaveTypes.find((t) =>
+      String(t.leave_type_id) === String(leaveTypeId)
+    );
+    return /service incentive/i.test(selectedType?.leave_type_name || '');
+  }, [leaveTypeId, leaveTypes]);
+
+  useEffect(() => {
+    if (!isSILSelected && leavePurpose) {
+      setLeavePurpose("");
+    }
+  }, [isSILSelected, leavePurpose]);
+
+  const canSubmit = Boolean(
+    leaveTypeId &&
+    startDate &&
+    endDate &&
+    (!isSILSelected || leavePurpose)
+  );
 
   const toApiLeaveTypeId = (value) => {
     const v = String(value || "").trim();
@@ -317,6 +344,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
           start_date: startDate,
           end_date: endDate,
           reason: reason || null,
+          leave_purpose: isSILSelected ? leavePurpose : null,
         },
         true,
         60000
@@ -413,14 +441,19 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
             min={startDate || undefined}
           />
 
+          {isSILSelected && (
+            <>
+              <div className="text-right font-semibold">Leave Purpose:</div>
+              <select className="border border-gray-300 rounded-md px-3 py-2 text-sm w-48 bg-white" value={leavePurpose} onChange={(e) => setLeavePurpose(e.target.value)} disabled={submitting}>
+                <option value="">Select purpose</option>
+                <option value="vacation">Vacation</option>
+                <option value="sick">Sick</option>
+              </select>
+            </>
+          )}
+
           <div className="text-right font-semibold">Reason:</div>
-          <textarea
-            className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none"
-            placeholder="Optional"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            disabled={submitting}
-          />
+          <textarea className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none" placeholder="Optional" value={reason} onChange={(e) => setReason(e.target.value)} disabled={submitting}/>
         </div>
 
         <div className="flex justify-end pt-2">
@@ -652,6 +685,7 @@ function LeaveRequest() {
         id: r.employee_code || r.employee_id,
         name: r.employee_name || "",
         type: r.leave_type_name || "",
+        leave_purpose: r.leave_purpose || null,
         startDateRaw: r.start_date || "",
         endDateRaw: r.end_date || "",
         date: formatRange(r.start_date, r.end_date, "short"),
@@ -743,14 +777,25 @@ function LeaveRequest() {
 
   const handleUpdate = (row, nextStatus) => {
     if (!row?.leave_request_id) return;
+    // Calculate business days (excludes weekends)
     const computeDaysAndPoints = (r) => {
       try {
-        const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
-        const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
+        const s = r?.startDateRaw ? new Date(r.startDateRaw + 'T00:00:00') : null;
+        const e = r?.endDateRaw ? new Date(r.endDateRaw + 'T00:00:00') : null;
         if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()))
           return { days: null, points: null };
-        const diffMs = e.setHours(0, 0, 0, 0) - s.setHours(0, 0, 0, 0);
-        const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+
+        let count = 0;
+        const current = new Date(s);
+        while (current <= e) {
+          const dayOfWeek = current.getDay();               // 0 = Sunday, 6 = Saturday
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {         // Not Sunday or Saturday
+            count++;
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        const days = Math.max(0, count);
         const points = days;
         return { days, points };
       } catch (err) {
@@ -802,14 +847,25 @@ function LeaveRequest() {
 
   const handleCancel = (row) => {
     if (!row?.leave_request_id) return;
+    // excludes weekends on leave credits calculation
     const computeDaysAndPoints = (r) => {
       try {
-        const s = r?.startDateRaw ? new Date(r.startDateRaw) : null;
-        const e = r?.endDateRaw ? new Date(r.endDateRaw) : null;
+        const s = r?.startDateRaw ? new Date(r.startDateRaw + 'T00:00:00') : null;
+        const e = r?.endDateRaw ? new Date(r.endDateRaw + 'T00:00:00') : null;
         if (!s || !e || Number.isNaN(s.getTime()) || Number.isNaN(e.getTime()))
           return { days: null, points: null };
-        const diffMs = e.setHours(0, 0, 0, 0) - s.setHours(0, 0, 0, 0);
-        const days = Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+
+        let count = 0;
+        const current = new Date(s);
+        while (current <= e) {
+          const dayOfWeek = current.getDay();           // 0 = Sunday, 6 = Saturday
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {     // not Sunday or Saturday
+            count++;
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        const days = Math.max(0, count);
         const points = days;
         return { days, points };
       } catch (err) {

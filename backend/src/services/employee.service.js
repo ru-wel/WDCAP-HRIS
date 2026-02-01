@@ -573,6 +573,60 @@ export const regularizeEmployee = async (employeeId, regularizationDate, userId)
       logger.warn('Failed to schedule Annual evaluation after regularization:', e?.message || e);
     }
 
+    // generate leave credits for the current year
+    try {
+      const currentYear = new Date().getFullYear();
+
+      // get all leave types
+      const { data: leaveTypes, error: typesErr } = await supabase
+        .from('leave_types')
+        .select('leave_type_id, leave_type_name, default_credits');
+
+      if (!typesErr && leaveTypes && leaveTypes.length > 0) {
+        // check which leave types already exist for this employee for current year
+        const leaveTypeIds = leaveTypes.map(t => t.leave_type_id);
+        const { data: existingRecords, error: existingErr } = await supabase
+          .from('employee_leave_balances')
+          .select('leave_type_id')
+          .eq('employee_id', employeeId)
+          .eq('year', currentYear)
+          .in('leave_type_id', leaveTypeIds);
+
+        if (!existingErr) {
+          const existingTypeIds = new Set((existingRecords || []).map(r => r.leave_type_id));
+          const timestamp = new Date().toISOString();
+
+          // create missing leave balance records
+          const recordsToCreate = leaveTypes
+            .filter(t => !existingTypeIds.has(t.leave_type_id))
+            .map(t => ({
+              employee_id: employeeId,
+              leave_type_id: t.leave_type_id,
+              year: currentYear,
+              current_balance: Number(t.default_credits ?? 0),
+              created_at: timestamp,
+              updated_at: timestamp
+            }));
+
+          if (recordsToCreate.length > 0) {
+            const { error: insertErr } = await supabase
+              .from('employee_leave_balances')
+              .insert(recordsToCreate);
+
+            if (!insertErr) {
+              logger.info(`Generated ${recordsToCreate.length} leave credit records for regularized employee ${updated.employee_id} (year: ${currentYear})`);
+            } else {
+              logger.warn('Failed to insert leave credits after regularization:', insertErr.message);
+            }
+          } else {
+            logger.info(`Leave credits already exist for regularized employee ${updated.employee_id} (year: ${currentYear})`);
+          }
+        }
+      }
+    } catch (e) {
+      logger.warn('Failed to generate leave credits after regularization:', e?.message || e);
+    }
+
     logger.info(`Employee regularized: ${updated.employee_id} - ${updated.first_name} ${updated.last_name} (regularization_date: ${regDate})`);
 
     return updated;

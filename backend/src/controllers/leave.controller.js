@@ -66,7 +66,8 @@ export const createLeaveRequest = async (req, res, next) => {
       leave_type_id: req.body.leave_type_id,
       start_date: req.body.start_date,
       end_date: req.body.end_date,
-      reason: req.body.reason || null
+      reason: req.body.reason || null,
+      leave_purpose: req.body.leave_purpose || null
     };
 
     const created = await leaveService.createLeaveRequest(payload, user);
@@ -187,11 +188,11 @@ export const listMyLeaveCredits = async (req, res, next) => {
 export const updateLeaveCredit = async (req, res, next) => {
   try {
     const { leave_balance_id } = req.params;
-    const { current_balance, carried_over } = req.body;
+    const { current_balance } = req.body;
 
     const updated = await leaveService.updateLeaveCreditBalance(
       leave_balance_id,
-      { current_balance, carried_over },
+      { current_balance },
       req.user
     );
 
@@ -199,6 +200,26 @@ export const updateLeaveCredit = async (req, res, next) => {
       success: true,
       message: 'Leave credit updated successfully',
       data: updated
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const generateYearlyLeaveCredits = async (req, res, next) => {
+  try {
+    const { year } = req.body;
+
+    const result = await leaveService.generateYearlyLeaveCredits({
+      year,
+      user_id: req.user.user_id,
+      user_role: req.user.role
+    });
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
     });
   } catch (error) {
     next(error);

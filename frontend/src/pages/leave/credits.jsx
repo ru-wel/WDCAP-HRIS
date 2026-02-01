@@ -107,23 +107,33 @@ function LeaveCreditsDetailsModal({
   const leaveTypes = useMemo(() => {
     const items = Array.isArray(details) ? details : [];
     if (!items.length) {
-      return [
-        {
-          label: "Service Incentive Leave",
-          credit: row?.credits ?? 0,
-          used: row?.usedLeave ?? 0,
-          enabled: true,
-        },
-      ];
+      return {
+        standard: [
+          {
+            label: "Service Incentive Leave",
+            credit: row?.credits ?? 0,
+            used: row?.usedLeave ?? 0,
+            enabled: true,
+          },
+        ],
+        special: [],
+      };
     }
 
-    return items.map((it) => ({
+    const mapped = items.map((it) => ({
       leave_balance_id: it.leave_balance_id,
       label: it.leave_type_name || "Leave",
       credit: it.current_balance ?? 0,
       used: it.used_leave ?? 0,
       enabled: true,
     }));
+
+    // categorize leave types
+    const standardLeaveTypes = ['Service Incentive Leave', 'Leave Without Pay'];
+    const standard = mapped.filter(lt => standardLeaveTypes.includes(lt.label));
+    const special = mapped.filter(lt => !standardLeaveTypes.includes(lt.label));
+
+    return { standard, special };
   }, [details, row]);
 
   return (
@@ -146,68 +156,115 @@ function LeaveCreditsDetailsModal({
 
         <hr className="border-[#990100]" />
 
-        <div className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm font-semibold">
-          <div className="text-center">Leave Type</div>
-          <div className="text-center">Leave Credit</div>
-          <div className="text-center">Used Leave</div>
+        {/* Standard Leave Types Section */}
+        <div className="mt-4">
+          <h3 className="text-sm font-bold text-[#990100] mb-3 px-2">Standard Leave Types</h3>
+
+          <div className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm font-semibold mb-2">
+            <div className="text-center">Leave Type</div>
+            <div className="text-center">Leave Credit</div>
+            <div className="text-center">Used Leave</div>
+          </div>
+
+          <div className="space-y-3 pb-4">
+            {leaveTypes.standard.map((lt) => (
+              <div key={lt.leave_balance_id || lt.label} className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm">
+                <div className="text-center">{lt.label}</div>
+
+                <div className="flex justify-center">
+                  {lt.enabled ? (
+                    canEdit && editMode ? (
+                      <input type="number" min={0} className="border border-[#990100] focus:outline-gray-400 rounded-md px-3 py-1 text-sm w-28 text-center"
+                        value={
+                          draft.find(
+                            (d) => d.leave_balance_id === lt.leave_balance_id
+                          )?.current_balance ?? lt.credit
+                        }
+                        onChange={(e) =>
+                          onChangeCredit(lt.leave_balance_id, e.target.value)
+                        }
+                      />
+                    ) : (
+                      <span className="font-medium">{lt.credit}</span>
+                    )
+                  ) : (
+                    <select className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28" disabled value="DISABLED" onChange={() => {}}>
+                      <option value="DISABLED">DISABLED</option>
+                    </select>
+                  )}
+                </div>
+
+                <div className="flex justify-center">
+                  {lt.enabled ? (
+                    <span className="font-medium">{lt.used}</span>
+                  ) : (
+                    <select className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28" disabled value="DISABLED" onChange={() => {}}>
+                      <option value="DISABLED">DISABLED</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="space-y-3">
-          {leaveTypes.map((lt) => (
-            <div
-              key={lt.leave_balance_id || lt.label}
-              className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm"
-            >
-              <div className="text-center">{lt.label}</div>
+        {/* Special Leave Types Section */}
+        {leaveTypes.special.length > 0 && (
+          <>
+            <hr className="border-gray-300 my-4" />
 
-              <div className="flex justify-center">
-                {lt.enabled ? (
-                  canEdit && editMode ? (
-                    <input
-                      type="number"
-                      min={0}
-                      className="border border-[#990100] focus:outline-gray-400 rounded-md px-3 py-1 text-sm w-28 text-center"
-                      value={
-                        draft.find(
-                          (d) => d.leave_balance_id === lt.leave_balance_id
-                        )?.current_balance ?? lt.credit
-                      }
-                      onChange={(e) =>
-                        onChangeCredit(lt.leave_balance_id, e.target.value)
-                      }
-                    />
-                  ) : (
-                    <span className="font-medium">{lt.credit}</span>
-                  )
-                ) : (
-                  <select
-                    className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28"
-                    disabled
-                    value="DISABLED"
-                    onChange={() => {}}
-                  >
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                )}
+            <div>
+              <h3 className="text-sm font-bold text-[#990100] mb-3 px-2">Special Leave Types</h3>
+
+              <div className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm font-semibold mb-2">
+                <div className="text-center">Leave Type</div>
+                <div className="text-center">Leave Credit</div>
+                <div className="text-center">Used Leave</div>
               </div>
 
-              <div className="flex justify-center">
-                {lt.enabled ? (
-                  <span className="font-medium">{lt.used}</span>
-                ) : (
-                  <select
-                    className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28"
-                    disabled
-                    value="DISABLED"
-                    onChange={() => {}}
-                  >
-                    <option value="DISABLED">DISABLED</option>
-                  </select>
-                )}
+              <div className="space-y-3">
+                {leaveTypes.special.map((lt) => (
+                  <div key={lt.leave_balance_id || lt.label} className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm">
+                    <div className="text-center">{lt.label}</div>
+
+                    <div className="flex justify-center">
+                      {lt.enabled ? (
+                        canEdit && editMode ? (
+                          <input type="number" min={0} className="border border-[#990100] focus:outline-gray-400 rounded-md px-3 py-1 text-sm w-28 text-center"
+                            value={
+                              draft.find(
+                                (d) => d.leave_balance_id === lt.leave_balance_id
+                              )?.current_balance ?? lt.credit
+                            }
+                            onChange={(e) =>
+                              onChangeCredit(lt.leave_balance_id, e.target.value)
+                            }
+                          />
+                        ) : (
+                          <span className="font-medium">{lt.credit}</span>
+                        )
+                      ) : (
+                        <select className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28" disabled value="DISABLED" onChange={() => {}}>
+                          <option value="DISABLED">DISABLED</option>
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="flex justify-center">
+                      {lt.enabled ? (
+                        <span className="font-medium">{lt.used}</span>
+                      ) : (
+                        <select className="border border-gray-300 rounded-md px-3 py-1 text-xs text-gray-400 bg-white w-28" disabled value="DISABLED" onChange={() => {}}>
+                          <option value="DISABLED">DISABLED</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         <div className="flex items-center justify-end pt-6 text-sm">
 
@@ -549,6 +606,45 @@ export default function LeaveCredits() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
 
+  const handleGenerateYearlyCredits = () => {
+    // const currentYear = new Date().getFullYear();  IBALIK MO TO WEL
+    const testYear = 2027; // for testing purposes
+
+    openConfirm({
+      title: "Generate Yearly Leave Credits",       // change testYear to currentYear when done testing
+      message: `Generate ${testYear} leave credits for all Regular employees?\n\nThis will create records for all leave types:\n- Service Incentive Leave: 5 days\n- Leave Without Pay: 0 days\n- Special Leaves (Maternity, Paternity, etc.): 0 days\n\nOnly creates records for employees who don't have them yet for ${testYear}.\n\nExisting records will not be modified.`,
+      confirmText: "Generate",
+      cancelText: "Cancel",
+      onCancel: closeConfirm,
+      onConfirm: async () => {
+        try {
+          const response = await post("/leave/credits/generate-yearly", {
+            year: testYear,   // change testYear to currentYear when done testing
+          });
+
+          await fetchCredits();
+
+          openConfirm({
+            title: "Success",
+            message: response.message || `Successfully generated ${testYear} leave credits.`,
+            confirmText: "OK",
+            cancelText: null,
+            onConfirm: () => closeConfirm(),
+          });
+        } catch (error) {
+          console.error("Failed to generate yearly credits:", error);
+          openConfirm({
+            title: "Error",
+            message: error?.message || "Failed to generate yearly leave credits",
+            confirmText: "OK",
+            cancelText: null,
+            onConfirm: () => closeConfirm(),
+          });
+        }
+      },
+    });
+  };
+
   const filteredRows = useMemo(() => {
     if (!searchTerm) return rows;
     const q = searchTerm.toLowerCase();
@@ -668,24 +764,48 @@ export default function LeaveCredits() {
 
   const handleSaveCredits = (employeeRow, draft, done) => {
     const items = Array.isArray(draft) ? draft : [];
-    const safeItems = items
+
+    const employeeId = employeeRow?.employee_id;
+    const initialDetails = employeeId ? detailsByEmployeeId?.[employeeId] : [];
+    const initialMap = new Map(
+      (Array.isArray(initialDetails) ? initialDetails : []).map((d) => [
+        d.leave_balance_id,
+        d.current_balance ?? 0,
+      ])
+    );
+
+    // only include items that have actually changed
+    const changedItems = items
       .filter((d) => d?.leave_balance_id)
+      .filter((d) => {
+        const initialValue = initialMap.get(d.leave_balance_id);
+        return initialValue !== undefined && Number(d.current_balance) !== Number(initialValue);
+      })
       .map((d) => ({
         leave_balance_id: d.leave_balance_id,
         current_balance: d.current_balance,
       }));
 
-    if (!safeItems.length) return;
+    if (!changedItems.length) {
+      openConfirm({
+        title: "No Changes",
+        message: "No leave credit values were changed.",
+        confirmText: "OK",
+        cancelText: null,
+        onConfirm: () => closeConfirm(),
+      });
+      return;
+    }
 
     openConfirm({
       title: "Confirm update",
-      message: `Save leave credit changes for ${employeeRow?.name || "this employee"}?`,
+      message: `Save leave credit changes for ${employeeRow?.name || "this employee"}? (${changedItems.length} leave type${changedItems.length > 1 ? 's' : ''} will be updated)`,
       confirmText: "OK",
       cancelText: "Cancel",
       onCancel: closeConfirm,
       onConfirm: async () => {
         try {
-          for (const it of safeItems) {
+          for (const it of changedItems) {
             await put(`/leave/credits/${it.leave_balance_id}`, {
               current_balance: Number(it.current_balance),
             });
@@ -733,6 +853,12 @@ export default function LeaveCredits() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            {canEdit && (
+              <button type="button" onClick={handleGenerateYearlyCredits} className="bg-[#990100] text-white text-sm px-4 py-[7px] rounded-lg hover:bg-[#ad3332] transition duration-300 ease-in-out" title="Generate all leave types for all Regular employees for the new year">
+                Generate Yearly Credits
+              </button>
+            )}
+
             <div className="relative">
               <button
                 type="button"
