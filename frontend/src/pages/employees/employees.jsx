@@ -70,6 +70,21 @@ function ModalEmployees({
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const [photoLoading, setPhotoLoading] = useState(false);
 
+  // helper function to calculate years between two dates
+  const yearsBetween = (startDate, endDate) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    let years = end.getFullYear() - start.getFullYear();
+    const monthDiff = end.getMonth() - start.getMonth();
+    const dayDiff = end.getDate() - start.getDate();
+
+    if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+      years--;
+    }
+
+    return years;
+  };
+
   const openConfirm = ({
     title,
     message,
@@ -121,20 +136,7 @@ function ModalEmployees({
 
         if (!isSameDialog) return prev;
 
-        const wasConfirmation =
-          snapshot.cancelText != null && snapshot.cancelText !== "";
-        if (!wasConfirmation) {
-          return { ...prev, open: false, onConfirm: null };
-        }
-
-        return {
-          open: true,
-          title: "Success",
-          message: "Action completed successfully.",
-          confirmText: "OK",
-          cancelText: null,
-          onConfirm: null,
-        };
+        return { ...prev, open: false, onConfirm: null };
       });
     } catch (e) {
       setConfirmState({
@@ -155,6 +157,15 @@ function ModalEmployees({
     setData(employee);
     setInitialData(employee);
     setEditData(false);
+    // Reset confirm state when modal opens to prevent stale dialogs
+    setConfirmState({
+      open: false,
+      title: "Confirmation",
+      message: "",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: null,
+    });
   }, [isOpen, employee]);
 
   useEffect(() => {
@@ -309,6 +320,48 @@ function ModalEmployees({
         title: "Missing fields",
         message:
           "Please fill out all the fields and do not leave any of them blank.",
+        confirmText: "OK",
+        cancelText: null,
+        onConfirm: null,
+      });
+      return;
+    }
+
+    // age validation
+    const today = new Date();
+    const birthDate = new Date(data.birth_date);
+    const hireDate = new Date(data.hire_date);
+
+    // check if birth date is in the future
+    if (birthDate.getTime() > today.getTime()) {
+      openConfirm({
+        title: "Invalid Birth Date",
+        message: "Birth date cannot be in the future.",
+        confirmText: "OK",
+        cancelText: null,
+        onConfirm: null,
+      });
+      return;
+    }
+
+    // check if current age is at least 18
+    const currentAge = yearsBetween(birthDate, today);
+    if (currentAge < 18) {
+      openConfirm({
+        title: "Invalid Age",
+        message: "Employee must be at least 18 years old.",
+        confirmText: "OK",
+        cancelText: null,
+        onConfirm: null,
+      });
+      return;
+    }
+
+    // check if hire date is before birth date
+    if (hireDate.getTime() < birthDate.getTime()) {
+      openConfirm({
+        title: "Invalid Hire Date",
+        message: "Hire date cannot be before birth date.",
         confirmText: "OK",
         cancelText: null,
         onConfirm: null,
@@ -717,14 +770,14 @@ function ModalEmployees({
           <div className="pt-7">
             {!editData ? (
               <div className="flex justify-end gap-4">
-                <button
+                {/* <button
                   type="button"
                   onClick={handleExportPdf}
                   disabled={loading}
                   className="bg-[#0f4c81] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#2a6aa1] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                 >
                   Export to PDF
-                </button>
+                </button> */}
                 <button
                   onClick={() => setEditData(true)}
                   disabled={loading}

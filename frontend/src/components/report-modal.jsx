@@ -14,9 +14,9 @@ function ModalShell({ open, title, onClose, children }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} aria-hidden="true" />
-      <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="absolute inset-0 bg-black/20" aria-hidden="true" />
+      <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl max-h-[95vh] flex flex-col">
         <div className="bg-[#990100] text-white py-2 sm:py-3 px-3 sm:px-4 m-4 rounded-xl flex items-center justify-between flex-shrink-0">
           <h2 className="text-sm sm:text-base lg:text-lg font-medium">{title}</h2>
           <button
@@ -28,7 +28,7 @@ function ModalShell({ open, title, onClose, children }) {
             ✕
           </button>
         </div>
-        <div className="px-4 sm:px-8 lg:px-10 pb-5 pt-2  overflow-y-auto" data-lenis-prevent>{children}</div>
+        <div className="px-4 sm:px-8 lg:px-10 pb-5 pt-2 overflow-y-auto max-h-[calc(95vh-8rem)]">{children}</div>
       </div>
     </div>
   );
@@ -67,13 +67,15 @@ const endOfMonthIso = (now) => {
   return toIsoDate(d);
 };
 
+const DEFAULT_FILE_TYPES = ['XLSX', 'CSV'];
+
 export default function ReportModal({
   open,
   title,
   onClose,
   onGenerate,
   enableDateRange = true,
-  fileTypes = ['XLSX', 'CSV'],
+  fileTypes = DEFAULT_FILE_TYPES,
   categoryOptions = null,
   defaultCategory = '',
 }) {

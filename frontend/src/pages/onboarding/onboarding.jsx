@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { get, post } from "../../services/api.js";
 import { ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from "../../constants/config.js";
 import ConfirmModal from "../../components/confirm-modal.jsx";
@@ -240,7 +240,7 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
 
                     <div>
                         <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Phone No.:</b></p>
-                        <input type="tel" maxLength="12" className={`input-field${validFieldClass(isPhoneValid(data.phone))} `} value={data.phone} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
+                        <input type="tel" maxLength="12" className={`input-field${validFieldClass(isPhoneValid(data.phone))} `} value={data.phone} placeholder="09xxxxxxxxx" onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, phone: e.target.value })} required/>
                     </div>
                 </div>
 
@@ -256,7 +256,7 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
 
                 <div className="mt-4">
                     <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Emergency Contact No.:</b></p>
-                    <input type="tel" maxLength="12" className={`input-field w-full${validFieldClass(isPhoneValid(data.emergencyPhone))}`} placeholder="09xxxxxxxxx / 9xxxxxxxxx / 639xxxxxxxxx" value={data.emergencyPhone} onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, emergencyPhone: e.target.value })} required/>
+                    <input type="tel" maxLength="12" className={`input-field w-full${validFieldClass(isPhoneValid(data.emergencyPhone))}`} placeholder="09xxxxxxxxx" value={data.emergencyPhone} onInput={(e) => e.target.value = e.target.value.replace(/[^0-9]/g, '')} onChange={(e) => setData({ ...data, emergencyPhone: e.target.value })} required/>
                 </div>
 
             </div>
@@ -331,6 +331,9 @@ function StepTwo({ data, setData }) {
 
 function Onboarding(){
     const navigate = useNavigate();
+    const location = useLocation();
+    const navigationBlockedRef = useRef(false);
+    const pendingNavigationRef = useRef(null);
 
     const [formData, setFormData] = useState({
         fname: "",
@@ -356,6 +359,10 @@ function Onboarding(){
 
         const [personnelPickOpen, setPersonnelPickOpen] = useState(() => !String(formData.personnelType || '').trim());
         const [personnelCategory, setPersonnelCategory] = useState('');
+
+    // track whether form has unsaved changes
+    const [isFormDirty, setIsFormDirty] = useState(false);
+    const [showNavigationWarning, setShowNavigationWarning] = useState(false);
 
         useEffect(() => {
             if (!personnelCategory) return;
@@ -430,6 +437,34 @@ function Onboarding(){
 
     const closeConfirm = () => {
         setConfirmState((prev) => ({ ...prev, open: false, onConfirm: null, content: null }));
+    };
+
+    // navigation warning modal
+    const handleCancelNavigation = () => {
+        setShowNavigationWarning(false);
+        pendingNavigationRef.current = null;
+    };
+
+    const handleProceedWithNavigation = () => {
+        setShowNavigationWarning(false);
+        setIsFormDirty(false); 
+
+        if (pendingNavigationRef.current) {
+            const path = pendingNavigationRef.current;
+            pendingNavigationRef.current = null;
+            navigationBlockedRef.current = false;
+            navigate(path);
+        }
+    };
+
+    // custom navigation function that checks for dirty state
+    const navigateWithCheck = (path) => {
+        if (isFormDirty) {
+            pendingNavigationRef.current = path;
+            setShowNavigationWarning(true);
+        } else {
+            navigate(path);
+        }
     };
 
     const handleCloseChecklistConfig = () => {
@@ -523,6 +558,42 @@ function Onboarding(){
         fetchData();
     }, []);
 
+    useEffect(() => {
+        const hasChanges =
+            formData.fname ||
+            formData.lname ||
+            formData.position_id ||
+            formData.department_id ||
+            formData.hireDate ||
+            formData.birthDate ||
+            formData.phone ||
+            formData.address ||
+            formData.emergencyName ||
+            formData.emergencyPhone ||
+            formData.email ||
+            formData.role ||
+            formData.status ||
+            formData.personnelType;
+
+        setIsFormDirty(hasChanges);
+    }, [formData]);
+
+    // warn user before closing/refreshing browser tab
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (isFormDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [isFormDirty]);
+
     // validation of step 1 fields
     const validateStep1 = () => {
         const fname = String(formData.fname || '').trim();
@@ -561,7 +632,7 @@ function Onboarding(){
 
         if (!formData.phone) return (setError('Phone number is required'), false);
         if (!isValidPhMobile(formData.phone)) {
-            setError('Phone number must be a valid PH mobile (09xxxxxxxxx, 9xxxxxxxxx, or 639xxxxxxxxx)');
+            setError('Phone number must be a valid PH mobile (09xxxxxxxxx)');
             return false;
         }
 
@@ -573,7 +644,7 @@ function Onboarding(){
 
         if (!formData.emergencyPhone) return (setError('Emergency contact number is required'), false);
         if (!isValidPhMobile(formData.emergencyPhone)) {
-            setError('Emergency contact number must be a valid PH mobile (09xxxxxxxxx, 9xxxxxxxxx, or 639xxxxxxxxx)');
+            setError('Emergency contact number must be a valid PH mobile (09xxxxxxxxx');
             return false;
         }
 
@@ -629,6 +700,9 @@ function Onboarding(){
             // created employee data for checklist configuration
             const employeeData = response?.data?.employee;
             setCreatedEmployee(employeeData);
+
+            // Clear dirty state after successful submission
+            setIsFormDirty(false);
 
             openConfirm({
                 title: 'Success',
@@ -867,6 +941,18 @@ function Onboarding(){
                     </div>
                 </div>
             )}
+
+            {/* Navigation Warning Modal */}
+            <ConfirmModal
+                open={showNavigationWarning}
+                title="Unsaved Changes"
+                message="You have unsaved changes in the onboarding form. Are you sure you want to leave? Your progress will not be saved."
+                variant="form"
+                confirmText="Leave Without Saving"
+                cancelText="Stay on Page"
+                onConfirm={handleProceedWithNavigation}
+                onCancel={handleCancelNavigation}
+            />
         </div>
         
     );

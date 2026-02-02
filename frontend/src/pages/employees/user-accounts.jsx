@@ -170,8 +170,9 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
               required
             >
               <option value="">Select Role</option>
-              <option value="Admin">Admin</option>
+              <option value="Executive">Executive</option>
               <option value="HR">HR</option>
+              <option value="Manager">Manager</option>
               <option value="Employee">Employee</option>
             </select>
           </div>
@@ -689,8 +690,9 @@ function UserAccounts() {
       const role = String(r?.role || "").toLowerCase();
       const status = String(r?.status || "").toLowerCase();
 
-      if (cat === "admins") return role === "admin";
+      if (cat === "executives") return role === "executive";
       if (cat === "hr") return role === "hr";
+      if (cat === "managers") return role === "manager";
       if (cat === "employees") return role === "employee";
       if (cat === "active") return status === "active";
       if (cat === "inactive") return status === "inactive";
@@ -849,16 +851,22 @@ function UserAccounts() {
               All
             </ChipButton>
             <ChipButton
-              active={draftRoleFilter === "admin"}
-              onClick={() => setDraftRoleFilter("admin")}
+              active={draftRoleFilter === "executive"}
+              onClick={() => setDraftRoleFilter("executive")}
             >
-              Admin
+              Executive
             </ChipButton>
             <ChipButton
               active={draftRoleFilter === "hr"}
               onClick={() => setDraftRoleFilter("hr")}
             >
               HR
+            </ChipButton>
+            <ChipButton
+              active={draftRoleFilter === "manager"}
+              onClick={() => setDraftRoleFilter("manager")}
+            >
+              Manager
             </ChipButton>
             <ChipButton
               active={draftRoleFilter === "employee"}
@@ -950,8 +958,9 @@ function UserAccounts() {
           fileTypes={["XLSX", "CSV", "PDF"]}
           categoryOptions={[
             { value: "all", label: "All Accounts" },
-            { value: "admins", label: "Admins" },
+            { value: "executives", label: "Executives" },
             { value: "hr", label: "HR" },
+            { value: "managers", label: "Managers" },
             { value: "employees", label: "Employees" },
             { value: "active", label: "Active" },
             { value: "inactive", label: "Inactive" },

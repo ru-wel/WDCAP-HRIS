@@ -258,7 +258,7 @@ function Login(){
                        	 	</div>
 												</form>
 
-                        <div className="pt-6 pb-3">
+                        {/* <div className="pt-6 pb-3">
                           <div className="flex items-center gap-3 pb-4">
                             <div className="flex-1 border-t border-gray-300"></div>
                             <span className="text-gray-500 text-sm">OR</span>
@@ -276,7 +276,7 @@ function Login(){
                               text="signin_with"
                             />
                           </div>
-                        </div>
+                        </div> */}
 
                         <button
                           type="button"

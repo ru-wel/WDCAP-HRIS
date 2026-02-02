@@ -21,13 +21,13 @@ function ModalShell({ open, title, onClose, children }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div
-        className="absolute inset-0 bg-black/20"
+        className="absolute inset-0 bg-black/20 z-0"
         aria-hidden="true"
       />
 
-      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+      <div className="relative w-full max-w-2xl mx-4 bg-white rounded-lg shadow-xl border border-gray-300 z-10">
         <div className="p-4 sm:p-6">
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4">
             <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
