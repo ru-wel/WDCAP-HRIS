@@ -610,7 +610,14 @@ export const changePassword = async ({ userId, email, current_password, new_pass
     });
 
     if (updateError || !updated?.user) {
-      throw new InternalServerError('Failed to update password');
+      logger.error('Update password failed:', {
+        error: updateError,
+        errorMessage: updateError?.message,
+        errorCode: updateError?.code,
+        userId,
+        hasUpdatedUser: !!updated?.user
+      });
+      throw new InternalServerError(`Failed to update password: ${updateError?.message || 'Unknown error'}`);
     }
 
     // best-effort audit log
@@ -658,7 +665,14 @@ export const adminResetPassword = async ({ employeeId, new_password, actorId }) 
     });
 
     if (updateError || !updated?.user) {
-      throw new InternalServerError('Failed to reset password');
+      logger.error('Admin reset password failed:', {
+        error: updateError,
+        errorMessage: updateError?.message,
+        errorCode: updateError?.code,
+        userId: userRow.id,
+        employeeId
+      });
+      throw new InternalServerError(`Failed to reset password: ${updateError?.message || 'Unknown error'}`);
     }
 
     await supabase.from('audit_logs').insert({
@@ -877,7 +891,14 @@ export const resetPasswordWithToken = async ({ access_token, new_password, ip = 
     });
 
     if (updateError || !updated?.user) {
-      throw new InternalServerError('Failed to reset password');
+      logger.error('Reset password with token failed:', {
+        error: updateError,
+        errorMessage: updateError?.message,
+        errorCode: updateError?.code,
+        userId,
+        accountEmail
+      });
+      throw new InternalServerError(`Failed to reset password: ${updateError?.message || 'Unknown error'}`);
     }
 
     try {
