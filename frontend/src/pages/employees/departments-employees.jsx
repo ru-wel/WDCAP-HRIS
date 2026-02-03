@@ -37,6 +37,8 @@ export default function DepartmentEmployees() {
   const [positionSaving, setPositionSaving] = useState(false);
   const [positionError, setPositionError] = useState("");
 
+  const [originalPositionTitle, setOriginalPositionTitle] = useState("");
+
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -385,7 +387,8 @@ export default function DepartmentEmployees() {
 
     if (unsavedChangesPosition) {
       confirmUnsavedChanges(() => {
-        resetPaginationOnSearchOrTab(nextTab);
+        setIsEditingPosition(false);
+        setPositionTitleDraft(originalPositionTitle);
       });
       return;
     }
@@ -421,39 +424,45 @@ export default function DepartmentEmployees() {
     setPositionError("");
   };
 
-  const onCreatePosition = async () => {
-    const title = addPositionTitleDraft.trim();
-    if (!title) {
-      setPositionError("Position title is required");
-      return;
+const onCreatePosition = async () => {
+  const title = (addPositionTitleDraft || "").trim();
+  if (!title) {
+    setPositionError("Position title is required");
+    return;
+  }
+
+  if (!departmentId) {
+    setPositionError("Department is required");
+    return;
+  }
+
+  try {
+    setPositionSaving(true);
+    setPositionError("");
+
+    const res = await post("/positions", {
+      position_title: title,
+      department_id: departmentId,
+    });
+
+    if (!res?.success) {
+      throw new Error(res?.message || "Failed to create position");
     }
 
-    try {
-      setPositionSaving(true);
-      setPositionError("");
-
-      const res = await post("/positions", {
-        position_title: title,
-        department_id: departmentId,
-      });
-
-      if (!res?.success) {
-        throw new Error(res?.message || "Failed to create position");
-      }
-
-      closeAdd({ force: true });
-      await fetchData();
-    } catch (e) {
-      console.error("Failed to create position:", e);
-      setPositionError(e?.message || "Failed to create position");
-    } finally {
-      setPositionSaving(false);
-    }
-  };
+    closeAdd({ force: true });
+    await fetchData();
+  } catch (e) {
+    console.error("Failed to create position:", e);
+    setPositionError(e?.message || "Failed to create position");
+  } finally {
+    setPositionSaving(false);
+  }
+};
 
   const onViewPosition = (pos) => {
     setSelectedPosition(pos);
     setPositionTitleDraft(pos.title);
+    setOriginalPositionTitle(pos.title);
     setIsEditingPosition(false);
     setPositionError("");
     setIsDetailsOpen(true);
@@ -536,7 +545,7 @@ export default function DepartmentEmployees() {
   };
 
   //FOR UNSAVED CHANGES
-  const unsavedChangesPosition = isDetailsOpen && isEditingPosition && positionTitleDraft !== selectedPosition?.title;
+  const unsavedChangesPosition = isDetailsOpen && isEditingPosition && positionTitleDraft !== originalPositionTitle;
   const unsavedChangesAddPosition = isAddOpen && addPositionTitleDraft.trim() !== "";
 
   const confirmUnsavedChanges = (onDiscard) => {
@@ -865,7 +874,7 @@ export default function DepartmentEmployees() {
                     <div className="lg:flex items-center lg:justify-between">
                       <p className="lg:text-md text-sm">
                         Showing <b>{currentPositions.length}</b> of{" "}
-                        <b>{positions.length}</b> employee
+                        <b>{positions.length}</b> position
                         {positions.length !== 1 ? "s" : ""}
                         {posPageCount ? (
                           <>
@@ -1044,7 +1053,22 @@ export default function DepartmentEmployees() {
 
                       <button
                         type="button"
-                        onClick={closeDetails}
+                        onClick={() => {
+                            if (positionSaving) return;
+
+                            if (unsavedChangesPosition) {
+                              confirmUnsavedChanges(() => {
+                              setIsEditingPosition(false);
+                              setPositionTitleDraft(originalPositionTitle);
+                              setPositionError("");
+                            });
+                              return;
+                            }
+
+                            setPositionTitleDraft(originalPositionTitle);
+                            setIsEditingPosition(false);
+                            setPositionError("");
+                        }}
                         aria-label="Close"
                         className="bg-red-700 hover:bg-red-600 generate-report-button font-medium"
                       >
@@ -1054,14 +1078,14 @@ export default function DepartmentEmployees() {
                       <button
                       type="button"
                       onClick={() => {
-                        
-                        if (!isEditingPosition) {
-                          setIsEditingPosition(true);
-                          setPositionError("");
-                          return;
-                        }
-                          onUpdatePosition();
-                        }}
+                        openConfirm({
+                          title: "Save changes",
+                          message: "Do you want to save the changes to this position?",
+                          confirmText: "OK",
+                          cancelText: "Cancel",
+                          onConfirm: onUpdatePosition,
+                        });
+                      }}
                         disabled={positionSaving}
                         className="mustard-button font-medium"
                       >

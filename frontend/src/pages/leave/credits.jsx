@@ -146,11 +146,11 @@ function LeaveCreditsDetailsModal({
       <div className="space-y-4">
         <div className="md:flex justify-between px-4">
           <div className="flex gap-2">
-            <span className="font-semibold">Employee Name:</span>
+            <span className="font-semibold text-[#483D3D] uppercase">Employee Name:</span>
             <span>{row?.name ?? ""}</span>
           </div>
           <div className="flex gap-2">
-            <span className="font-semibold">Position:</span>
+            <span className="font-semibold text-[#483D3D] uppercase">Position:</span>
             <span>Web Developer</span>
           </div>
         </div>
@@ -159,12 +159,12 @@ function LeaveCreditsDetailsModal({
 
         {/* Standard Leave Types Section */}
         <div className="mt-4">
-          <h3 className="text-sm font-bold text-[#990100] mb-3 px-2">Standard Leave Types</h3>
+          <h3 className="text-sm font-bold text-[#990100] mb-3 px-2 uppercase">Standard Leave Types</h3>
 
           <div className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm font-semibold mb-2">
-            <div className="text-center">Leave Type</div>
-            <div className="text-center">Leave Credit</div>
-            <div className="text-center">Used Leave</div>
+            <div className="text-center text-[#483D3D] uppercase">Leave Type</div>
+            <div className="text-center text-[#483D3D] uppercase">Leave Credit</div>
+            <div className="text-center text-[#483D3D] uppercase">Used Leave</div>
           </div>
 
           <div className="space-y-3 pb-4">
@@ -215,12 +215,12 @@ function LeaveCreditsDetailsModal({
             <hr className="border-gray-300 my-4" />
 
             <div>
-              <h3 className="text-sm font-bold text-[#990100] mb-3 px-2">Special Leave Types</h3>
+              <h3 className="text-sm font-bold text-[#990100] mb-3 px-2 uppercase">Special Leave Types</h3>
 
               <div className="grid grid-cols-[1fr_140px_120px] gap-x-4 items-center text-sm font-semibold mb-2">
-                <div className="text-center">Leave Type</div>
-                <div className="text-center">Leave Credit</div>
-                <div className="text-center">Used Leave</div>
+                <div className="text-center text-[#483D3D] uppercase">Leave Type</div>
+                <div className="text-center text-[#483D3D] uppercase">Leave Credit</div>
+                <div className="text-center text-[#483D3D] uppercase">Used Leave</div>
               </div>
 
               <div className="space-y-3">
@@ -776,9 +776,10 @@ export default function LeaveCredits() {
 
   if (loading) {
     return (
-      <div>
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600">Loading leave credits...</p>
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Leave Credits...</p>
         </div>
       </div>
     );
@@ -793,11 +794,6 @@ export default function LeaveCredits() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
-            {canEdit && (
-              <button type="button" onClick={handleGenerateYearlyCredits} className="bg-[#990100] text-white text-sm px-4 py-[7px] rounded-lg hover:bg-[#ad3332] transition duration-300 ease-in-out" title="Generate all leave types for all Regular employees for the new year">
-                Generate Yearly Credits
-              </button>
-            )}
 
             <div className="relative">
               <button
@@ -900,8 +896,9 @@ export default function LeaveCredits() {
 
         <hr className="text-[#990100] mt-6" />
 
-        {!isEmployee && (
-          <div className="flex justify-end mt-4">
+        <div className="flex justify-end gap-4 mt-4">
+
+          {!isEmployee && (
             <button
               type="button"
               className="generate-report-button"
@@ -909,8 +906,16 @@ export default function LeaveCredits() {
             >
               Generate Report
             </button>
-          </div>
         )}
+
+          {canEdit && (
+              <button type="button" onClick={handleGenerateYearlyCredits} className="green-button" title="Generate all leave types for all Regular employees for the new year">
+                Generate Yearly Credits
+              </button>
+            )}
+        </div>
+
+        
 
         <div className="div-table">
           {loading && (

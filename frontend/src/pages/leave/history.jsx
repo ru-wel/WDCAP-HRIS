@@ -172,17 +172,17 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
   return (
     <ModalShell open={open} title={`Leave History of ${row?.id ?? ""}`} onClose={onClose}>
       <div className="space-y-5 text-sm">
-        <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2">
-          <div className="font-semibold">Date Requested:</div>
+        <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 px-2">
+          <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
           <div>{row?.dateRequested ?? "10/29/2025"}</div>
 
-          <div className="font-semibold">Employee Name:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Employee Name:</div>
           <div>{row?.name ?? ""}</div>
 
-          <div className="font-semibold">Position:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Position:</div>
           <div>{row?.position ?? "Web Developer"}</div>
 
-          <div className="font-semibold">Leave Type:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Leave Type:</div>
           <div>
             {row?.type ?? "SIL"}
             {row?.leave_purpose && (  
@@ -192,10 +192,10 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
             )}
           </div>
 
-          <div className="font-semibold">Date:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Date:</div>
           <div>{row?.date ?? ""}</div>
 
-          <div className="font-semibold">Reason:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Reason:</div>
           <textarea
             className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none"
             placeholder="Reason"
@@ -206,8 +206,8 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
 
         <hr className="border-[#990100]" />
 
-        <div className="flex items-center gap-4">
-          <div className="font-semibold">Status:</div>
+        <div className="flex items-center gap-4 px-2">
+          <div className="font-semibold text-[#483D3D] uppercase">Status:</div>
           <StatusPill status={row?.status} />
           <select
             className="border border-gray-300 rounded-md px-4 py-2 text-sm bg-white w-full sm:w-56"
@@ -223,8 +223,8 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
         </div>
 
         {row?.updated_by_name && row?.updated_at && (
-          <div className="pt-2">
-            <span className="font-semibold">Update Made By: </span>
+          <div className="pt-2 px-2">
+            <span className="font-semibold text-[#483D3D] uppercase">Update Made By: </span>
             <span className="text-gray-700">
               {row.updated_by_name} on {formatDateTime(row.updated_at)}
             </span>
@@ -596,6 +596,17 @@ export default function LeaveHistory() {
 
     setReportOpen(false);
   };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Leave History...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

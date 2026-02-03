@@ -143,11 +143,11 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
       aria-modal="true"
       aria-label={title || 'Preview'}
     >
-      <div className="w-full max-w-4xl rounded-2xl bg-white shadow-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-3 bg-[#990100] flex items-center justify-between gap-3">
+      <div className="w-full max-w-4xl rounded-lg bg-white shadow-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-3 bg-[#990100] m-4 rounded-lg flex items-center justify-between gap-3">
           <h2 className="text-white text-sm font-semibold tracking-wide truncate">{title || 'Preview'}</h2>
-          <button type="button" onClick={onClose} className="text-white/90 hover:text-white text-sm font-medium">
-            Close
+          <button type="button" onClick={onClose} className="text-white text-2xl font-bold hover:scale-110 transition cursor-pointer">
+            ✕
           </button>
         </div>
 
@@ -175,14 +175,14 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
                   href={effectiveDownloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                  className="mustard-button px-4 py-2 rounded-lg text-sm"
                 >
                   Open
                 </a>
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="px-4 py-2 rounded-full text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition"
+                  className="green-button px-4 py-2 rounded-lg text-sm"
                 >
                   Download
                 </button>
@@ -191,7 +191,7 @@ function PreviewModal({ open, title, fileName, url, mimeType, downloadUrl, loadi
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 rounded-full text-sm text-white bg-[#990100] hover:bg-[#ad3332] transition"
+              className="px-5 py-2 rounded-lg text-sm text-white bg-[#990100] hover:bg-[#ad3332] transition"
             >
               OK
             </button>
@@ -276,7 +276,7 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-5xl rounded-xl bg-white shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
+      <div className="w-full max-w-5xl rounded-lg bg-white shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
         <div className="p-4 sm:p-6 flex flex-col flex-1 min-h-0">
           <div className="rounded-lg bg-[#990100] flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 flex-shrink-0">
             <h1 className="text-white text-sm sm:text-base lg:text-lg font-medium">
@@ -295,10 +295,10 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
 
           <div className="pt-6 overflow-auto flex-1 min-h-0">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 px-4 text-sm">
-              <div className="flex gap-2"><span className="font-semibold">Employee Name:</span><span>{employeeName}</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Position:</span><span>{position}</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Personnel Type:</span><span>{personnelType}</span></div>
-              <div className="flex gap-2"><span className="font-semibold">Hire Date:</span><span>{hireDate}</span></div>
+              <div className="flex gap-2"><span className="font-semibold text-[#483D3D] uppercase ">Employee Name:</span><span>{employeeName}</span></div>
+              <div className="flex gap-2"><span className="font-semibold text-[#483D3D] uppercase">Position:</span><span>{position}</span></div>
+              <div className="flex gap-2"><span className="font-semibold text-[#483D3D] uppercase">Personnel Type:</span><span>{personnelType}</span></div>
+              <div className="flex gap-2"><span className="font-semibold text-[#483D3D] uppercase">Hire Date:</span><span>{hireDate}</span></div>
             </div>
 
             {shouldShowRegularization && (
@@ -425,9 +425,9 @@ function EvaluationDetailsModal({ open, onClose, employee, evaluations, loading,
                 </div>
               )}
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-xs text-gray-700">
-                  <span className="font-semibold">Last Updated:</span> {lastUpdated || '—'}
+              <div className="mt-4 flex items-center justify-between px-3">
+                <div className="text-xs text-[#483D3D]">
+                  <span className="font-semibold text-[#483D3D] uppercase">Last Updated:</span> {lastUpdated || '—'}
                 </div>
 
                 {/*<div className="flex items-center gap-2">

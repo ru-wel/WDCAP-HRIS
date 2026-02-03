@@ -124,16 +124,16 @@ function LeaveRequestDetailsModal({
     >
       <div className="space-y-5 text-sm px-2">
         <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2">
-          <div className="font-semibold">Date Requested:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
           <div>{row?.dateRequested ?? "10/29/2025"}</div>
 
-          <div className="font-semibold">Employee Name:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Employee Name:</div>
           <div>{row?.name ?? ""}</div>
 
-          <div className="font-semibold">Position:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Position:</div>
           <div>{row?.position ?? "Web Developer"}</div>
 
-          <div className="font-semibold">Leave Type:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Leave Type:</div>
           <div>
             {row?.type ?? "SIL"}
             {row?.leave_purpose && (
@@ -143,10 +143,10 @@ function LeaveRequestDetailsModal({
             )}
           </div>
 
-          <div className="font-semibold">Date:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Date:</div>
           <div>{row?.dateLong ?? row?.date ?? ""}</div>
 
-          <div className="font-semibold">Reason:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Reason:</div>
           <textarea
             className="border border-gray-300 rounded-md p-3 md:text-sm text-xs h-28 resize-none"
             placeholder="Reason"
@@ -158,7 +158,7 @@ function LeaveRequestDetailsModal({
         <hr className="border-[#990100]" />
 
         <div className="flex items-center gap-4">
-          <div className="font-semibold">Status:</div>
+          <div className="font-semibold text-[#483D3D] uppercase">Status:</div>
           <select
             className="border border-[#990100] cursor-pointer text-[#990100] focus:outline-gray-400 rounded-md px-4 py-2 text-sm bg-white w-56 disabled:text-gray-600"
             value={status}
@@ -173,7 +173,7 @@ function LeaveRequestDetailsModal({
         </div>
 
         <div className="pt-2">
-          <span className="font-semibold">Update Made By:</span>{" "}
+          <span className="font-semibold text-[#483D3D] uppercase">Update Made By:</span>{" "}
           {row?.updatedBy ?? ""}
         </div>
 
@@ -915,10 +915,10 @@ function LeaveRequest() {
 
   if (loading) {
     return (
-      <div>
-        
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600">Loading leave requests...</p>
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Leave Requests...</p>
         </div>
       </div>
     );

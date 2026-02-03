@@ -12,39 +12,39 @@ import { ROLES } from "../../constants/config.js";
 // LEAVE TYPE COLOR CONFIGURATION - PALITAN NIYO COLORS HERE
 const LEAVE_TYPE_COLORS = {
   'Service Incentive Leave': {
-    dotColor: '#44688f',
-    pillBg: '#acbccd',
-    pillText: '#264668',
+    dotColor: '#7ADAA5',
+    pillBg: '#bcecd2',
+    pillText: '#3d6d52',
   },
   'Leave Without Pay': {
-    dotColor: '#6B7280',        // Gray
-    pillBg: '#D1D5DB',
-    pillText: '#374151',
+    dotColor: '#FE7F2D',        // Gray
+    pillBg: '#fed8c0',
+    pillText: '#b1581f',
   },
   'Maternity Leave': {
-    dotColor: '#EC4899',        // Pink
-    pillBg: '#FCE7F3',
-    pillText: '#9F1239',
+    dotColor: '#FF0087',        // Pink
+    pillBg: '#ffcce7',
+    pillText: '#b2005e',
   },
   'Paternity Leave': {
-    dotColor: '#3B82F6',        // Blue
-    pillBg: '#DBEAFE',
-    pillText: '#1E40AF',
+    dotColor: '#3F9AAE',        // Blue
+    pillBg: '#c5e0e6',
+    pillText: '#255c68',
   },
   'VAWC Leave': {
-    dotColor: '#8B5CF6',        // Purple
-    pillBg: '#EDE9FE',
-    pillText: '#5B21B6',
+    dotColor: '#B45253',        // Purple
+    pillBg: '#e8cbcb',
+    pillText: '#6c3131',
   },
   'Solo Parent Leave': {
-    dotColor: '#F59E0B',        // Amber/Orange
-    pillBg: '#FEF3C7',
-    pillText: '#92400E',
+    dotColor: '#8AA624',        // Amber/Orange
+    pillBg: '#d0dba7',
+    pillText: '#455312',
   },
   "Women's Leave": {
-    dotColor: '#EC4899',        // Pink
-    pillBg: '#FCE7F3',
-    pillText: '#9F1239',
+    dotColor: '#A376A2',        // Pink
+    pillBg: '#e3d5e3',
+    pillText: '#513b51',
   },
 };
 
@@ -513,8 +513,9 @@ export default function Leave() {
 
   if (_loading) {
     return (
-      <div>
-        <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading Leave Calendar...</p>
         </div>
       </div>

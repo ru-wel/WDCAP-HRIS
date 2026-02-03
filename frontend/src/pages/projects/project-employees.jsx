@@ -941,7 +941,7 @@ const applyDraftFilters = () => {
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
               Showing <b>{currentProjEmp.length}</b> of{" "}
-              <b>{filteredAssignments.length}</b> log
+              <b>{filteredAssignments.length}</b> employee
               {filteredAssignments.length !== 1 ? "s" : ""}
                 {pageCount ? (
                 <>

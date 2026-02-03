@@ -1071,7 +1071,7 @@ function UserAccounts() {
           <div className="lg:flex items-center lg:justify-between">
             <p className="lg:text-md text-sm">
               Showing <b>{currentUserAcc.length}</b> of{" "}
-              <b>{filteredEmployeesAcc.length}</b> employee
+              <b>{filteredEmployeesAcc.length}</b> account
               {filteredEmployeesAcc.length !== 1 ? "s" : ""}
               {pageCount ? (
                 <>

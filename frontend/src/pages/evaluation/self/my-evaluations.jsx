@@ -423,7 +423,7 @@ export default function MyEvaluations() {
         <>
           {/* Evaluations Table */}
           <div className="mt-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Evaluation History</h2>
+            <h2 className="text-lg font-semibold text-[#990100] mb-4">Evaluation History</h2>
             <div className="div-table overflow-x-auto -mx-4 sm:mx-0">
               <table className="table-style">
                 <thead className="thead-style">

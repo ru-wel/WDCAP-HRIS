@@ -359,7 +359,7 @@ export default function Sidenav({
 
       <aside
         className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px]
-        transition-all duration-300 ease-in-out w-64 lg:[zoom:0.9] md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        transition-all duration-300 ease-in-out w-64 lg:[zoom:0.89] md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
         onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
       >

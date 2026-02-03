@@ -940,9 +940,9 @@ export default function EvaluationUpload() {
               <h2 className="text-lg font-semibold">Upload Result</h2>
             </div>
 
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 px-3">
               <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Name</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Name:</label>
 
                 {/* Search input for employee autocomplete */}
                 {!isEmployee && !preselectedEvaluationId && !selectedEmployee && (
@@ -988,7 +988,7 @@ export default function EvaluationUpload() {
               <div>
                 {preselectedEvaluationId ? (
                   <>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">Evaluation Type</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Evaluation Type:</label>
                     <select
                       className="input-select"
                       value={evaluationType}
@@ -1001,7 +1001,7 @@ export default function EvaluationUpload() {
                   </>
                 ) : (
                   <>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2">Scheduled Evaluation</label>
+                    <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Scheduled Evaluation:</label>
                     <select
                       className="input-select"
                       value={evaluationId}
@@ -1036,8 +1036,8 @@ export default function EvaluationUpload() {
               </div>
             </div>
 
-            <div className="mt-6">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">Submission Method</label>
+            <div className="mt-6 px-3">
+              <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Submission Method:</label>
               <div className="flex flex-wrap gap-4">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
@@ -1094,8 +1094,8 @@ export default function EvaluationUpload() {
             ) : null}
 
             {submissionMode === 'files' ? (
-              <div className="mt-8">
-                <label className="block text-sm font-semibold text-gray-800 mb-2">Evaluation Form</label>
+              <div className="mt-8 px-3">
+                <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Evaluation Form:</label>
                 <div
                   className={`border rounded-lg p-5 text-center ${breakdownFilled ? 'border-[#198C19] bg-[#198C19]/5' : 'border-gray-300'}`}
                 >
@@ -1135,7 +1135,7 @@ export default function EvaluationUpload() {
               </div>
             ) : null}
 
-            <div className="mt-8 flex items-center justify-end gap-4">
+            <div className="mt-8 flex items-center justify-end gap-4 px-3">
               <button
                 type="button"
                 className="bg-[#ad3332] text-white px-6 py-2 rounded-md text-sm hover:bg-[#990100] transition"

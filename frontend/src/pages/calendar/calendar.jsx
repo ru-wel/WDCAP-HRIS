@@ -132,7 +132,22 @@ function EventDetailsModal({ open, data, onClose, onEdit, onDelete, isConfirmMod
 
   if (!open || !data) return null;
 
-  const eventColor = data.backgroundColor || data.color || "#990100";
+  //THIS IS FOR THE gc-dot, TO CHANGE THE COLORS OF THE PILLS WHEN VIEWING THE DETAILS
+
+  const parentType = data?.extendedProps?.type;
+  const subType = data?.extendedProps?.eventType;
+
+  let eventColor = "#990100";
+
+  if (parentType === "leave") {
+  eventColor = CALENDAR_COLORS.leave.background;
+  } else if (subType && CALENDAR_COLORS[subType]) {
+    
+    eventColor = CALENDAR_COLORS[subType];
+  } else if (parentType && CALENDAR_COLORS[parentType]) {
+    
+    eventColor = CALENDAR_COLORS[parentType];
+  }
 
   // determine date label based on event type
   const getDateLabel = () => {

@@ -381,18 +381,18 @@ function ViewDetails ({ data, onClose, onCancel }){
 
 
           <div className="space-y-5 text-sm">
-            <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 pt-6">
+            <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 pt-6 px-3">
 
-            <div className="font-semibold">Date Requested:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
             <div>{data.dateRequested}</div>
 
-            <div className="font-semibold">Employee Name:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Employee Name:</div>
             <div>{data.name}</div>
 
-            <div className="font-semibold">Position:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Position:</div>
             <div>{data.position}</div>
 
-            <div className="font-semibold">Leave Type:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Leave Type:</div>
             <div>
               {data.type}
               {data.leave_purpose && (
@@ -402,10 +402,10 @@ function ViewDetails ({ data, onClose, onCancel }){
               )}
             </div>
 
-            <div className="font-semibold">Date:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Date:</div>
             <div>{data.date}</div>
 
-            <div className="font-semibold">Reason:</div>
+            <div className="font-semibold text-[#483D3D] uppercase">Reason:</div>
             <textarea
                 className="border border-gray-300 rounded-md p-3 text-sm h-28 resize-none"
                 placeholder="Reason"
@@ -416,14 +416,14 @@ function ViewDetails ({ data, onClose, onCancel }){
 
             <hr className="border-[#990100]" />
 
-            <div className="flex items-center gap-4">
-            <div className="font-semibold">Status:</div>
+            <div className="flex items-center gap-4 px-3">
+            <div className="font-semibold text-[#483D3D] uppercase">Status:</div>
             <StatusPill status={data.status} />
             </div>
 
             {data.updated_by && data.updated_at && (
-              <div className="pt-2">
-                <span className="font-semibold">Update Made By: </span>
+              <div className="pt-2 px-3">
+                <span className="font-semibold text-[#483D3D] uppercase">Update Made By: </span>
                 <span className="text-gray-700">
                   {data.updated_by} on {formatDateTime(data.updated_at)}
                 </span>
@@ -951,6 +951,17 @@ function MyLeaves() {
     const soloParentBalance = useMemo(() => getLeaveBalance("solo parent"), [leaveCredits]);
     const womenBalance = useMemo(() => getLeaveBalance("women"), [leaveCredits]);
 
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading My Leaves...</p>
+        </div>
+      </div>
+    );
+  }
 
     return (
         <div>
