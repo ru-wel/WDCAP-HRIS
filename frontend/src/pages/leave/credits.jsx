@@ -7,6 +7,7 @@ import { ROLES } from "../../constants/config.js";
 import { compareNumber, compareText } from "../../utils/sort.js";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import ReportModal from "../../components/report-modal.jsx";
 
 function ModalShell({ open, title, onClose, children }) {
   /*useEffect(() => {
@@ -304,67 +305,6 @@ function LeaveCreditsDetailsModal({
               Close
             </button>
           )}
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-function GenerateReportModal({ open, onClose, onGenerate }) {
-  const [startingDate, setStartingDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [fileType, setFileType] = useState("XLSX");
-
-  useEffect(() => {
-    if (!open) return;
-    setStartingDate("");
-    setEndDate("");
-    setFileType("XLSX");
-  }, [open]);
-
-  return (
-    <ModalShell
-      open={open}
-      title="Generate Report - Leave Credits"
-      onClose={onClose}
-    >
-      <div className="space-y-5">
-        <div className="grid grid-cols-[140px_1fr] items-center gap-4 text-sm">
-          <div className="text-right font-semibold">Starting Date:</div>
-          <input
-            type="date"
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm w-40"
-            value={startingDate}
-            onChange={(e) => setStartingDate(e.target.value)}
-          />
-
-          <div className="text-right font-semibold">End Date:</div>
-          <input
-            type="date"
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm w-40"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
-
-          <div className="text-right font-semibold">File Type:</div>
-          <select
-            className="border border-gray-300 rounded-md px-3 py-1 text-sm w-40 bg-white"
-            value={fileType}
-            onChange={(e) => setFileType(e.target.value)}
-          >
-            <option value="XLSX">Excel (.xlsx)</option>
-            <option value="CSV">CSV</option>
-          </select>
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <button
-            type="button"
-            className="bg-[#990100] text-white text-xs px-5 py-2 rounded-md hover:bg-[#ad3332] transition duration-300 ease-in-out"
-            onClick={() => onGenerate?.({ startingDate, endDate, fileType })}
-          >
-            Generate Report
-          </button>
         </div>
       </div>
     </ModalShell>
@@ -1096,13 +1036,19 @@ export default function LeaveCredits() {
         }}
       />
 
-      {!isEmployee && (
-        <GenerateReportModal
-          open={reportOpen}
-          onClose={() => setReportOpen(false)}
-          onGenerate={handleGenerateReport}
-        />
-      )}
+{!isEmployee && (
+  <ReportModal
+    open={reportOpen}
+    title="Generate Report - Leave Credits"
+    onClose={() => setReportOpen(false)}
+    onGenerate={({ startDate, endDate, fileType }) =>
+      handleGenerateReport({ startingDate: startDate, endDate, fileType })
+    }
+    enableDateRange={true}
+    fileTypes={["XLSX", "CSV"]}
+  />
+)}
+
 
       <ConfirmModal
         open={confirmState.open}
