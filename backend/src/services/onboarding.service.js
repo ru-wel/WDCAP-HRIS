@@ -304,6 +304,16 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
             });
 
             if (authCreateErr || !authData?.user) {
+              // Log full error details for debugging
+              logger.error('Supabase Auth createUser (placeholder) failed - Full error details:', {
+                errorMessage: authCreateErr?.message,
+                errorCode: authCreateErr?.code,
+                errorStatus: authCreateErr?.status,
+                errorName: authCreateErr?.name,
+                dummyEmail: dummyEmail,
+                fullError: JSON.stringify(authCreateErr, null, 2)
+              });
+
               const msg = String(authCreateErr?.message || '').toLowerCase();
               const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
               if (!alreadyExists) {
@@ -319,6 +329,11 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
           } catch (authErr) {
             // If auth user creation fails, attempt to fallback to a reserved internal email and create
             // an auth user with that as a last resort. This is unusual but provides a path that satisfies FK.
+            logger.error('Primary placeholder auth user creation failed, trying fallback:', {
+              primaryError: authErr?.message,
+              fullPrimaryError: JSON.stringify(authErr, null, 2)
+            });
+
             const fallbackEmail = `contractor_${Date.now()}@no-email.local`;
             try {
               const { data: authData2, error: authCreateErr2 } = await supabase.auth.admin.createUser({
@@ -326,7 +341,17 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
                 password: placeholderPassword,
                 email_confirm: true
               });
-              if (authCreateErr2 || !authData2?.user) throw authCreateErr2 || new Error('Failed to create fallback auth user');
+
+              if (authCreateErr2 || !authData2?.user) {
+                logger.error('Fallback auth user creation also failed:', {
+                  errorMessage: authCreateErr2?.message,
+                  errorCode: authCreateErr2?.code,
+                  errorStatus: authCreateErr2?.status,
+                  fallbackEmail: fallbackEmail,
+                  fullError: JSON.stringify(authCreateErr2, null, 2)
+                });
+                throw authCreateErr2 || new Error('Failed to create fallback auth user');
+              }
               createdUserId = authData2.user.id;
               dummyEmail = fallbackEmail;
             } catch (finalErr) {
@@ -494,6 +519,16 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       });
 
       if (createAuthError || !authData?.user) {
+        // Log full error details for debugging
+        logger.error('Supabase Auth createUser failed - Full error details:', {
+          errorMessage: createAuthError?.message,
+          errorCode: createAuthError?.code,
+          errorStatus: createAuthError?.status,
+          errorName: createAuthError?.name,
+          email: normalizedEmail,
+          fullError: JSON.stringify(createAuthError, null, 2)
+        });
+
         const msg = String(createAuthError?.message || '').toLowerCase();
         const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
         if (!alreadyExists) {
