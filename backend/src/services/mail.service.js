@@ -78,16 +78,34 @@ const getTransport = () => {
 };
 
 export const sendEmail = async ({ to, subject, text, html, attachments }) => {
+  console.log('[MAIL SERVICE] sendEmail called with subject:', subject);
+
   const cfg = getSmtpConfig();
+  console.log('[MAIL SERVICE] SMTP config:', {
+    host: cfg.host ? 'SET' : 'MISSING',
+    port: cfg.port || 'MISSING',
+    user: cfg.user ? 'SET' : 'MISSING',
+    pass: cfg.pass ? 'SET' : 'MISSING',
+    from: cfg.from ? 'SET' : 'MISSING'
+  });
+
   const transport = getTransport();
 
   if (!transport) {
+    console.log('[MAIL SERVICE] SMTP not configured - transport is null');
     logger.warn('SMTP not configured; skipping email send');
     return { skipped: true };
   }
 
+  console.log('[MAIL SERVICE] Transport created successfully');
+
   const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
-  if (!recipients.length) return { skipped: true };
+  if (!recipients.length) {
+    console.log('[MAIL SERVICE] No recipients provided');
+    return { skipped: true };
+  }
+
+  console.log('[MAIL SERVICE] Attempting to send email to:', recipients.join(', '));
 
   try {
     const info = await transport.sendMail({
@@ -99,8 +117,10 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
       ...(Array.isArray(attachments) && attachments.length ? { attachments } : {})
     });
 
+    console.log('[MAIL SERVICE] Email sent successfully! MessageId:', info.messageId);
     return { skipped: false, messageId: info.messageId };
   } catch (err) {
+    console.log('[MAIL SERVICE] Email send FAILED:', err?.message || String(err));
     logger.error('Failed to send email:', err);
     // Email should not break core workflows
     return { skipped: false, error: err?.message || String(err) };

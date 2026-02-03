@@ -779,16 +779,25 @@ export const requestPasswordReset = async ({ email, ip = null, userAgent = null,
     // Self-service: send a recovery link to the user via SMTP (best-effort).
     // If FRONTEND_URL/CLIENT_URL is NOT configured, Supabase will typically fall back to the project's Site URL.
     try {
+      console.log('[PASSWORD RESET] Starting email recovery flow for:', normalizedEmail);
+
       const frontendBase = getFrontendBaseUrl({ originBaseUrl });
+      console.log('[PASSWORD RESET] Frontend base URL:', frontendBase || 'NOT SET');
       const redirectTo = frontendBase ? `${frontendBase}/reset-password` : '';
 
       const options = redirectTo ? { redirectTo } : undefined;
 
       debug.attemptedLinkGeneration = true;
+      console.log('[PASSWORD RESET] Generating recovery link via Supabase...');
       const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
         type: 'recovery',
         email: normalizedEmail,
         ...(options ? { options } : {})
+      });
+
+      console.log('[PASSWORD RESET] Link generation result:', {
+        hasLink: !!linkData?.properties?.action_link,
+        error: linkError?.message || null
       });
 
       const actionLink = linkData?.properties?.action_link;
@@ -830,12 +839,19 @@ export const requestPasswordReset = async ({ email, ip = null, userAgent = null,
         });
 
         debug.attemptedEmailSend = true;
+        console.log('[PASSWORD RESET] Calling sendEmail() to:', normalizedEmail);
         const emailResult = await sendEmail({
           to: [normalizedEmail],
           subject: 'WDCAP HRIS — Password Reset',
           text: `We received a request to reset your HRIS password.\n\nReset link: ${actionLink}\n\nIf you did not request this, ignore this email.`,
           html,
           attachments: logoAttachment ? [logoAttachment] : undefined
+        });
+
+        console.log('[PASSWORD RESET] Email result:', {
+          skipped: emailResult?.skipped,
+          error: emailResult?.error,
+          messageId: emailResult?.messageId
         });
 
         if (emailResult?.skipped) {
