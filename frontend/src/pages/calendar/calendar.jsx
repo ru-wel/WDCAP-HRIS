@@ -690,7 +690,8 @@ function DateCreateModal({
 export default function CalendarPage() {
   const calendarRef = useRef(null);
   const { user } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(new Date(2026, 0, 1));
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState(today);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bp, setBp] = useState(() => {
@@ -702,7 +703,7 @@ export default function CalendarPage() {
     };
   });
 
-  const [viewTitle, setViewTitle] = useState("January 2026");
+  const [viewTitle, setViewTitle] = useState("");
   const [allEvents, setAllEvents] = useState([]); 
   const [loading, setLoading] = useState(false);
   const [currentDateRange, setCurrentDateRange] = useState({ start: null, end: null });
@@ -1189,7 +1190,6 @@ export default function CalendarPage() {
                 ref={calendarRef}
                 plugins={[dayGridPlugin, interactionPlugin]}
                 initialView="dayGridMonth"
-                initialDate="2026-01-01"
                 headerToolbar={false}
                 footerToolbar={false}   
                 datesSet={(arg) => {

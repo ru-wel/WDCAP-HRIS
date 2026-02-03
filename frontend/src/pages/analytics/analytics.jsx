@@ -84,7 +84,7 @@ function Analytics() {
         setLeaveTypesData(Array.isArray(data.leaveTypesData) ? data.leaveTypesData : []);
         setReportRows(Array.isArray(data.reportRows) ? data.reportRows : []);
       } catch (e) {
-        if (!cancelled) setError(e?.message || "Failed to load analytics");
+        if (!cancelled) setError(e?.message || "Failed to load data overview");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -163,7 +163,7 @@ function Analytics() {
       <div className="flex min-h-screen items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Analytics...</p>
+          <p className="text-gray-600">Loading Data Overview...</p>
         </div>
       </div>
     );
@@ -175,7 +175,7 @@ function Analytics() {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-              Analytics
+              Data Overview
             </h1>
           </div>
 

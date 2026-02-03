@@ -117,7 +117,7 @@ export default function Sidenav({
 
       "/departments": { main: "Departments", sub: null },
 
-      "/analytics": { main: "Analytics", sub: null },
+      "/data-overview": { main: "Data Overview", sub: null },
 
       "/audit": { main: "Audit Logs", sub: null },
       "/audit/user-accounts": { main: "Audit Logs", sub: "User Accounts" },
@@ -230,7 +230,7 @@ export default function Sidenav({
         ]
       }) (),
     },
-    { label: "Analytics", icon: "analytics", type: "item", path: "/analytics" },
+    { label: "Data Overview", icon: "analytics", type: "item", path: "/data-overview" },
     {
       label: "Audit Logs",
       icon: "audit",
@@ -270,7 +270,7 @@ export default function Sidenav({
         ...items.filter((item) => {
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
-          if (item.label === "Analytics") return false;
+          if (item.label === "Data Overview") return false;
           if (item.label === "Audit Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;
           return true;
@@ -296,7 +296,7 @@ export default function Sidenav({
         ...items.filter((item) => {
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
-          if (item.label === "Analytics") return false;
+          if (item.label === "Data Overview") return false;
           if (item.label === "Audit Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;
           return true;

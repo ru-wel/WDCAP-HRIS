@@ -74,7 +74,7 @@ function TitleManager() {
         '/evaluation/upload': 'ARISE | EVALUATION UPLOAD',
         '/evaluation/my-evaluations': 'ARISE | MY EVALUATIONS',
 
-        '/analytics': 'ARISE | ANALYTICS',
+        '/data-overview': 'ARISE | DATA OVERVIEW',
 
         '/audit/user-accounts': 'ARISE | AUDIT | USER ACCOUNTS',
         '/audit/employees': 'ARISE | AUDIT | EMPLOYEES',
@@ -268,7 +268,7 @@ function App() {
           <Route path="/leave/my-leaves" element={<MyLeaves />} />
 
           <Route
-            path="/analytics"
+            path="/data-overview"
             element={
               <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <Analytics />

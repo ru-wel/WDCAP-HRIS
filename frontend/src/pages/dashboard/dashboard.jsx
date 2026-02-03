@@ -1078,7 +1078,7 @@ function Dashboard() {
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                   <div>
                     <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                      Analytics Overview
+                      Data Overview
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                       Employees & projects snapshot (Executive/HR only)
@@ -1088,9 +1088,9 @@ function Dashboard() {
                   <button
                     type="button"
                     className="bg-white border border-gray-300 rounded-md px-4 py-2 text-sm hover:bg-gray-50"
-                    onClick={() => navigate("/analytics")}
+                    onClick={() => navigate("/data-overview")}
                   >
-                    Open full Analytics
+                    Open full Data Overview
                   </button>
                 </div>
 
