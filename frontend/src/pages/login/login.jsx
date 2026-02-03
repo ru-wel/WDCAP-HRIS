@@ -278,20 +278,20 @@ function Login(){
                           </div>
                         </div> */}
 
-                        {/*<button
+                        <button
                           type="button"
                           className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm cursor-pointer"
                           onClick={() => setForgotOpen(true)}
                         >
                           Forgot Password?
-                        </button>	        */}             
+                        </button>	                 
                             <ConfirmModal
                               open={forgotOpen}
                               title="Forgot Password"
                               message={
                                 forgotStatus === 'sent'
                                   ? 'If the account exists, password reset instructions have been sent. Please check your email inbox (and spam).'
-                                  : 'We will send password reset instructions to your email (works even if you use Google sign-in). Continue?'
+                                  : 'We will send password reset instructions to your email. Continue?'
                               }
                               confirmText={forgotStatus === 'sent' ? 'OK' : 'Send Request'}
                               cancelText={forgotStatus === 'sent' ? null : 'Cancel'}
