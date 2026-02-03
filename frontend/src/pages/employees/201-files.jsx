@@ -5,6 +5,11 @@ import { ONBOARDING_STATUSES } from '../../constants/config';
 import ReactPaginate from 'react-paginate';
 import ChecklistConfig from '../../components/checklist-config';
 import ConfirmModal from '../../components/confirm-modal';
+import ReportModal from "../../components/report-modal.jsx";
+import { filterRowsByDateRange } from "../../utils/reporting.js";
+import { exportRowsToCsv } from "../../utils/csv.js";
+import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 
 const modalFiles = [
     {
@@ -709,6 +714,7 @@ function OnboardingFiles (){
     const [draftRemarks, setDraftRemarks] = useState("ALL");
     const [draftSortOrder, setDraftSortOrder] = useState("name_az");
     const [searchTerm, setSearchTerm] = useState("");
+    const [reportOpen, setReportOpen] = useState(false);
 
     const filtersWrapRef = useRef(null);
 
@@ -1091,6 +1097,105 @@ function OnboardingFiles (){
         return allRequiredDocsApproved ? "COMPLETE" : "INCOMPLETE";
     }
 
+    const getRequiredDocCounts = (empFiles) => {
+        const requiredDocs = modalFiles.filter((f) => !!empFiles?.[f.required]);
+        const requiredTotal = requiredDocs.length;
+        const requiredApproved = requiredDocs.filter(
+            (f) => empFiles?.[f.status] === ONBOARDING_STATUSES.APPROVED
+        ).length;
+
+        return { requiredTotal, requiredApproved };
+    };
+
+    const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+        const base =
+            startDate || endDate
+            ? filterRowsByDateRange(
+                filteredEmployees,
+                (r) => r?.hireDate,
+                startDate,
+                endDate
+                )
+            : filteredEmployees;
+
+        const cat = String(category || "all").toLowerCase();
+        const rowsForExport = base.filter((r) => {
+            const remarks = String(r?.remarks || getRemarks(r)).toUpperCase();
+            const pt = String(r?.personnelType || "").toLowerCase();
+            const isProjectBased = pt.includes("project");
+
+            if (cat === "complete") return remarks === "COMPLETE";
+            if (cat === "incomplete") return remarks === "INCOMPLETE";
+            if (cat === "standard") return !isProjectBased;
+            if (cat === "project_based") return isProjectBased;
+            return true;
+        });
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        const upperType = String(fileType || "XLSX").toUpperCase();
+        const isCsv = upperType === "CSV";
+        const isPdf = upperType === "PDF";
+        const ext = isPdf ? "pdf" : isCsv ? "csv" : "xlsx";
+        const filename = `201-files-report-${cat}-${stamp}.${ext}`;
+
+        post("/audit-logs/reports", {
+            report_name: "201 Files Report",
+            filename,
+            start_date: startDate || null,
+            end_date: endDate || null,
+            row_count: rowsForExport.length,
+            source: "201_files",
+        }).catch(() => {});
+
+        const columns = [
+            { header: "Employee ID", value: (r) => r.id },
+            { header: "Name", value: (r) => r.name },
+            { header: "Personnel Type", value: (r) => r.personnelType },
+            { header: "Hire Date", value: (r) => r.hireDate },
+            { header: "Remarks", value: (r) => r.remarks || getRemarks(r) },
+            {
+            header: "Required Docs Approved",
+            value: (r) => {
+                const { requiredApproved, requiredTotal } = getRequiredDocCounts(r);
+                return `${requiredApproved}/${requiredTotal}`;
+            },
+            },
+        ];
+
+        if (isPdf) {
+            const completeCount = rowsForExport.filter(
+            (r) => String(r?.remarks || getRemarks(r)).toUpperCase() === "COMPLETE"
+            ).length;
+            const incompleteCount = rowsForExport.length - completeCount;
+
+            exportReportToPdf({
+            filename,
+            title: "201 Files Report",
+            summaryLines: [
+                `Category: ${cat}`,
+                startDate || endDate
+                ? `Range: ${startDate || "…"} to ${endDate || "…"}`
+                : "Range: All time",
+                `Complete: ${completeCount} | Incomplete: ${incompleteCount}`,
+            ],
+            columns,
+            rows: rowsForExport,
+            }).catch(() => {});
+        } else if (isCsv) {
+            exportRowsToCsv({ filename, columns, rows: rowsForExport });
+        } else {
+            exportRowsToXlsx({
+            filename,
+            sheetName: "201 Files",
+            columns,
+            rows: rowsForExport,
+            });
+        }
+
+        setReportOpen(false);
+    };
+
+
     // loading state
     if (loading) {
         return (
@@ -1307,7 +1412,7 @@ function OnboardingFiles (){
                 <hr className='text-[#990100] mt-6 '/>
 
                 <div className="flex justify-end mt-5">
-                    <button className='generate-report-button'>Generate Report</button>
+                    <button className="generate-report-button" onClick={() => setReportOpen(true)} disabled={filteredEmployees.length === 0} title={filteredEmployees.length === 0 ? "No rows to export" : "Generate report"}>Generate Report</button>
                 </div>
 
                 <div className="div-table">
@@ -1382,6 +1487,23 @@ function OnboardingFiles (){
                         onSave={updateEmployeeFiles}
                         onRefresh={handleModalRefresh}
                         openConfirm={openConfirm}
+                    />
+
+                    <ReportModal
+                        open={reportOpen}
+                        title="Generate Report - 201 Files"
+                        onClose={() => setReportOpen(false)}
+                        onGenerate={handleGenerateReport}
+                        enableDateRange={true}
+                        fileTypes={["XLSX", "CSV", "PDF"]}
+                        categoryOptions={[
+                            { value: "all", label: "All 201 Files" },
+                            { value: "complete", label: "Complete" },
+                            { value: "incomplete", label: "Incomplete" },
+                            { value: "standard", label: "Probationary/Regular" },
+                            { value: "project_based", label: "Project-Based" },
+                        ]}
+                        defaultCategory="all"
                     />
 
                     {/* Checklist Configuration Modal */}
