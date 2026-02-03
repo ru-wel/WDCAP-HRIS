@@ -166,13 +166,16 @@ export default function EmployeeProjects() {
   useEffect(() => {
     const run = async () => {
       try {
+        setLoading(true);
+
         const me = await get('/employees/me');
         const personnel = String(me?.data?.personnel_type || '').trim().toLowerCase();
         const isPb = personnel === 'project-based' || personnel === 'project based';
         setIsProjectBased(isPb);
-        if (!isPb) await fetchProjects();
-      } catch {
-        setIsProjectBased(false);
+
+        await fetchProjects();
+      } catch (e) {
+        console.error(e);
         await fetchProjects();
       }
     };
@@ -220,6 +223,20 @@ export default function EmployeeProjects() {
     return sorted;
   }, [filtered, sortOrder]);
 
+  if (loading) {
+    return (
+      <div>
+        <Navbar />
+        <div className="flex min-h-screen items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading My Projects...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
   return (
     <div>
       <Navbar />
@@ -326,10 +343,13 @@ export default function EmployeeProjects() {
         <hr className="text-[#990100] mt-6" />
 
         <div className="mt-6">
-          {isProjectBased ? (
-            <div className="text-sm text-gray-600">Projects are not available for Project-Based employees.</div>
-          ) : loading ? (
-            <div className="text-sm text-gray-600">Loading projects…</div>
+          { loading ? (
+            <div className="flex min-h-screen items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading My Projects...</p>
+              </div>
+            </div>
           ) : filtered.length === 0 ? (
             <div className="text-sm text-gray-600">No Projects Displayed at the moment.</div>
           ) : (

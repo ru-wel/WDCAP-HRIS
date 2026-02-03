@@ -183,6 +183,17 @@ export default function EmployeeProjectMembers() {
     return sorted;
   }, [filtered, sortOrder]);
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Employees...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-7 lg:mx-[4.5rem] md:mx-10">
       <div className="md:flex justify-between items-center w-full">
