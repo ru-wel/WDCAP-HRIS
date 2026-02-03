@@ -624,7 +624,6 @@ function Projects() {
 
           if (response.success) {
             setProjects((prev) => prev.map((p) => (p.id === project.id ? response.data : p)));
-            setDraftProject(null);
             openConfirm({
               title: "Success",
               message: `Project "${project.project_name}" updated successfully.`,

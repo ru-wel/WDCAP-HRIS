@@ -458,10 +458,10 @@ function LeaveWOPay ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Leave without Pay</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Leave without Pay</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -472,7 +472,7 @@ function LeaveWOPay ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex justify-center pt-4 text-sm">
+                        <div className="flex justify-center pt-4 ">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>This is available to everyone. You may request for a leave without pay.</li>
                             </ul>
@@ -494,10 +494,10 @@ function SIL ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Service Incentive Leave (SIL)</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Service Incentive Leave (SIL)</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -508,7 +508,7 @@ function SIL ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex justify-center pt-4 text-sm">
+                        <div className="flex justify-center pt-4">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>For employees who already rendered service for at least 1 year in the company.</li>
                                 <li>5 days of leave credits annually.</li>
@@ -533,10 +533,10 @@ function MaternityLeave ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Maternity Leave</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Maternity Leave</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -547,7 +547,7 @@ function MaternityLeave ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex flex-col justify-center pt-4 text-sm">
+                        <div className="flex flex-col justify-center pt-4">
                             <p className="font-medium text-[#990100]">INITIAL:</p>
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>To file, inform the HR at least 60 days before due date.</li>
@@ -578,10 +578,10 @@ function PaternityLeave ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Paternity Leave</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Paternity Leave</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -592,7 +592,7 @@ function PaternityLeave ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex flex-col justify-center pt-4 text-sm">
+                        <div className="flex flex-col justify-center pt-4">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>7 days of paid leave to assist your spouse.</li>
                                 <li>Only for the deliveries of first four children.</li>
@@ -618,10 +618,10 @@ function VAWC ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between gap-2">
-                            <p className="text-[#990100] font-semibold uppercase">Victims of Violence Against Women and Their Children (VAWC) Leave</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Victims of Violence Against Women and Their Children (VAWC) Leave</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -632,7 +632,7 @@ function VAWC ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex flex-col justify-center pt-4 text-sm">
+                        <div className="flex flex-col justify-center pt-4">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>A certification of a filed/pending VAWC case is required to submit, which can be issued by: Punong Barangay/Barangay Kagawad, Prosecutor, or Clerk of Court.</li> 
                                 <li>Up to 10 days of paid leave in order to attend to medical and legal issues.</li>
@@ -654,10 +654,10 @@ function SoloParents ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Parental Leave for Solo Parents</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Parental Leave for Solo Parents</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -668,7 +668,7 @@ function SoloParents ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex flex-col justify-center pt-4 text-sm">
+                        <div className="flex flex-col justify-center pt-4 ">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>7-day paid leave.</li>
                                 <li>Submit Solo Parent ID as this is the primary requirement, secured from the Local Social Welfare and Development Office (LSWDO)</li>
@@ -692,10 +692,10 @@ function WomenLeave ({onClose}){
                     aria-hidden="true"
                 />
 
-                    <div className="relative w-full md:max-w-sm mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
+                    <div className="relative w-full md:max-w-lg mx-4 bg-white rounded-lg shadow-xl border border-gray-300">
                         <div className="p-6">
                         <div className=" flex items-center justify-between">
-                            <p className="text-[#990100] font-semibold uppercase">Special Leave Benefits for Women</p>
+                            <p className="text-[#990100] text-lg font-semibold uppercase">Special Leave Benefits for Women</p>
                             <button
                             type="button"
                             className="text-gray-400 hover:text-gray-500 text-lg font-bold hover:scale-110 transition cursor-pointer"
@@ -706,7 +706,7 @@ function WomenLeave ({onClose}){
                             </button>
                         </div>
 
-                        <div className="flex flex-col justify-center pt-4 text-sm">
+                        <div className="flex flex-col justify-center pt-4">
                             <ul className="list-disc pl-5 space-y-2">
                                 <li>Female employees are mandated to request a 2-month leave benefit (with full payment based on their gross monthly income) due to surgery for gynecological disorders</li>
                                 <li>Regardless of age or civil status but the employee must have rendered at least 6 months of continuous aggregate.</li>

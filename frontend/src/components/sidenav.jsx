@@ -193,16 +193,30 @@ export default function Sidenav({
       icon: "leave",
       type: "dropdown",
       path: null,
-      children: isEmployee || isManager  ? [ 
-        { label: "My Leaves", path:"/leave/my-leaves" },
-      ] : [
-        { label: "Leave Calendar", path: "/leave"},
-        { label: "Leave Request", path: "/leave/request" },
-        { label: "Leave Credits", path: "/leave/credits" },
-        { label: "Leave History", path: "/leave/history" },
-        { label: "My Leaves", path:"/leave/my-leaves" },
-      ]
+      children: (() => {
+        if (isEmployee){
+          return[
+            { label: "My Leaves", path:"/leave/my-leaves" },
+          ]
+        }
+
+        if(isManager){
+          return [
+            { label: "Leave Calendar", path: "/leave"},
+            { label: "My Leaves", path:"/leave/my-leaves" },
+          ]
+        }
+
+        return[
+          { label: "Leave Calendar", path: "/leave"},
+          { label: "Leave Request", path: "/leave/request" },
+          { label: "Leave Credits", path: "/leave/credits" },
+          { label: "Leave History", path: "/leave/history" },
+          { label: "My Leaves", path:"/leave/my-leaves" },
+        ]
+      }) (),
     },
+      
     {
       label: "Evaluation",
       icon: "evaluation",
@@ -212,14 +226,6 @@ export default function Sidenav({
         if(isEmployee){
           return [
             { label: "My Evaluations", path: "/evaluation/my-evaluations" }]
-        }
-
-        if (isManager){
-          return [
-            { label: "Evaluation Calendar", path: "/evaluation"},
-            { label: "Evaluation History", path: "/evaluation/history" },
-            { label: "My Evaluations", path: "/evaluation/my-evaluations" }
-          ]
         }
 
         return[

@@ -278,13 +278,13 @@ function Login(){
                           </div>
                         </div> */}
 
-                        <button
+                        {/*<button
                           type="button"
                           className="underline font-bold text-[#483D3D] hover:text-[#7e7777] md:text-md text-sm cursor-pointer"
                           onClick={() => setForgotOpen(true)}
                         >
                           Forgot Password?
-                        </button>	                     
+                        </button>	        */}             
                             <ConfirmModal
                               open={forgotOpen}
                               title="Forgot Password"

@@ -207,7 +207,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
 
         <div className="pt-7">
           {!editData ? (
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-end gap-4">
               <button
                 onClick={() => setEditData(true)}
                 disabled={loading}
@@ -216,13 +216,13 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
                 Update Account
               </button>
 
-              <button
+              {/*<button
                 onClick={() => setResetMode((p) => !p)}
                 disabled={loading}
                 className="bg-[#FFA500] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer"
               >
                 {resetMode ? "Cancel Reset" : "Reset Password"}
-              </button>
+              </button>*/}
 
               <button
                 onClick={async () => {

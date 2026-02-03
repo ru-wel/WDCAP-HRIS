@@ -735,7 +735,7 @@ const applyDraftFilters = () => {
                   Project Overview
                 </h2>
 
-                {canEditProject && (
+                {/*canEditProject && (
                   <button
                     type="button"
                     onClick={() => {
@@ -745,7 +745,7 @@ const applyDraftFilters = () => {
                   >
                     {locationEditOpen ? "Close" : "Update Location"}
                   </button>
-                )}
+                )*/}
 
               </div>
 
