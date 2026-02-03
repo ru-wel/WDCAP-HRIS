@@ -304,15 +304,14 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
             });
 
             if (authCreateErr || !authData?.user) {
-              // Log full error details for debugging
-              logger.error('Supabase Auth createUser (placeholder) failed - Full error details:', {
-                errorMessage: authCreateErr?.message,
-                errorCode: authCreateErr?.code,
-                errorStatus: authCreateErr?.status,
-                errorName: authCreateErr?.name,
-                dummyEmail: dummyEmail,
-                fullError: JSON.stringify(authCreateErr, null, 2)
-              });
+              // Log full error details for debugging - separate logs to avoid truncation
+              logger.error('Supabase Auth createUser (placeholder) failed');
+              logger.error('Error Message:', authCreateErr?.message);
+              logger.error('Error Code:', authCreateErr?.code);
+              logger.error('Error Status:', authCreateErr?.status);
+              logger.error('Error Name:', authCreateErr?.name);
+              logger.error('Attempted Dummy Email:', dummyEmail);
+              logger.error('Full Error Object:', authCreateErr);
 
               const msg = String(authCreateErr?.message || '').toLowerCase();
               const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
@@ -329,10 +328,9 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
           } catch (authErr) {
             // If auth user creation fails, attempt to fallback to a reserved internal email and create
             // an auth user with that as a last resort. This is unusual but provides a path that satisfies FK.
-            logger.error('Primary placeholder auth user creation failed, trying fallback:', {
-              primaryError: authErr?.message,
-              fullPrimaryError: JSON.stringify(authErr, null, 2)
-            });
+            logger.error('Primary placeholder auth user creation failed, trying fallback');
+            logger.error('Primary Error:', authErr?.message);
+            logger.error('Primary Error Object:', authErr);
 
             const fallbackEmail = `contractor_${Date.now()}@no-email.local`;
             try {
@@ -343,13 +341,12 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
               });
 
               if (authCreateErr2 || !authData2?.user) {
-                logger.error('Fallback auth user creation also failed:', {
-                  errorMessage: authCreateErr2?.message,
-                  errorCode: authCreateErr2?.code,
-                  errorStatus: authCreateErr2?.status,
-                  fallbackEmail: fallbackEmail,
-                  fullError: JSON.stringify(authCreateErr2, null, 2)
-                });
+                logger.error('Fallback auth user creation also failed');
+                logger.error('Fallback Error Message:', authCreateErr2?.message);
+                logger.error('Fallback Error Code:', authCreateErr2?.code);
+                logger.error('Fallback Error Status:', authCreateErr2?.status);
+                logger.error('Fallback Email Attempted:', fallbackEmail);
+                logger.error('Fallback Error Object:', authCreateErr2);
                 throw authCreateErr2 || new Error('Failed to create fallback auth user');
               }
               createdUserId = authData2.user.id;
@@ -519,15 +516,14 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       });
 
       if (createAuthError || !authData?.user) {
-        // Log full error details for debugging
-        logger.error('Supabase Auth createUser failed - Full error details:', {
-          errorMessage: createAuthError?.message,
-          errorCode: createAuthError?.code,
-          errorStatus: createAuthError?.status,
-          errorName: createAuthError?.name,
-          email: normalizedEmail,
-          fullError: JSON.stringify(createAuthError, null, 2)
-        });
+        // Log full error details for debugging - separate logs to avoid truncation
+        logger.error('Supabase Auth createUser failed');
+        logger.error('Error Message:', createAuthError?.message);
+        logger.error('Error Code:', createAuthError?.code);
+        logger.error('Error Status:', createAuthError?.status);
+        logger.error('Error Name:', createAuthError?.name);
+        logger.error('Attempted Email:', normalizedEmail);
+        logger.error('Full Error Object:', createAuthError);
 
         const msg = String(createAuthError?.message || '').toLowerCase();
         const alreadyExists = msg.includes('already') || msg.includes('registered') || msg.includes('exists');
