@@ -311,7 +311,7 @@ function Analytics() {
           </SectionCard>
         </div>
 
-        {/*<div className="mt-10">
+        <div className="mt-10">
           <SectionCard
             title="Reports"
             subtitle="Filter and export reports."
@@ -435,7 +435,7 @@ function Analytics() {
               )}
             </div>
           </SectionCard>
-        </div>*/}
+        </div>
       </div>
     </div>
   );
