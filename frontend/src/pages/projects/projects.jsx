@@ -56,15 +56,22 @@ function ViewProjectCard({ project, index, onClick, disabled }) {
             {project.project_name || `Project #${index + 1}`}
           </h2>
 
-          <div className="flex items-center text-base mb-2 gap-2">
-            <img src="icons/red-location.png" alt="location" className="w-4 h-4" />
+          <div className="flex items-center text-base mb-2 gap-3">
+            <img src="icons/red-location.png" alt="location" className="w-6 h-6" />
             <span>{project.site_location}</span>
           </div>
 
-          <div className="flex items-center text-base gap-2">
-            <img src="icons/red-leave.png" alt="calendar" className="w-4 h-4" />
+          <div className="flex items-center text-base mb-2 gap-3">
+            <img src="icons/red-leave.png" alt="calendar" className="w-6 h-6" />
             <span>{dateRange}</span>
           </div>
+
+          <div className="flex items-center text-base gap-3">
+            <img src="icons/red-employees.png" alt="employees" className="w-6 h-6" />
+            <span className = "font-semibold">Number of Employees</span>
+          </div>
+
+          
         </div>
 
         <div className="mt-4">

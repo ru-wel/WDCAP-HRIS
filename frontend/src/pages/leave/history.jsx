@@ -97,14 +97,14 @@ const mapApiRowToUi = (r) => ({
 });
 
 function ModalShell({ open, title, onClose, children }) {
-  useEffect(() => {
+  /*useEffect(() => {
     if (!open) return;
     const onKeyDown = (e) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  }, [open, onClose]);*/
 
   if (!open) return null;
 
@@ -157,7 +157,7 @@ function StatusPill({ status }) {
   );
 }
 
-function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
+function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate, openConfirm }) {
   const [status, setStatus] = useState(row?.status || "PENDING");
 
   useEffect(() => {
@@ -169,8 +169,26 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
   const hasChanges =
     String(status || "").toUpperCase() !== String(originalStatus || "").toUpperCase();
 
+  const closeModal = () => {
+    if (!canUpdate || !hasChanges) {
+    onClose();
+    return;
+  }
+
+  openConfirm(
+    {
+      title: "Confirmation",
+      message: "You have unsaved changes. Do you want to close it without saving?",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: () => {
+        onClose();
+      },
+    });
+  }
+
   return (
-    <ModalShell open={open} title={`Leave History of ${row?.id ?? ""}`} onClose={onClose}>
+    <ModalShell open={open} title={`Leave History of ${row?.id ?? ""}`} onClose={closeModal}>
       <div className="space-y-5 text-sm">
         <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 px-2">
           <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
@@ -238,7 +256,7 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate }) {
             onClick={() => {
               if (!row) return;
               if (!canUpdate) {
-                onClose();
+                closeModal();
                 return;
               }
               if (!hasChanges) return;
@@ -334,17 +352,7 @@ export default function LeaveHistory() {
         if (!wasConfirmation) {
           return { ...prev, open: false, onConfirm: null, onCancel: null };
         }
-
-        return {
-          open: true,
-          title: "Success",
-          message: "Action completed successfully.",
-          confirmText: "OK",
-          cancelText: null,
-          onConfirm: null,
-          onCancel: null,
-          confirmDisabled: false,
-        };
+        return { ...prev, open: false, onConfirm: null, onCancel: null };
       });
     } catch (e) {
       setConfirmState({
@@ -841,6 +849,7 @@ export default function LeaveHistory() {
         onClose={() => setDetailsOpen(false)}
         canUpdate={canUpdate}
         onUpdate={handleUpdate}
+        openConfirm={openConfirm}
       />
 
       <ConfirmModal
