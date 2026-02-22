@@ -77,7 +77,7 @@ export default function ConfirmModal({
               </button>
             </div>
           ) : (
-            <div className="mt-8 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
+            <div className="mt-8 flex items-stretch sm:items-center justify-end gap-2 sm:gap-3">
               {showCancel && (
                 <button
                   type="button"

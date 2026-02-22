@@ -40,6 +40,7 @@ import EmployeeProjectMembers from './pages/employees/self/employee-project-memb
 import CalendarPage from './pages/calendar/calendar.jsx';
 import MyDocuments from './pages/employees/self/employee-documents.jsx';
 import MyLeaves from './pages/leave/self/myLeaves.jsx';
+import CalendarLogs from './pages/audit/calendar-logs.jsx';
 
 function TitleManager() {
   const location = useLocation();
@@ -85,6 +86,7 @@ function TitleManager() {
         '/audit/leave': 'ARISE | AUDIT | LEAVE',
         '/audit/evaluation': 'ARISE | AUDIT | EVALUATION',
         '/audit/reports': 'ARISE | AUDIT | REPORTS',
+        '/audit/calendar' : 'ARISE | AUDIT | CALENDAR',
 
         '/calendar': 'ARISE | CALENDAR',
       };
@@ -339,6 +341,15 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
                 <ReportsLogs />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/audit/calendar"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.EXECUTIVE, ROLES.HR]}>
+                <CalendarLogs />
               </ProtectedRoute>
             }
           />

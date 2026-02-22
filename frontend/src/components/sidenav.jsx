@@ -128,6 +128,7 @@ export default function Sidenav({
       "/audit/leave": { main: "Audit Logs", sub: "Leave" },
       "/audit/evaluation": { main: "Audit Logs", sub: "Evaluation" },
       "/audit/reports": { main: "Audit Logs", sub: "Reports" },
+      "/audit/calendar" : { main: "Audit Logs", sub: "Calendar" },
     };
 
     return pathMappings[path] || { main: initialActive, sub: initialSub };
@@ -252,11 +253,12 @@ export default function Sidenav({
         { label: "Leave", path: "/audit/leave" },
         { label: "Evaluation", path: "/audit/evaluation" },
         { label: "Reports", path: "/audit/reports" },
+        { label: "Calendar", path: "/audit/calendar" },
       ],
     },
   ];
 
-  //const hrHiddenLabels = new Set(["Audit Logs"]);
+  const hrHiddenLabels = new Set(["Audit Logs"]);
 
   const finalVisibleItems = (() => {
 
@@ -313,13 +315,13 @@ export default function Sidenav({
 
     }
 
-    return items;
-  }) ();
-
-    /*items.filter((item) => {
+    return items.filter((item) => {
         if (isHr && hrHiddenLabels.has(item.label)) return false;
         return true;
-      });*/
+      });
+  }) ();
+
+    
 
   const handleMainClick = (item) => {
     if (item.path) {
@@ -367,7 +369,7 @@ export default function Sidenav({
 
       <aside
         className={`peer fixed inset-y-0 left-0 z-30 bg-[#9b0000] text-white flex flex-col items-stretch py-4 rounded-tr-[32px]
-        transition-all duration-300 ease-in-out w-64 lg:[zoom:0.89] md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
+        transition-all duration-300 ease-in-out w-64 lg:[zoom:0.85] md:[zoom:0.8] ${desktopWidthClass} ${mobileTranslateClass} md:translate-x-0`}
         onMouseEnter={!isMobile ? () => setIsHovered(true) : undefined}
         onMouseLeave={!isMobile ? () => setIsHovered(false) : undefined}
       >
@@ -608,7 +610,7 @@ function NavGroup({
     <div className="bg-[#f8f4f4] rounded-lg text-[#9b0000] shadow-sm overflow-hidden">
       <HeaderInner isActiveLike />
       {isOpen && showLabels && (
-        <ul className="px-3 pb-3 text-[13px] max-h-56 overflow-y-auto hide-scrollbar overscroll-contain">
+        <ul className="px-3 pb-3 text-[13px] max-h-80 overflow-y-auto hide-scrollbar overscroll-contain">
           {items.map((sub, index) => {
             const isSubActive = activeSub === sub.label;
             return (

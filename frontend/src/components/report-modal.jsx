@@ -219,7 +219,7 @@ export default function ReportModal({
             <>
               <div className="font-semibold pb-1.5 ">Report Category:</div>
               <select
-                className="modal-employees-field cursor-pointer"
+                className="modal-employees-field w-60 cursor-pointer"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
@@ -234,7 +234,7 @@ export default function ReportModal({
 
           <div className="font-semibold pt-2 pb-1.5">File Type:</div>
           <select
-            className="modal-employees-field cursor-pointer"
+            className="modal-employees-field w-60 cursor-pointer"
             value={fileType}
             onChange={(e) => setFileType(e.target.value)}
           >
