@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import ViewARISEFormModal from '../../../components/ViewARISEFormModal.jsx';
+import ViewDynamicFormModal from '../../../components/ViewDynamicFormModal.jsx';
 import { get } from '../../../services/api.js';
 import { compareDate } from '../../../utils/sort.js';
 
@@ -190,9 +190,10 @@ export default function MyEvaluations() {
     loading: false,
   });
 
-  const [ariseFormModalOpen, setAriseFormModalOpen] = useState(false);
-  const [ariseFormData, setAriseFormData] = useState(null);
-  const [ariseFormMeta, setAriseFormMeta] = useState({ employeeName: '', evaluationType: '', evaluationDate: '' });
+  const [formViewModalOpen, setFormViewModalOpen] = useState(false);
+  const [formViewData, setFormViewData] = useState(null);
+  const [formViewTemplate, setFormViewTemplate] = useState(null);
+  const [formViewMeta, setFormViewMeta] = useState({ employeeName: '', evaluationType: '', evaluationDate: '' });
 
   const formatNotesForCell = (raw) => {
     const text = String(raw || '').replace(/\r\n/g, '\n');
@@ -467,14 +468,26 @@ export default function MyEvaluations() {
                             <div className="flex flex-col gap-2">
                               {hasARISEForm ? (
                                 <button type="button" className="bg-[#990100] text-white px-4 py-1 rounded-md text-xs hover:bg-[#ad3332] transition"
-                                  onClick={() => {
-                                    setAriseFormData(formData);
-                                    setAriseFormMeta({
+                                  onClick={async () => {
+                                    setFormViewData(formData);
+                                    setFormViewMeta({
                                       employeeName: employee?.name || 'Employee',
                                       evaluationType: ev?.evaluation_type || 'Evaluation',
                                       evaluationDate: ev?.evaluation_date || '',
                                     });
-                                    setAriseFormModalOpen(true);
+                                    setFormViewTemplate(null);
+
+                                    const tid = formData?.template_id;
+                                    if (tid) {
+                                      try {
+                                        const res = await get(`/evaluation-templates/${encodeURIComponent(tid)}`);
+                                        setFormViewTemplate(res?.data || null);
+                                      } catch (err) {
+                                        console.error('Failed to fetch template for viewing:', err);
+                                      }
+                                    }
+
+                                    setFormViewModalOpen(true);
                                   }}
                                 >
                                   View Form
@@ -540,17 +553,19 @@ export default function MyEvaluations() {
         onClose={closePreview}
       />
 
-      <ViewARISEFormModal
-        open={ariseFormModalOpen}
+      <ViewDynamicFormModal
+        open={formViewModalOpen}
         onClose={() => {
-          setAriseFormModalOpen(false);
-          setAriseFormData(null);
-          setAriseFormMeta({ employeeName: '', evaluationType: '', evaluationDate: '' });
+          setFormViewModalOpen(false);
+          setFormViewData(null);
+          setFormViewTemplate(null);
+          setFormViewMeta({ employeeName: '', evaluationType: '', evaluationDate: '' });
         }}
-        formData={ariseFormData}
-        employeeName={ariseFormMeta.employeeName}
-        evaluationType={ariseFormMeta.evaluationType}
-        evaluationDate={ariseFormMeta.evaluationDate}
+        formData={formViewData}
+        template={formViewTemplate}
+        employeeName={formViewMeta.employeeName}
+        evaluationType={formViewMeta.evaluationType}
+        evaluationDate={formViewMeta.evaluationDate}
       />
     </div>
   );

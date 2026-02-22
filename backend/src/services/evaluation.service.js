@@ -10,13 +10,15 @@ import { fileURLToPath } from 'node:url';
 const EVALUATION_FIELDS = `
   evaluation_id,
   employee_id,
+  template_id,
   evaluation_type,
   evaluation_date,
   evaluation_notes,
   evaluation_document_path,
   created_at,
   updated_at,
-  employees (id, employee_id, first_name, last_name, personnel_type, positions (position_title))
+  employees (id, employee_id, first_name, last_name, personnel_type, positions (position_title)),
+  evaluation_templates (id, name)
 `;
 
 const escapeHtml = (value) => String(value ?? '')
@@ -803,6 +805,11 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     evaluation_type: payload?.evaluation_type ? String(payload.evaluation_type) : existing.evaluation_type,
     updated_at: now
   };
+
+  // Store template_id if provided (from dynamic form submission)
+  if (payload?.template_id) {
+    patch.template_id = payload.template_id;
+  }
 
   const { data: updated, error } = await supabase
     .from('performance_evaluations')

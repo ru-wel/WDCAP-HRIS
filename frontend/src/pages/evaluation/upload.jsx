@@ -2,10 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
 import RegularizationModal from '../../components/RegularizationModal.jsx';
-import ARISEEvaluationForm from '../../components/ARISEEvaluationForm.jsx';
+import DynamicEvaluationForm from '../../components/DynamicEvaluationForm.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ROLES } from '../../constants/config.js';
-import { useARISEForm } from '../../hooks/useARISEForm.js';
+import { useDynamicEvaluationForm } from '../../hooks/useDynamicEvaluationForm.js';
 import { get, postFormWithProgress } from '../../services/api.js';
 
 const useQuery = () => {
@@ -59,12 +59,19 @@ export default function EvaluationUpload() {
 
   const [submissionMode, setSubmissionMode] = useState('files');
 
+  // template state
+  const [template, setTemplate] = useState(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+
   // regularization modal state
   const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
   const [employeeForRegularization, setEmployeeForRegularization] = useState(null);
   const [regularizationPersonnelType, setRegularizationPersonnelType] = useState('Probationary');
 
   const {
+    templateName,
+    scoringScale,
+    sections,
     formScores,
     setItemScore,
     isReliable,
@@ -79,7 +86,7 @@ export default function EvaluationUpload() {
     rating,
     resetForm: resetARISEForm,
     serializeFormData,
-  } = useARISEForm();
+  } = useDynamicEvaluationForm(template);
 
   // filter employees based on search term (with autocomplete)
   const filteredEmployees = useMemo(() => {
@@ -351,6 +358,36 @@ export default function EvaluationUpload() {
 
     run();
   }, [evaluationId, preselectedEvaluationId]);
+
+  useEffect(() => {
+    const fetchTemplate = async () => {
+      if (!selectedEmployeeId) {
+        setTemplate(null);
+        return;
+      }
+
+      try {
+        setTemplateLoading(true);
+        const empRes = await get(`/employees/${encodeURIComponent(String(selectedEmployeeId))}`);
+        const positionId = empRes?.data?.positions?.id;
+
+        if (!positionId) {
+          setTemplate(null);
+          return;
+        }
+
+        const tmplRes = await get(`/evaluation-templates/position/${encodeURIComponent(positionId)}`);
+        setTemplate(tmplRes?.data || null);
+      } catch (e) {
+        console.warn('Failed to load evaluation template:', e);
+        setTemplate(null);
+      } finally {
+        setTemplateLoading(false);
+      }
+    };
+
+    fetchTemplate();
+  }, [selectedEmployeeId]);
 
   const resetForm = () => {
     setEvaluationType(`ANNUAL (${new Date().getFullYear()})`);
@@ -775,7 +812,10 @@ export default function EvaluationUpload() {
         const formData = serializeFormData();
         form.append('evaluation_form', JSON.stringify(formData));
 
-        // If user didn't manually input a score, use computed total.
+        if (template?.id) {
+          form.append('template_id', template.id);
+        }
+
         if (!scoreValue) {
           form.append('score', String(totalScore));
         }
@@ -1056,7 +1096,9 @@ export default function EvaluationUpload() {
                       setFinalProgress(null);
                     }}
                   />
-                  <span className="text-sm text-gray-800">Fill ARISE form</span>
+                  <span className="text-sm text-gray-800">
+                    {templateLoading ? 'Loading form…' : template ? `Fill ${template.name}` : 'Fill evaluation form'}
+                  </span>
                 </label>
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
@@ -1071,26 +1113,43 @@ export default function EvaluationUpload() {
               </div>
               <p className="text-xs text-gray-500 mt-2">
                 {submissionMode === 'form'
-                  ? 'ARISE form mode computes the score automatically.'
+                  ? template
+                    ? `${template.name} — score is computed automatically.`
+                    : 'No evaluation template assigned to this position. Select an employee first or upload a document instead.'
                   : 'Upload the complete evaluation form document.'}
               </p>
             </div>
 
             {submissionMode === 'form' ? (
-              <ARISEEvaluationForm
-                formScores={formScores}
-                setItemScore={setItemScore}
-                totalScore={totalScore}
-                totalPossible={totalPossible}
-                percentage={percentage}
-                rating={rating}
-                isReliable={isReliable}
-                setIsReliable={setIsReliable}
-                memo={memo}
-                setMemo={setMemo}
-                showFormSection={showFormSection}
-                setShowFormSection={setShowFormSection}
-              />
+              template ? (
+                <DynamicEvaluationForm
+                  templateName={templateName}
+                  scoringScale={scoringScale}
+                  sections={sections}
+                  formScores={formScores}
+                  setItemScore={setItemScore}
+                  totalScore={totalScore}
+                  totalPossible={totalPossible}
+                  percentage={percentage}
+                  rating={rating}
+                  isReliable={isReliable}
+                  setIsReliable={setIsReliable}
+                  memo={memo}
+                  setMemo={setMemo}
+                  showFormSection={showFormSection}
+                  setShowFormSection={setShowFormSection}
+                />
+              ) : (
+                <div className="mt-8 bg-yellow-50 rounded-lg border border-yellow-200 p-6 text-center">
+                  <p className="text-sm text-yellow-800">
+                    {templateLoading
+                      ? 'Loading evaluation template…'
+                      : selectedEmployeeId
+                        ? 'No evaluation template is assigned to this employee\'s position. Please upload a document instead.'
+                        : 'Select an employee to load their evaluation template.'}
+                  </p>
+                </div>
+              )
             ) : null}
 
             {submissionMode === 'files' ? (

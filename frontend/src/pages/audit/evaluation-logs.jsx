@@ -149,7 +149,81 @@ function EvaluationLogs() {
     return label;
   };
 
+  const isTemplateLog = (log) => String(log?.table_name || '').toLowerCase() === 'evaluation_templates';
+
+  const formatTemplateAction = (log) => {
+    const v = log?.new_values || log?.old_values || {};
+    const action = String(v?.action || '').toLowerCase();
+    const name = v?.name || v?.template_name || '';
+
+    if (action === 'add_section') return `Added Section — ${v?.section_title || ''}`;
+    if (action === 'update_section') return `Updated Section — ${v?.title || v?.section_id || ''}`;
+    if (action === 'delete_section') return `Deleted Section — ${v?.section_title || ''}`;
+    if (action === 'add_item') return `Added Item — ${v?.question_text || ''}`;
+    if (action === 'update_item') return `Updated Item`;
+    if (action === 'delete_item') return `Deleted Item`;
+    if (action === 'assign_to_position') return `Assigned Template — ${v?.template_name || ''} → ${v?.position_title || ''}`;
+    if (action === 'unassign_from_position') return `Unassigned Template — ${v?.template_name || ''} from ${v?.position_title || ''}`;
+
+    if (log?.action_type === 'CREATE') return name ? `Created Template — ${name}` : 'Created Template';
+    if (log?.action_type === 'UPDATE') {
+      if (v?.is_active === false) return name ? `Deactivated Template — ${name}` : 'Deactivated Template';
+      if (v?.is_active === true && log?.old_values?.is_active === false) return name ? `Reactivated Template — ${name}` : 'Reactivated Template';
+      return name ? `Updated Template — ${name}` : 'Updated Template';
+    }
+    if (log?.action_type === 'DELETE') return name ? `Deleted Template — ${name}` : 'Deleted Template';
+    return `Template ${log?.action_type || 'Activity'}`;
+  };
+
+  const formatTemplateChanges = (log) => {
+    const oldV = log?.old_values;
+    const newV = log?.new_values;
+    const v = newV || oldV || {};
+    const action = String(v?.action || '').toLowerCase();
+
+    if (action === 'add_section') {
+      return [`section: ${v?.section_title || '—'}`, v?.items_count ? `items: ${v.items_count}` : null].filter(Boolean).join(', ');
+    }
+    if (action === 'update_section') {
+      return [v?.title ? `title: ${v.title}` : null, v?.description ? `description: ${v.description}` : null].filter(Boolean).join(', ') || '—';
+    }
+    if (action === 'delete_section') return `removed section: ${v?.section_title || '—'}`;
+    if (action === 'add_item') return `question: ${v?.question_text || '—'}`;
+    if (action === 'update_item') return v?.question_text ? `question: ${v.question_text}` : '—';
+    if (action === 'delete_item') return 'removed item';
+    if (action === 'assign_to_position') return `${v?.position_title || '—'} → ${v?.template_name || '—'}`;
+    if (action === 'unassign_from_position') return `removed: ${v?.position_title || '—'} from ${v?.template_name || '—'}`;
+
+    if (v?.is_active === false) return `deactivated: ${v?.template_name || '—'}`;
+    if (v?.is_active === true && oldV?.is_active === false) return `reactivated: ${v?.template_name || '—'}`;
+
+    // For template metadata updates (UPDATE action with both old and new values)
+    if (log?.action_type === 'UPDATE' && oldV && newV && !action) {
+      const changes = [];
+
+      if (oldV?.name !== newV?.name) {
+        changes.push(`name: ${oldV?.name || '—'} → ${newV?.name || '—'}`);
+      }
+
+      if (oldV?.description !== newV?.description) {
+        changes.push(`description: ${oldV?.description || '—'} → ${newV?.description || '—'}`);
+      }
+
+      return changes.length ? changes.join(', ') : '—';
+    }
+
+    // For CREATE or when only new values exist
+    const bits = [
+      v?.name ? `name: ${v.name}` : null,
+      v?.description ? `description: ${v.description}` : null,
+      v?.sections_count ? `sections: ${v.sections_count}` : null,
+    ].filter(Boolean);
+    return bits.length ? bits.join(', ') : '—';
+  };
+
   const formatEvalAction = (log) => {
+    if (isTemplateLog(log)) return formatTemplateAction(log);
+
     const v = log?.new_values || log?.old_values;
     if (log?.action_type === "GENERATE_REPORT") {
       const name = v?.report_name || v?.reportName || "";
@@ -166,6 +240,8 @@ function EvaluationLogs() {
   };
 
   const formatEvalChanges = (log) => {
+    if (isTemplateLog(log)) return formatTemplateChanges(log);
+
     const oldV = log?.old_values;
     const newV = log?.new_values;
     const action = String(log?.action_type || "").toUpperCase();
@@ -241,7 +317,7 @@ function EvaluationLogs() {
         setLoading(true);
         setError("");
 
-        const response = await get("/audit-logs/table/performance_evaluations");
+        const response = await get("/audit-logs/table/evaluations");
         const data = Array.isArray(response?.data) ? response.data : [];
         if (!cancelled) setLogs(data);
       } catch (err) {

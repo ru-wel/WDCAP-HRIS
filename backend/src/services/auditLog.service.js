@@ -265,10 +265,12 @@ export const getAuditLogsByTable = async (tableName) => {
     const normalized = String(tableName || '').trim().toLowerCase();
     const leaveTables = ['leave_requests', 'leave_types', 'employee_leave_balances'];
     const employeesTables = ['employees', 'documents', 'onboarding_checklists', 'onboarding_items'];
+    const evaluationTables = ['performance_evaluations', 'evaluation_templates'];
 
     let query = supabase.from("audit_logs").select(auditLogFields);
     if (normalized === 'leave') query = query.in("table_name", leaveTables);
     else if (normalized === 'employees') query = query.in('table_name', employeesTables);
+    else if (normalized === 'evaluations' || normalized === 'performance_evaluations') query = query.in('table_name', evaluationTables);
     else if (normalized === 'reports') query = query.eq('action_type', AUDIT_ACTIONS.GENERATE_REPORT);
     else query = query.eq("table_name", tableName);
 

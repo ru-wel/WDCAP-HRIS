@@ -1,4 +1,3 @@
-// Frontend hook to manage ARISE form state (20 items with dynamic scoring)
 import { useState, useCallback } from 'react';
 import { ARISE_FORM_ITEMS, getTotalPossibleScore, calculatePercentage, getPerformanceRating } from '../constants/ariseFormData.js';
 

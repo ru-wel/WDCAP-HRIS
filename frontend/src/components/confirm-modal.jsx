@@ -11,6 +11,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   confirmDisabled = false,
+  confirmLoading = false,
 }) {
   useEffect(() => {
     if (!open) return;
@@ -55,7 +56,8 @@ export default function ConfirmModal({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-5 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                  disabled={confirmLoading}
+                  className="px-5 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cancelText}
                 </button>
@@ -63,12 +65,15 @@ export default function ConfirmModal({
               <button
                 type="button"
                 onClick={onConfirm}
-                disabled={confirmDisabled}
-                className={`px-6 py-2 rounded-lg text-sm text-white transition cursor-pointer ${
-                  confirmDisabled ? 'bg-[#ad3332]/60 cursor-not-allowed' : 'bg-[#990100] hover:bg-[#ad3332]'
+                disabled={confirmDisabled || confirmLoading}
+                className={`px-6 py-2 rounded-lg text-sm text-white transition cursor-pointer inline-flex items-center gap-2 ${
+                  confirmDisabled || confirmLoading ? 'bg-[#ad3332]/60 cursor-not-allowed' : 'bg-[#990100] hover:bg-[#ad3332]'
                 }`}
               >
-                {confirmText}
+                {confirmLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                )}
+                {confirmLoading ? 'Processing...' : confirmText}
               </button>
             </div>
           ) : (
@@ -77,7 +82,8 @@ export default function ConfirmModal({
                 <button
                   type="button"
                   onClick={onCancel}
-                  className="px-4 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer"
+                  disabled={confirmLoading}
+                  className="px-4 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {cancelText}
                 </button>
@@ -85,14 +91,17 @@ export default function ConfirmModal({
               <button
                 type="button"
                 onClick={onConfirm}
-                disabled={confirmDisabled}
-                className={`px-5 py-2 rounded-lg text-sm text-white transition cursor-pointer ${
-                  confirmDisabled
+                disabled={confirmDisabled || confirmLoading}
+                className={`px-5 py-2 rounded-lg text-sm text-white transition cursor-pointer inline-flex items-center gap-2 ${
+                  confirmDisabled || confirmLoading
                     ? "bg-[#ad3332]/60 cursor-not-allowed"
                     : "bg-[#990100] hover:bg-[#ad3332]"
                 }`}
               >
-                {confirmText}
+                {confirmLoading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                )}
+                {confirmLoading ? 'Processing...' : confirmText}
               </button>
             </div>
           )}

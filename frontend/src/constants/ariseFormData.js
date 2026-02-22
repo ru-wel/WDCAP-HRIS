@@ -118,8 +118,8 @@ export const ARISE_FORM_ITEMS = {
     },
     {
       id: 5,
-      title: "IV. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuno )",
-      tagalog: "IV. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuno )",
+      title: "V. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuno )",
+      tagalog: "V. Pagsunod sa Polisiya, Patakaran ng Kumpanya ( HRD ang magpupuno )",
       items: [
         {
           number: 18,

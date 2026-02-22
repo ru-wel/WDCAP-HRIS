@@ -114,6 +114,7 @@ export default function Sidenav({
       "/evaluation/history": { main: "Evaluation", sub: "Evaluation History" },
       "/evaluation/upload": { main: "Evaluation", sub: "Upload Result" },
       "/evaluation/my-evaluations": { main: "Evaluation", sub: "My Evaluations" },
+      "/evaluation/templates": { main: "Evaluation", sub: "Evaluation Templates" },
 
       "/departments": { main: "Departments", sub: null },
 
@@ -233,6 +234,7 @@ export default function Sidenav({
           { label: "Evaluation History", path: "/evaluation/history" },
           { label: "Upload Result", path: "/evaluation/upload" },
           { label: "My Evaluations", path: "/evaluation/my-evaluations" },
+          { label: "Evaluation Templates", path: "/evaluation/templates" },
         ]
       }) (),
     },

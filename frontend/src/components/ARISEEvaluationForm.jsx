@@ -35,7 +35,7 @@ export default function ARISEEvaluationForm({
                 >
                   {ARISE_FORM_ITEMS.scoringScale.map((scale) => (
                     <option key={scale.value} value={scale.value}>
-                      {scale.tagalog} ({scale.value})
+                      ({scale.value}) {scale.tagalog}
                     </option>
                   ))}
                 </select>

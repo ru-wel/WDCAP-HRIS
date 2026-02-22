@@ -40,11 +40,11 @@ export const submitEvaluationSchema = Joi.object({
   score: Joi.alternatives().try(Joi.number().min(0).max(100), Joi.string().trim().allow('', null)).optional(),
   remarks: Joi.string().allow('', null).max(2000).optional(),
   evaluation_type: Joi.string().trim().max(80).optional(),
-  // Posted as a JSON string from multipart/form-data; controller parses it.
   evaluation_form: Joi.alternatives().try(
     Joi.string().allow('', null),
     Joi.object().unknown(true)
-  ).optional()
+  ).optional(),
+  template_id: uuid().allow('', null).optional()
 });
 
 export const downloadSchema = Joi.object({

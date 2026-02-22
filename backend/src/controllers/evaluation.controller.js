@@ -118,6 +118,7 @@ export const submitEvaluation = async (req, res, next) => {
       remarks: req.body.remarks,
       evaluation_type: req.body.evaluation_type,
       evaluation_form: evaluationForm,
+      template_id: req.body.template_id || null,
       file: singleFile
         ? {
             buffer: singleFile.buffer,

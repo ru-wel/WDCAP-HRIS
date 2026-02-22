@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
 import RegularizationModal from '../../components/RegularizationModal.jsx';
-import ViewARISEFormModal from '../../components/ViewARISEFormModal.jsx';
+import ViewDynamicFormModal from '../../components/ViewDynamicFormModal.jsx';
 import ReportModal from '../../components/report-modal.jsx';
 import ReactPaginate from 'react-paginate';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -553,9 +553,10 @@ export default function EvaluationHistory() {
   const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
   const [employeeForRegularization, setEmployeeForRegularization] = useState(null);
 
-  const [ariseFormModalOpen, setAriseFormModalOpen] = useState(false);
-  const [ariseFormData, setAriseFormData] = useState(null);
-  const [ariseFormMeta, setAriseFormMeta] = useState({ employeeName: '', evaluationType: '', evaluationDate: '' });
+  const [formViewModalOpen, setFormViewModalOpen] = useState(false);
+  const [formViewData, setFormViewData] = useState(null);
+  const [formViewTemplate, setFormViewTemplate] = useState(null);
+  const [formViewMeta, setFormViewMeta] = useState({ employeeName: '', evaluationType: '', evaluationDate: '' });
 
   const [confirmState, setConfirmState] = useState({
     open: false,
@@ -1253,10 +1254,22 @@ export default function EvaluationHistory() {
           closeDetails();
         }}
         onRegularize={handleRegularizeFromHistory}
-        onViewARISEForm={({ formData, employeeName, evaluationType, evaluationDate }) => {
-          setAriseFormData(formData);
-          setAriseFormMeta({ employeeName, evaluationType, evaluationDate });
-          setAriseFormModalOpen(true);
+        onViewARISEForm={async ({ formData, employeeName, evaluationType, evaluationDate }) => {
+          setFormViewData(formData);
+          setFormViewMeta({ employeeName, evaluationType, evaluationDate });
+          setFormViewTemplate(null);
+
+          const tid = formData?.template_id;
+          if (tid) {
+            try {
+              const res = await get(`/evaluation-templates/${encodeURIComponent(tid)}`);
+              setFormViewTemplate(res?.data || null);
+            } catch (err) {
+              console.error('Failed to fetch template for viewing:', err);
+            }
+          }
+
+          setFormViewModalOpen(true);
         }}
       />
 
@@ -1300,17 +1313,19 @@ export default function EvaluationHistory() {
         fromPersonnelType={employeeForRegularization?.personnelType || 'Probationary'}
       />
 
-      <ViewARISEFormModal
-        open={ariseFormModalOpen}
+      <ViewDynamicFormModal
+        open={formViewModalOpen}
         onClose={() => {
-          setAriseFormModalOpen(false);
-          setAriseFormData(null);
-          setAriseFormMeta({ employeeName: '', evaluationType: '', evaluationDate: '' });
+          setFormViewModalOpen(false);
+          setFormViewData(null);
+          setFormViewTemplate(null);
+          setFormViewMeta({ employeeName: '', evaluationType: '', evaluationDate: '' });
         }}
-        formData={ariseFormData}
-        employeeName={ariseFormMeta.employeeName}
-        evaluationType={ariseFormMeta.evaluationType}
-        evaluationDate={ariseFormMeta.evaluationDate}
+        formData={formViewData}
+        template={formViewTemplate}
+        employeeName={formViewMeta.employeeName}
+        evaluationType={formViewMeta.evaluationType}
+        evaluationDate={formViewMeta.evaluationDate}
       />
     </div>
   );

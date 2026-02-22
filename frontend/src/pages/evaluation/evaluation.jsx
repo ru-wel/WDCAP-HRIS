@@ -876,9 +876,9 @@ export default function Evaluation() {
             id: String(r?.evaluation_id || `${title}-${date}`),
             title,
             start: date,
-            dotColor: '#F59E0B',
-            pillBg: '#FFE1A3',
-            pillText: '#FF8A00',
+            dotColor: hasResult ? '#16A34A' : '#F59E0B',
+            pillBg: hasResult ? '#DCFCE7' : '#FFE1A3',
+            pillText: hasResult ? '#15803D' : '#FF8A00',
             employeeName: employeeName || null,
             employeeId: r?.employee_id,
             employeeCode: r?.employee_code || null,
@@ -1191,7 +1191,11 @@ export default function Evaluation() {
               <div className="gc-legend-line" />
               <div className="gc-legend-item">
                 <span className="gc-legend-color" style={{ background: '#F59E0B' }} />
-                <span>Evaluation</span>
+                <span>Pending</span>
+              </div>
+              <div className="gc-legend-item">
+                <span className="gc-legend-color" style={{ background: '#16A34A' }} />
+                <span>Completed</span>
               </div>
 
               <div className="mt-5">
