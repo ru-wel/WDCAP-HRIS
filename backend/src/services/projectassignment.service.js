@@ -140,7 +140,10 @@ export const getAssignmentByProject = async (projectId) => {
       .eq('project_id', projectId)
       .order('assignment_date', { ascending: true });
 
-    if (error || !assignments) throw new NotFoundError('Assignment not found');
+    // IMPORTANT:
+    // An empty result set is a valid state (project has no assignments yet).
+    // Do NOT throw 404 for that case—return an empty array.
+    if (error) throw new InternalServerError(error.message);
     return assignments || [];
 
   } catch (error) {
