@@ -33,6 +33,9 @@ router.get('/pending', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER),
 router.post('/ensure-schedule', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(evaluationValidation.ensureScheduleSchema), evaluationController.ensureSchedule);
 router.post('/schedule', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.createScheduleSchema), evaluationController.createSchedule);
 
+// Executive/HR/Manager: per-employee summary (for history table + filters)
+router.get('/summary', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR, ROLES.MANAGER), validate(evaluationValidation.summaryQuerySchema), evaluationController.getEmployeeEvaluationSummary);
+
 // Shared (employee ownership enforced in controller)
 router.get('/employee/:employee_id', validate(evaluationValidation.employeeIdParamSchema), evaluationController.listEvaluationsByEmployee);
 router.get('/:evaluation_id', validate(evaluationValidation.evaluationIdParamSchema), evaluationController.getEvaluationById);

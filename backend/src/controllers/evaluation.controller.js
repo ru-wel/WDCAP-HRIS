@@ -14,6 +14,16 @@ const ensureEmployeeAccess = async ({ req, employeeDbId }) => {
   }
 };
 
+export const getEmployeeEvaluationSummary = async (req, res, next) => {
+  try {
+    const includeInactive = Boolean(req.body?.include_inactive ?? false);
+    const rows = await evaluationService.getEmployeeEvaluationSummary({ includeInactive });
+    res.status(200).json({ success: true, message: 'Evaluation summary retrieved successfully', data: rows });
+  } catch (e) {
+    next(e);
+  }
+};
+
 export const listEvaluations = async (req, res, next) => {
   try {
     const { employee_id, from, to } = req.query;

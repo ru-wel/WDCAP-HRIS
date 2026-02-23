@@ -464,23 +464,32 @@ export default function EvaluationHistory() {
   const [sortOrder, setSortOrder] = useState('employee_id_asc');
   const [includeInactive, setIncludeInactive] = useState(false);
 
+  const [filterHasEval, setFilterHasEval] = useState(false);
+  const [filterEvalYear, setFilterEvalYear] = useState('');
+
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = 'employee_id_asc';
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
   const [draftIncludeInactive, setDraftIncludeInactive] = useState(includeInactive);
+  const [draftFilterHasEval, setDraftFilterHasEval] = useState(false);
+  const [draftFilterEvalYear, setDraftFilterEvalYear] = useState('');
 
   const activeFiltersCount = useMemo(() => {
     let n = 0;
     if (sortOrder !== defaultSort) n += 1;
     if (includeInactive) n += 1;
+    if (filterHasEval) n += 1;
+    if (filterEvalYear) n += 1;
     return n;
-  }, [sortOrder, includeInactive]);
+  }, [sortOrder, includeInactive, filterHasEval, filterEvalYear]);
 
   useEffect(() => {
     if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
     setDraftIncludeInactive(includeInactive);
-  }, [filtersOpen, sortOrder, includeInactive]);
+    setDraftFilterHasEval(filterHasEval);
+    setDraftFilterEvalYear(filterEvalYear);
+  }, [filtersOpen, sortOrder, includeInactive, filterHasEval, filterEvalYear]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -494,11 +503,15 @@ export default function EvaluationHistory() {
   const clearFilters = () => {
     setDraftSortOrder(defaultSort);
     setDraftIncludeInactive(false);
+    setDraftFilterHasEval(false);
+    setDraftFilterEvalYear('');
   };
 
   const applyDraftFilters = () => {
     setSortOrder(draftSortOrder);
     setIncludeInactive(draftIncludeInactive);
+    setFilterHasEval(draftFilterHasEval);
+    setFilterEvalYear(draftFilterEvalYear);
     setFiltersOpen(false);
   };
 
@@ -626,18 +639,23 @@ export default function EvaluationHistory() {
         return;
       }
 
-      const endpoint = includeInactive ? '/employees?include_inactive=true' : '/employees';
+      const endpoint = `/evaluations/summary${includeInactive ? '?include_inactive=true' : ''}`;
       const res = await get(endpoint);
       const list = Array.isArray(res?.data) ? res.data : [];
       const formatted = list.map((e) => ({
         id: e?.id,
-        employeeCode: e?.employee_id,
-        name: `${e?.first_name || ''} ${e?.last_name || ''}`.trim(),
-        position: e?.positions?.position_title || 'N/A',
+        employeeCode: e?.employee_code,
+        name: e?.name || 'N/A',
+        position: e?.position || 'N/A',
         hireDate: formatShortDate(e?.hire_date),
         hireDateRaw: e?.hire_date || '',
         type: e?.personnel_type || 'N/A',
         employmentStatus: e?.employment_status || 'N/A',
+        latestEvalScore: e?.latest_eval_score || null,
+        latestEvalType: e?.latest_eval_type || null,
+        latestEvalDate: e?.latest_eval_date || null,
+        evalYears: Array.isArray(e?.eval_years) ? e.eval_years : [],
+        hasEvaluations: Boolean(e?.has_evaluations),
       }));
       setRows(formatted);
     } catch (e) {
@@ -663,17 +681,35 @@ export default function EvaluationHistory() {
     openDetails(match);
   }, [searchParams, rows]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set();
+    rows.forEach((r) => (r.evalYears || []).forEach((y) => years.add(y)));
+    return [...years].sort((a, b) => b - a);
+  }, [rows]);
+
   const filtered = useMemo(() => {
+    let result = rows;
+
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => {
-      const id = String(r.employeeCode || '').toLowerCase();
-      const name = String(r.name || '').toLowerCase();
-      const position = String(r.position || '').toLowerCase();
-      const type = String(r.type || '').toLowerCase();
-      return id.includes(q) || name.includes(q) || position.includes(q) || type.includes(q);
-    });
-  }, [rows, searchTerm]);
+    if (q) {
+      result = result.filter((r) => {
+        const id = String(r.employeeCode || '').toLowerCase();
+        const name = String(r.name || '').toLowerCase();
+        const position = String(r.position || '').toLowerCase();
+        const type = String(r.type || '').toLowerCase();
+        return id.includes(q) || name.includes(q) || position.includes(q) || type.includes(q);
+      });
+    }
+
+    if (filterEvalYear) {
+      // year filter implies "has evaluations in that year"
+      result = result.filter((r) => (r.evalYears || []).includes(Number(filterEvalYear)));
+    } else if (filterHasEval) {
+      result = result.filter((r) => r.hasEvaluations);
+    }
+
+    return result;
+  }, [rows, searchTerm, filterHasEval, filterEvalYear]);
 
   const visible = useMemo(() => {
     const sorted = [...filtered].sort((a, b) => {
@@ -1077,6 +1113,34 @@ export default function EvaluationHistory() {
                           </ChipButton>
                         </div>
                       </div>
+
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Evaluations</p>
+                        <div className="flex flex-wrap gap-2">
+                          <ChipButton active={!draftFilterHasEval} onClick={() => { setDraftFilterHasEval(false); setDraftFilterEvalYear(''); }}>
+                            All
+                          </ChipButton>
+                          <ChipButton active={draftFilterHasEval} onClick={() => setDraftFilterHasEval(true)}>
+                            With Evaluations
+                          </ChipButton>
+                        </div>
+                      </div>
+
+                      {availableYears.length > 0 && (
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700 mb-2">Evaluation Year</p>
+                          <div className="flex flex-wrap gap-2">
+                            <ChipButton active={draftFilterEvalYear === ''} onClick={() => setDraftFilterEvalYear('')}>
+                              All
+                            </ChipButton>
+                            {availableYears.map((yr) => (
+                              <ChipButton key={yr} active={draftFilterEvalYear === String(yr)} onClick={() => setDraftFilterEvalYear(String(yr))}>
+                                {yr}
+                              </ChipButton>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">

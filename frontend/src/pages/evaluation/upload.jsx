@@ -274,11 +274,14 @@ export default function EvaluationUpload() {
 
       const res = await get('/employees');
       const list = Array.isArray(res?.data) ? res.data : [];
-      const normalized = list.map((e) => ({
-        id: String(e?.id || ''),
-        name: `${e?.employee_id || ''} - ${(e?.first_name || '') + ' ' + (e?.last_name || '')}`.trim(),
-        employeeCode: String(e?.employee_id || '').trim(),
-      }));
+      const myDbId = String(user?.employee_db_id ?? '');
+      const normalized = list
+        .filter((e) => !myDbId || String(e?.id || '') !== myDbId)
+        .map((e) => ({
+          id: String(e?.id || ''),
+          name: `${e?.employee_id || ''} - ${(e?.first_name || '') + ' ' + (e?.last_name || '')}`.trim(),
+          employeeCode: String(e?.employee_id || '').trim(),
+        }));
       setEmployees(normalized);
 
       if (preselectedEmployeeId) {
@@ -1030,9 +1033,10 @@ export default function EvaluationUpload() {
                   <>
                     <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Evaluation Type:</label>
                     <select
-                      className="input-select"
+                      className="input-select disabled:text-gray-600"
                       value={evaluationType}
                       onChange={(e) => setEvaluationType(e.target.value)}
+                      disabled
                     >
                       <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
                       <option value="Probationary">Probationary</option>
@@ -1145,7 +1149,7 @@ export default function EvaluationUpload() {
                     {templateLoading
                       ? 'Loading evaluation template…'
                       : selectedEmployeeId
-                        ? 'No evaluation template is assigned to this employee\'s position. Please upload a document instead.'
+                        ? 'No evaluation template is assigned to this employee\'s position. Please assign a template or upload a document instead.'
                         : 'Select an employee to load their evaluation template.'}
                   </p>
                 </div>

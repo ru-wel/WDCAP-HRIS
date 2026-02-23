@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase.js';
-import { BadRequestError, InternalServerError, NotFoundError } from '../utils/errors.js';
+import { BadRequestError, ForbiddenError, InternalServerError, NotFoundError } from '../utils/errors.js';
 import { AUDIT_ACTIONS } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from './mail.service.js';
@@ -257,6 +257,78 @@ const getEmployeeRecipientEmail = async (employee) => {
   } catch {
     return '';
   }
+};
+
+export const getEmployeeEvaluationSummary = async ({ includeInactive = false } = {}) => {
+  let empQuery = supabase
+    .from('employees')
+    .select('id, employee_id, first_name, last_name, personnel_type, hire_date, employment_status, positions(position_title)')
+    .order('employee_id', { ascending: true });
+
+  if (!includeInactive) {
+    empQuery = empQuery.eq('employment_status', 'Active');
+  }
+
+  const { data: employees, error: empErr } = await empQuery;
+  if (empErr) throw new InternalServerError(empErr.message);
+
+  // fetch all evaluations (summary fields only)
+  const { data: evals, error: evalErr } = await supabase
+    .from('performance_evaluations')
+    .select('evaluation_id, employee_id, evaluation_type, evaluation_date, evaluation_notes, evaluation_document_path')
+    .order('evaluation_date', { ascending: false });
+
+  if (evalErr) throw new InternalServerError(evalErr.message);
+
+  const evalsByEmployee = {};
+  for (const ev of (evals || [])) {
+    const key = String(ev.employee_id);
+    if (!evalsByEmployee[key]) evalsByEmployee[key] = [];
+    evalsByEmployee[key].push(ev);
+  }
+
+  const extractScore = (notes) => {
+    if (!notes) return null;
+    const m = String(notes).match(/^\s*(?:Total\s+)?Score\s*:\s*(.+?)\s*$/im);
+    return m ? m[1].trim() : null;
+  };
+
+  const isCompleted = (ev) => Boolean(ev.evaluation_notes || ev.evaluation_document_path);
+
+  return (employees || []).map((emp) => {
+    const empEvals = evalsByEmployee[String(emp.id)] || [];
+
+    const sorted = [...empEvals].sort((a, b) =>
+      new Date(b.evaluation_date || 0) - new Date(a.evaluation_date || 0)
+    );
+
+    const latest = sorted[0] || null;
+    const latestCompleted = sorted.find(isCompleted) || null;
+
+    const evalYears = [
+      ...new Set(
+        empEvals
+          .map((ev) => (ev.evaluation_date ? new Date(ev.evaluation_date).getFullYear() : null))
+          .filter(Boolean)
+      ),
+    ].sort((a, b) => b - a);
+
+    return {
+      id: emp.id,
+      employee_code: emp.employee_id,
+      name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+      position: emp.positions?.position_title || null,
+      personnel_type: emp.personnel_type || null,
+      hire_date: emp.hire_date || null,
+      employment_status: emp.employment_status || null,
+      eval_count: empEvals.length,
+      eval_years: evalYears,
+      has_evaluations: empEvals.length > 0,
+      latest_eval_date: latest?.evaluation_date || null,
+      latest_eval_type: latest?.evaluation_type || null,
+      latest_eval_score: latestCompleted ? extractScore(latestCompleted.evaluation_notes) : null,
+    };
+  });
 };
 
 export const listEvaluations = async ({ employee_id, from, to } = {}) => {
@@ -731,6 +803,10 @@ export const submitEvaluation = async (evaluationId, payload, user) => {
     .single();
 
   if (empErr || !employee) throw new NotFoundError('Employee not found');
+
+  if (String(employee.id) === String(user?.employee_db_id ?? '')) {
+    throw new ForbiddenError('You cannot submit an evaluation for yourself');
+  }
 
   const uploads = [];
 

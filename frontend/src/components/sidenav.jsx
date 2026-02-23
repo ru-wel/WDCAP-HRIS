@@ -208,7 +208,6 @@ export default function Sidenav({
             { label: "My Leaves", path:"/leave/my-leaves" },
           ]
         }
-
         return[
           { label: "Leave Calendar", path: "/leave"},
           { label: "Leave Request", path: "/leave/request" },
@@ -235,7 +234,7 @@ export default function Sidenav({
           { label: "Evaluation History", path: "/evaluation/history" },
           { label: "Upload Result", path: "/evaluation/upload" },
           { label: "My Evaluations", path: "/evaluation/my-evaluations" },
-          { label: "Evaluation Templates", path: "/evaluation/templates" },
+          ...((isExecutive || isHr) ? [{ label: "Evaluation Templates", path: "/evaluation/templates" }] : []),
         ]
       }) (),
     },

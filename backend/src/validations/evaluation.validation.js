@@ -22,6 +22,10 @@ export const listEvaluationsSchema = Joi.object({
   to: Joi.string().isoDate().optional()
 });
 
+export const summaryQuerySchema = Joi.object({
+  include_inactive: Joi.boolean().truthy('true').falsy('false').optional(),
+});
+
 export const createScheduleSchema = Joi.object({
   employee_id: uuid().required(),
   evaluation_type: Joi.string().trim().max(80).required(),

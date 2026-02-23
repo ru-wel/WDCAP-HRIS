@@ -577,10 +577,10 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
 
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Evaluation Type:</label>
-            <select className="input-select" value={evaluationType} onChange={(e) => {setEvaluationType(e.target.value); setUnsavedChanges(true);}}>
+            <select className="input-select disabled:text-gray-600" value={evaluationType} onChange={(e) => {setEvaluationType(e.target.value); setUnsavedChanges(true);}} disabled={isUpdate || isProjectBasedSchedule}>
               <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
               <option value="Probationary">Probationary</option>
-              <option value="Project-Based">Project-Based</option>
+              <option value="Project-based">Project-based</option>
             </select>
           </div>
         </div>
@@ -1198,11 +1198,11 @@ export default function Evaluation() {
                 <span>Completed</span>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-5 flex flex-col flex-1 min-h-0">
                 <div className="text-sm font-semibold text-[#990100]">
                   Evaluations (Q{quarterInfo.quarter} {quarterInfo.year})
                 </div>
-                <div className="mt-2 max-h-[360px] overflow-auto rounded-lg border border-gray-200 bg-white">
+                <div className="mt-2 flex-1 overflow-y-auto min-h-0 rounded-lg border border-gray-200 bg-white">
                   {quarterEvaluations.length ? (
                     <ul className="divide-y divide-gray-100">
                       {quarterEvaluations.map((ev) => {
@@ -1214,7 +1214,7 @@ export default function Evaluation() {
                             <div className="font-medium text-gray-900 truncate" title={name}>
                               {name || 'Employee'}
                             </div>
-                            <div className="mt-0.5 text-gray-600">
+                            <div className="mt-0.5 text-gray-600 truncate">
                               {date ? formatPrettyDate(date) : ''}{type ? ` • ${type}` : ''}
                             </div>
                           </li>
