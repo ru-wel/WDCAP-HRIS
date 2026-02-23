@@ -574,6 +574,23 @@ function ModalEmployees({
             </div>
 
             <div className=" items-center ">
+              {/* PLS UNCOMMENT - MIDDLE NAME
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
+                <b>Middle Name:</b>
+              </p>
+              <input
+                type="text"
+                name="middle_name"
+                value={data.middle_name}
+                disabled={!editData || loading}
+                onChange={handleChange}
+                className="modal-employees-field"
+              />*/}
+            </div>
+          </div>
+
+          <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left">
+            <div className="items-center md:pb-0 pb-3">
               <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Last Name:</b>
               </p>
@@ -585,6 +602,27 @@ function ModalEmployees({
                 onChange={handleChange}
                 className="modal-employees-field"
               />
+            </div>
+
+            <div className=" items-center ">
+              {/* PLS UNCOMMENT - SEX
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
+                <b>Sex:</b>
+              </p>
+              <select
+                name="sex"
+                value={data.sex}
+                disabled={!editData || loading}
+                onChange={handleChange}
+                className="modal-employees-field cursor-pointer disabled:cursor-default"
+              >
+                <option value="">Select Sex</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.department_name}
+                  </option>
+                ))}
+              </select>*/}
             </div>
           </div>
 

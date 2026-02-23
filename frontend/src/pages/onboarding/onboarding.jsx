@@ -134,11 +134,11 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div className="flex items-center">
-                        <p className="text-sm"><b>Employee ID:</b> (auto-generated)</p>
+                        <p className="text-sm"><b className="uppercase">Employee ID:</b> (auto-generated)</p>
                     </div>
 
                     <div>
-                        <p className="md:text-sm pb-2"><b>Employment Status:</b></p>
+                        <p className="md:text-sm pb-2 uppercase"><b>Employment Status:</b></p>
                         <select name="status" className={`input-select${validFieldClass(isNonEmpty(data.status))} cursor-pointer`} value={data.status} onChange={(e) => setData({ ...data, status: e.target.value })}>
                             <option value="">Select Status</option>
                             <option value={EMPLOYMENT_STATUSES.ACTIVE}>{EMPLOYMENT_STATUSES.ACTIVE}</option>
@@ -153,10 +153,28 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.fname))}`} placeholder="Employee's First Name" value={data.fname} onChange={(e) => setData({ ...data, fname: e.target.value })} required/>
                     </div>
 
+                    {/* PLS UNCOMMENT - mname makalage as of the moment
+                    <div>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Middle Name (OPTIONAL):</b></p>
+                        <input type="text" className={`input-field${validFieldClass(isNameValid(data.mname))}`} placeholder="Employee's Middle Name" value={data.mname} onChange={(e) => setData({ ...data, mname: e.target.value })} required/>
+                    </div>*/}
+                </div>
+
+                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Last Name:</b></p>
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.lname))}`} placeholder="Employee's Last Name" value={data.lname} onChange={(e) => setData({ ...data, lname: e.target.value })} required/>
                     </div>
+                    
+                    {/* PLS UNCOMMENT - sex makalage as of the moment
+                    <div>
+                        <p className="md:text-sm pb-2 uppercase"><b>Sex:</b></p>
+                        <select name="status" className={`input-select${validFieldClass(isNonEmpty(data.sex))} cursor-pointer`} value={data.sex} onChange={(e) => setData({ ...data, sex: e.target.value })}>
+                            <option value="">Select Sex</option>
+                            <option value={EMPLOYEE_SEX.FEMALE}>{EMPLOYEE_SEX.FEMALE}</option>
+                            <option value={EMPLOYEE_SEX.MALE}>{EMPLOYEE_SEX.FEMALE}</option>
+                        </select>
+                    </div>*/}
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">

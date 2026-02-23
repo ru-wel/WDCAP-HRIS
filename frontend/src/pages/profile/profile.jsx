@@ -295,6 +295,13 @@ export default function Profile() {
                 {formatShortDate(employeeDetails?.birth_date)}
               </div>
             </div>
+            {/* PLS UNCOMMENT - FOR SEX
+            <div>
+              <p className="text-xs font-bold text-[#483D3D] pb-1">SEX:</p>
+              <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
+                {formatShortDate(employeeDetails?.sex)}
+              </div>
+            </div>*/}
             <div>
               <p className="text-xs font-bold text-[#483D3D] pb-1">PHONE NUMBER:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
