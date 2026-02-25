@@ -3,7 +3,6 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useNavigate } from 'react-router-dom';
-import DropDownFilter from '../../components/dropdownfilter.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
 import { ROLES } from '../../constants/config.js';
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -422,7 +421,7 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
   const isUpdate = mode === 'update';
 
   const [employeeId, setEmployeeId] = useState('');
-  const [evaluationType, setEvaluationType] = useState(`ANNUAL (${new Date().getFullYear()})`);
+  const [evaluationType, setEvaluationType] = useState('Annual');
   const [evaluationDate, setEvaluationDate] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -483,7 +482,7 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
     }
 
     setEmployeeId(filteredEmployees?.[0]?.id ? String(filteredEmployees[0].id) : '');
-    setEvaluationType(isProjectBasedSchedule ? 'Project-based' : `ANNUAL (${new Date().getFullYear()})`);
+    setEvaluationType(isProjectBasedSchedule ? 'Project-based' : 'Annual');
     setEvaluationDate(toIsoDate(initial?.evaluation_date) || toIsoDate(new Date().toISOString()) || '');
     setNotes('');
   }, [open, isUpdate, initial, filteredEmployees, isProjectBasedSchedule]);
@@ -578,7 +577,7 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-2 uppercase">Evaluation Type:</label>
             <select className="input-select disabled:text-gray-600" value={evaluationType} onChange={(e) => {setEvaluationType(e.target.value); setUnsavedChanges(true);}} disabled={isUpdate || isProjectBasedSchedule}>
-              <option value={`ANNUAL (${new Date().getFullYear()})`}>{`ANNUAL (${new Date().getFullYear()})`}</option>
+              <option value="Annual">Annual</option>
               <option value="Probationary">Probationary</option>
               <option value="Project-based">Project-based</option>
             </select>
@@ -634,12 +633,7 @@ export default function Evaluation() {
   const [searchTerm, setSearchTerm] = useState('');
   const [calendarCursor, setCalendarCursor] = useState(() => new Date());
 
-  const [filtersOpen, setFiltersOpen] = useState(false);
-
-  const [draftTypeFilter, setDraftTypeFilter] = useState('all');
-  const [draftSearchTerm, setDraftSearchTerm] = useState('');
-
-  const [typeFilter, setTypeFilter] = useState('all');
+  const [enabledTypes, setEnabledTypes] = useState(['Annual', 'Probationary', 'Project-based']);
 
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -909,75 +903,24 @@ export default function Evaluation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee, canManage]);
 
-  useEffect(() => {
-    if (!filtersOpen) return;
-    setDraftTypeFilter(typeFilter);
-    setDraftSearchTerm(searchTerm);
-  }, [filtersOpen, typeFilter, searchTerm]);
-
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') setFiltersOpen(false);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [filtersOpen]);
-
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [filtersOpen]);
-
   const effectiveEvents = useMemo(() => rawEvents, [rawEvents]);
 
-  const typeOptions = useMemo(() => {
-    const types = Array.from(
-      new Set(
-        effectiveEvents
-          .map((e) => String(e.evaluationType || '').trim())
-          .filter((v) => v.length)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-
-    return [{ value: 'all', label: 'All' }, ...types.map((t) => ({ value: t, label: t }))];
-  }, [effectiveEvents]);
-
-  const defaultType = 'all';
-
-  const activeFiltersCount = useMemo(() => {
-    let n = 0;
-    if (typeFilter !== defaultType) n += 1;
-    if (String(searchTerm || '').trim()) n += 1;
-    return n;
-  }, [typeFilter, searchTerm]);
-
-  const clearFilters = () => {
-    setDraftTypeFilter(defaultType);
-    setDraftSearchTerm('');
-  };
-
-  const applyDraftFilters = () => {
-    setTypeFilter(draftTypeFilter);
-    setSearchTerm(draftSearchTerm);
-    setFiltersOpen(false);
+  const toggleType = (type) => {
+    setEnabledTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   };
 
   const filteredEvents = useMemo(() => {
-    let list = effectiveEvents;
-
-    if (typeFilter !== 'all') {
-      list = list.filter((e) => String(e.evaluationType || '') === typeFilter);
-    }
+    let list = effectiveEvents.filter((e) => {
+      const t = String(e.evaluationType || '').trim();
+      return enabledTypes.includes(t);
+    });
 
     const q = String(searchTerm || '').trim().toLowerCase();
     if (!q) return list;
     return list.filter((e) => String(e.title || '').toLowerCase().includes(q));
-  }, [effectiveEvents, typeFilter, searchTerm]);
+  }, [effectiveEvents, enabledTypes, searchTerm]);
 
   const quarterInfo = useMemo(() => getQuarterRange(calendarCursor), [calendarCursor]);
 
@@ -985,6 +928,7 @@ export default function Evaluation() {
     if (!canManage) return [];
     const { startIso, endIso } = quarterInfo;
     return rawEvents.filter((ev) => {
+      if (ev.hasResult) return false; // hide completed evaluations
       const evDate = String(ev?.date || ev?.start || '').slice(0, 10);
       return evDate >= startIso && evDate <= endIso;
     });
@@ -1055,27 +999,6 @@ export default function Evaluation() {
           <h1 className="text-2xl lg:text-3xl font-bold text-[#990100] text-left lg:self-center">Evaluation</h1>
 
           <div className="flex items-center justify-end gap-3">
-
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setFiltersOpen((p) => !p)}
-                className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
-                aria-haspopup="dialog"
-                aria-expanded={filtersOpen}
-              >
-                <span className="font-medium">Filters</span>
-
-                {activeFiltersCount ? (
-                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
-                    {activeFiltersCount}
-                  </span>
-                ) : null}
-
-                <span className="text-xs">▾</span>
-              </button>
-            </div>
-
             <div className="relative border border-[#990100] rounded-lg">
               <input
                 type="search"
@@ -1091,46 +1014,6 @@ export default function Evaluation() {
               />
             </div>
           </div>
-          {filtersOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-              <div className="absolute inset-0 bg-black/40" onClick={() => setFiltersOpen(false)} />
-
-              <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                  <p className="text-sm font-bold text-[#990100]">Filters</p>
-                  <button
-                    type="button"
-                    onClick={() => setFiltersOpen(false)}
-                    className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="px-4 py-4 max-h-[65vh] overflow-y-auto space-y-4">
-                  <DropDownFilter label="Type" value={draftTypeFilter} onChange={setDraftTypeFilter} options={typeOptions} />
-                </div>
-
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                  >
-                    Clear all
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyDraftFilters}
-                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
         </div>
 
         <hr className="border-[#990100] mb-6" />
@@ -1187,7 +1070,27 @@ export default function Evaluation() {
             </div>
 
             <div className="gc-legend">
-              <div className="gc-legend-title">Calendars</div>
+              {/* Type filter checkboxes */}
+              <div className="gc-legend-title">My Calendars</div>
+              <div className="gc-legend-line" />
+              {[
+                { id: 'Annual', label: 'Annual' },
+                { id: 'Probationary', label: 'Probationary' },
+                { id: 'Project-based', label: 'Project-based' },
+              ].map((item) => (
+                <label key={item.id} className="flex items-center gap-3 py-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={enabledTypes.includes(item.id)}
+                    onChange={() => toggleType(item.id)}
+                    className="accent-[#990100]"
+                  />
+                  <span className="text-sm text-gray-800">{item.label}</span>
+                </label>
+              ))}
+
+              {/* Status legend */}
+              <div className="gc-legend-title mt-4">Legend</div>
               <div className="gc-legend-line" />
               <div className="gc-legend-item">
                 <span className="gc-legend-color" style={{ background: '#F59E0B' }} />
@@ -1229,7 +1132,7 @@ export default function Evaluation() {
 
               {canManage ? (
                 <div className="mt-4 text-xs text-gray-600">
-                  Tip: Click a date to schedule.
+                  Tip: Click a date to schedule an evaluation for Project-Based employees.
                 </div>
               ) : null}
             </div>

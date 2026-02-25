@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ConfirmModal from '../../components/confirm-modal.jsx';
 import RegularizationModal from '../../components/RegularizationModal.jsx';
@@ -20,6 +20,80 @@ const formatShortDate = (value) => {
   return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
 };
 
+function EmployeeSearchDropdown({ employees, value, onChange, placeholder = 'Select employee...', disabled }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return employees;
+    const q = search.toLowerCase();
+    return employees.filter((e) => String(e.name || '').toLowerCase().includes(q));
+  }, [employees, search]);
+
+  const selected = employees.find((e) => e.id === value);
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button type="button" onClick={() => !disabled && setIsOpen((o) => !o)} disabled={disabled} className="w-full input-select flex items-center justify-between gap-3 text-left disabled:opacity-60 disabled:cursor-not-allowed" >
+        <span className={selected ? '' : 'text-gray-400'}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <svg className={`w-4 h-4 transition-transform flex-shrink-0 ml-2 ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+          <div className="p-2 border-b border-gray-200 sticky top-0 bg-white rounded-t-lg">
+            <input type="text" placeholder="Search employees..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#990100]" autoFocus onClick={(e) => e.stopPropagation()} />
+          </div>
+          <div className="overflow-y-auto max-h-56" data-lenis-prevent>
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-gray-500 text-center text-sm">No employees found</div>
+            ) : (
+              filtered.map((emp) => (
+                <button
+                  key={emp.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(emp);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-100 transition ${emp.id === value ? 'bg-gray-100' : ''}`}
+                >
+                  <div className={`text-sm ${emp.id === value ? 'font-semibold' : ''}`}>{emp.name}</div>
+                  {emp.evaluations?.length === 1 ? (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {formatShortDate(emp.evaluations[0].evaluation_date)} — {emp.evaluations[0].evaluation_type || 'Evaluation'}
+                    </div>
+                  ) : emp.evaluations?.length > 1 ? (
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {emp.evaluations.length} pending evaluations
+                    </div>
+                  ) : null}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EvaluationUpload() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,12 +111,11 @@ export default function EvaluationUpload() {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(preselectedEmployeeId || '');
   const [selectedEmployeeCode, setSelectedEmployeeCode] = useState('');
-  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [pendingByEmployee, setPendingByEmployee] = useState({});
 
   const [evaluationId, setEvaluationId] = useState(preselectedEvaluationId || '');
   const [availableEvaluations, setAvailableEvaluations] = useState([]);
-  const [loadingEvaluations, setLoadingEvaluations] = useState(false);
 
   const [evaluationType, setEvaluationType] = useState(`ANNUAL (${new Date().getFullYear()})`);
   const [score, setScore] = useState('');
@@ -88,31 +161,29 @@ export default function EvaluationUpload() {
     serializeFormData,
   } = useDynamicEvaluationForm(template);
 
-  // filter employees based on search term (with autocomplete)
-  const filteredEmployees = useMemo(() => {
-    if (!employeeSearchTerm.trim()) return [];
-    const search = employeeSearchTerm.toLowerCase();
-    return employees.filter((emp) => {
-      const name = String(emp.name || '').toLowerCase();
-      return name.includes(search);
-    });
-  }, [employees, employeeSearchTerm]);
-
-  // handle employee selection from autocomplete
   const handleSelectEmployee = (employee) => {
     setSelectedEmployee(employee);
     setSelectedEmployeeId(employee.id);
     setSelectedEmployeeCode(employee.employeeCode || '');
-    setEmployeeSearchTerm('');
-    if (!preselectedEvaluationId) setEvaluationId('');
+
+    const evals = pendingByEmployee[employee.id]?.evaluations || [];
+    setAvailableEvaluations(evals);
+
+    if (!preselectedEvaluationId) {
+      if (evals.length === 1) {
+        setEvaluationId(String(evals[0].evaluation_id));
+        setEvaluationType(String(evals[0].evaluation_type || `ANNUAL (${new Date().getFullYear()})`));
+      } else {
+        setEvaluationId('');
+      }
+    }
   };
 
-  // handle clearing selected employee
   const handleClearEmployee = () => {
     setSelectedEmployee(null);
     setSelectedEmployeeId('');
     setSelectedEmployeeCode('');
-    setEmployeeSearchTerm('');
+    setAvailableEvaluations([]);
     if (!preselectedEvaluationId) setEvaluationId('');
   };
 
@@ -272,25 +343,55 @@ export default function EvaluationUpload() {
         return;
       }
 
-      const res = await get('/employees');
-      const list = Array.isArray(res?.data) ? res.data : [];
+      const res = await get('/evaluations');
+      const all = Array.isArray(res?.data) ? res.data : [];
       const myDbId = String(user?.employee_db_id ?? '');
-      const normalized = list
-        .filter((e) => !myDbId || String(e?.id || '') !== myDbId)
-        .map((e) => ({
-          id: String(e?.id || ''),
-          name: `${e?.employee_id || ''} - ${(e?.first_name || '') + ' ' + (e?.last_name || '')}`.trim(),
-          employeeCode: String(e?.employee_id || '').trim(),
-        }));
-      setEmployees(normalized);
+
+      // filter out evaluations that have not been submitted yet
+      const pending = all.filter((ev) => {
+        const hasNotes = ev?.evaluation_notes && String(ev.evaluation_notes).trim();
+        const hasDocs = ev?.evaluation_document_path;
+        return !hasNotes && !hasDocs;
+      });
+
+      const byEmployee = {};
+      for (const ev of pending) {
+        const empDbId = String(ev?.employee_id || '');
+        if (!empDbId || empDbId === myDbId) continue;
+        if (!byEmployee[empDbId]) {
+          const emp = ev?.employees || {};
+          byEmployee[empDbId] = {
+            id: empDbId,
+            name: `${emp.employee_id || ''} - ${(emp.first_name || '') + ' ' + (emp.last_name || '')}`.trim(),
+            employeeCode: String(emp.employee_id || '').trim(),
+            evaluations: [],
+          };
+        }
+        byEmployee[empDbId].evaluations.push(ev);
+      }
+
+      setPendingByEmployee(byEmployee);
+      const uniqueEmployees = Object.values(byEmployee);
+      setEmployees(uniqueEmployees);
 
       if (preselectedEmployeeId) {
-        setSelectedEmployeeId(String(preselectedEmployeeId));
-        const match = normalized.find((x) => String(x?.id) === String(preselectedEmployeeId));
-        setSelectedEmployeeCode(String(match?.employeeCode || '').trim());
-        setSelectedEmployee(match || null);
+        const match = uniqueEmployees.find((x) => String(x?.id) === String(preselectedEmployeeId));
+        if (match) {
+          setSelectedEmployeeId(match.id);
+          setSelectedEmployeeCode(match.employeeCode);
+          setSelectedEmployee(match);
+          const evals = byEmployee[match.id]?.evaluations || [];
+          setAvailableEvaluations(evals);
+          if (evals.length === 1) {
+            setEvaluationId(String(evals[0].evaluation_id));
+            setEvaluationType(String(evals[0].evaluation_type || `ANNUAL (${new Date().getFullYear()})`));
+          }
+        } else {
+          setSelectedEmployeeId(String(preselectedEmployeeId));
+          setSelectedEmployeeCode('');
+          setSelectedEmployee(null);
+        }
       } else {
-        // Don't auto-select first employee - let user search and select
         setSelectedEmployeeId('');
         setSelectedEmployeeCode('');
         setSelectedEmployee(null);
@@ -308,39 +409,6 @@ export default function EvaluationUpload() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmployee]);
 
-  useEffect(() => {
-    const fetchEmployeeEvaluations = async () => {
-      if (preselectedEvaluationId) return;
-
-      if (!selectedEmployeeId) {
-        setAvailableEvaluations([]);
-        setEvaluationId('');
-        return;
-      }
-
-      try {
-        setLoadingEvaluations(true);
-        const res = await get(`/evaluations/employee/${encodeURIComponent(String(selectedEmployeeId))}`);
-        const allEvaluations = Array.isArray(res?.data) ? res.data : [];
-
-        // Filter out completed evaluations (those with notes or documents uploaded)
-        const pendingEvaluations = allEvaluations.filter((evaluation) => {
-          const hasNotes = evaluation?.evaluation_notes && String(evaluation.evaluation_notes).trim();
-          const hasDocs = evaluation?.evaluation_document_path;
-          return !hasNotes && !hasDocs;
-        });
-
-        setAvailableEvaluations(pendingEvaluations);
-      } catch (e) {
-        console.error('Failed to load employee evaluations:', e);
-        setAvailableEvaluations([]);
-      } finally {
-        setLoadingEvaluations(false);
-      }
-    };
-
-    fetchEmployeeEvaluations();
-  }, [selectedEmployeeId, preselectedEvaluationId]);
 
   useEffect(() => {
     const run = async () => {
@@ -987,44 +1055,31 @@ export default function EvaluationUpload() {
               <div>
                 <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Name:</label>
 
-                {/* Search input for employee autocomplete */}
-                {!isEmployee && !preselectedEvaluationId && !selectedEmployee && (
-                  <>
-                    <input type="text" placeholder="Type employee name to search..." value={employeeSearchTerm} onChange={(e) => setEmployeeSearchTerm(e.target.value)} className="input-select"/>
-
-                    {/* Dropdown with filtered results */}
-                    {filteredEmployees.length > 0 && (
-                      <div className="mt-2 border rounded-lg bg-white shadow-lg max-h-48 overflow-y-auto">
-                        {filteredEmployees.map((employee) => (
-                          <button key={employee.id} type="button" onClick={() => handleSelectEmployee(employee)} className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 border-b last:border-b-0">
-                            {employee.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Display selected employee */}
-                {selectedEmployee && (
+                {!isEmployee && !preselectedEvaluationId ? (
                   <div className="flex items-center gap-2">
-                    <input type="text" value={selectedEmployee.name} readOnly className="input-select flex-1 bg-gray-50"/>
-                    {!isEmployee && !preselectedEvaluationId && (
+                    <div className="flex-1">
+                      <EmployeeSearchDropdown employees={employees} value={selectedEmployeeId} onChange={handleSelectEmployee} placeholder={employees.length === 0 ? 'No employees with pending evaluations' : 'Select employee...'} disabled={loading || employees.length === 0} />
+                    </div>
+                    {selectedEmployee && (
                       <button type="button" onClick={handleClearEmployee} className="px-3 py-2 text-sm text-[#990100] hover:text-[#990100]/70 font-medium">
                         Clear
                       </button>
                     )}
                   </div>
-                )}
+                ) : selectedEmployee ? (
+                  <input type="text" value={selectedEmployee.name} readOnly className="input-select bg-gray-50" />
+                ) : null}
 
                 <p className="text-xs text-gray-500 mt-2">
                   {preselectedEvaluationId
                     ? 'This upload is tied to a scheduled evaluation.'
                     : isEmployee
                       ? 'You can only upload evaluations for yourself.'
-                      : selectedEmployee
-                        ? 'Employee selected. Click Clear to change.'
-                        : 'Search and select an employee.'}
+                      : employees.length === 0 && !loading
+                        ? 'No employees have pending scheduled evaluations.'
+                        : selectedEmployee
+                          ? 'Employee selected. Click Clear to change.'
+                          : 'Select an employee with a pending evaluation.'}
                 </p>
               </div>
 
@@ -1055,11 +1110,11 @@ export default function EvaluationUpload() {
                         const match = availableEvaluations.find((ev) => String(ev?.evaluation_id) === String(nextId));
                         if (match?.evaluation_type) setEvaluationType(String(match.evaluation_type));
                       }}
-                      disabled={loadingEvaluations || (!loadingEvaluations && availableEvaluations.length === 0)}
+                      disabled={!selectedEmployeeId || availableEvaluations.length === 0}
                     >
                       <option value="">
-                        {loadingEvaluations
-                          ? 'Loading…'
+                        {!selectedEmployeeId
+                          ? 'Select an employee first'
                           : availableEvaluations.length === 0
                             ? 'No pending evaluations'
                             : 'Select schedule'}
@@ -1071,9 +1126,13 @@ export default function EvaluationUpload() {
                       ))}
                     </select>
                     <p className="text-xs text-gray-500 mt-2">
-                      {availableEvaluations.length === 0 && !loadingEvaluations
-                        ? 'All evaluations for this employee have been completed.'
-                        : 'Choose which scheduled evaluation you are uploading results for. Completed evaluations are hidden.'}
+                      {!selectedEmployeeId
+                        ? 'Select an employee to see their pending evaluations.'
+                        : availableEvaluations.length === 0
+                          ? 'All evaluations for this employee have been completed.'
+                          : availableEvaluations.length === 1
+                            ? 'One pending evaluation found — auto-selected.'
+                            : 'Choose which scheduled evaluation you are uploading results for.'}
                     </p>
                   </>
                 )}

@@ -138,6 +138,23 @@ export const createEmployeeWithAccountSchema = Joi.object({
   return value;
 });
 
+export const bulkUpdateChecklistItemsSchema = Joi.object({
+  items: Joi.array().items(
+    Joi.object({
+      id: Joi.string().uuid().required().messages({
+        'string.guid': 'Each item id must be a valid UUID',
+        'any.required': 'Each item must have an id'
+      }),
+      is_required: Joi.boolean().required().messages({
+        'any.required': 'Each item must have is_required'
+      })
+    })
+  ).min(1).required().messages({
+    'array.min': 'At least one item is required',
+    'any.required': 'Items array is required'
+  })
+});
+
 // schema for updating a checklist item (HR overrides requirements or adds remarks)
 export const updateChecklistItemSchema = Joi.object({
   is_required: Joi.boolean(),

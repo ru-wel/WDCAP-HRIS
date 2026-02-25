@@ -155,15 +155,17 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                     </div>
 
                     <div>
-                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Last Name:</b></p>
-                        <input type="text" className={`input-field${validFieldClass(isNameValid(data.lname))}`} placeholder="Employee's Last Name" value={data.lname} onChange={(e) => setData({ ...data, lname: e.target.value })} required/>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Middle Name (OPTIONAL):</b></p>
+                        <input type="text" className={`input-field${data.mname ? validFieldClass(isNameValid(data.mname)) : ''}`} placeholder="Employee's Middle Name" value={data.mname} onChange={(e) => setData({ ...data, mname: e.target.value })} />
                     </div>
+                    
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
+
                     <div>
-                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Middle Name (OPTIONAL):</b></p>
-                        <input type="text" className={`input-field${data.mname ? validFieldClass(isNameValid(data.mname)) : ''}`} placeholder="Employee's Middle Name" value={data.mname} onChange={(e) => setData({ ...data, mname: e.target.value })} />
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Last Name:</b></p>
+                        <input type="text" className={`input-field${validFieldClass(isNameValid(data.lname))}`} placeholder="Employee's Last Name" value={data.lname} onChange={(e) => setData({ ...data, lname: e.target.value })} required/>
                     </div>
 
                     <div>

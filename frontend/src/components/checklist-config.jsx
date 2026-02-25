@@ -91,14 +91,9 @@ function ChecklistConfig({ employeeId, employeeName, onClose, onUpdate }) {
 				return;
 			}
 
-			// update all changed items
-			const updatePromises = changedItems.map(item =>
-				put(`/onboarding/checklist/${item.id}`, {
-					is_required: item.is_required
-				})
-			);
-
-			await Promise.all(updatePromises);
+			await put('/onboarding/checklist', {
+				items: changedItems.map(item => ({ id: item.id, is_required: item.is_required }))
+			});
 
 			openModal({
 				title: 'Successfully Updated',

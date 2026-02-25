@@ -1219,6 +1219,43 @@ export const getChecklistItemById = async (checklistId) => {
   }
 };
 
+export const bulkUpdateChecklistItems = async (items, userId) => {
+  const now = new Date().toISOString();
+
+  const updateResults = await Promise.all(
+    items.map(i =>
+      supabase
+        .from('onboarding_checklists')
+        .update({ is_required: i.is_required, updated_at: now })
+        .eq('id', i.id)
+        .select(checklistFields)
+        .single()
+    )
+  );
+
+  const firstError = updateResults.find(r => r.error);
+  if (firstError) throw new InternalServerError(firstError.error.message);
+
+  const updatedItems = updateResults.map(r => r.data).filter(Boolean);
+
+  try {
+    const auditEntries = updatedItems.map(updated => ({
+      user_id: userId,
+      action_type: AUDIT_ACTIONS.UPDATE,
+      table_name: 'onboarding_checklists',
+      record_id: updated.id,
+      new_values: updated,
+      timestamp: now,
+    }));
+    await supabase.from('audit_logs').insert(auditEntries);
+  } catch (e) {
+    logger.warn('Bulk checklist audit log failed:', e?.message || e);
+  }
+
+  logger.info(`Bulk updated ${items.length} checklist items`);
+  return updatedItems || [];
+};
+
 export const updateChecklistItem = async (checklistId, updates, userId) => {
   try {
     // fetch existing checklist item with relations

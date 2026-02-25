@@ -551,10 +551,9 @@ export const autoScheduleInitialEvaluation = async (employee, user) => {
     evaluationType = 'Probationary';
 
   } else if (personnelType === 'Regular') {
-    // Regular: regularization_date + 10 months (fallback to hire_date if not set)
-    const baseDate = employee.regularization_date || employee.hire_date;
-    const baseDateObj = parseIsoDateUtc(baseDate);
-    evaluationDate = addMonthsUtcClamped(baseDateObj, 10);
+    // Regular: hire_date + 9 months (3 months before 1-year anniversary)
+    const baseDateObj = parseIsoDateUtc(employee.hire_date);
+    evaluationDate = addMonthsUtcClamped(baseDateObj, 9);
     evaluationType = 'Annual';
   }
 
@@ -622,8 +621,8 @@ export const listPendingDueEvaluations = async ({ year, quarter } = {}) => {
       hire_date: hireIso,
     };
 
-    // 6-month probationary evaluation (hire_date + 6 months)
-    const probationDue = addMonthsUtcClamped(hireDate, 6);
+    // probationary evaluation (hire_date + 4 months)
+    const probationDue = addMonthsUtcClamped(hireDate, 4);
     const probationIso = toUtcIsoDate(probationDue);
     if (probationIso && probationIso >= startIso && probationIso <= endIso) {
       dueCandidates.push({
@@ -648,7 +647,7 @@ export const listPendingDueEvaluations = async ({ year, quarter } = {}) => {
         dueCandidates.push({
           ...employeeBase,
           due_date: annIso,
-          evaluation_type: `ANNUAL (${y})`,
+          evaluation_type: 'Annual',
         });
       }
     }

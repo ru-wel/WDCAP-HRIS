@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import DropDownFilter from "../../components/dropdownfilter";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -187,39 +186,12 @@ export default function Leave() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
   const canManage = user?.role === ROLES.EXECUTIVE || user?.role === ROLES.MANAGER;
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [leaveTypeFilter, setLeaveTypeFilter] = useState("all");
-  
-  const [draftSearchTerm, setDraftSearchTerm] = useState("");
-  const [draftLeaveTypeFilter, setDraftLeaveTypeFilter] = useState("all");
+  const [enabledTypes, setEnabledTypes] = useState([]);
 
   const [_loading, setLoading] = useState(true);
   const [rawEvents, setRawEvents] = useState([]);
 
-  useEffect(() => {
-    if (!filtersOpen) return;
-    setDraftSearchTerm(searchTerm);
-    setDraftLeaveTypeFilter(leaveTypeFilter);
-  }, [filtersOpen, searchTerm, leaveTypeFilter]);
-
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const onKeyDown = (e) => {
-      if (e.key === "Escape") setFiltersOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [filtersOpen]);
-
-  useEffect(() => {
-    if (!filtersOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [filtersOpen]);
 
   const effectiveEvents = useMemo(() => rawEvents, [rawEvents]);
 
@@ -349,38 +321,10 @@ export default function Leave() {
     });
   };
 
-  const leaveTypeOptions = useMemo(() => {
+  const allLeaveTypes = useMemo(() => {
     const types = Array.from(
       new Set(
         effectiveEvents
-          .map((e) => e.calendarName)
-          .filter((v) => typeof v === 'string' && v.trim().length)
-      )
-    ).sort((a, b) => a.localeCompare(b));
-
-    return [
-      { value: 'all', label: 'All' },
-      ...types.map((t) => ({ value: t, label: t })),
-    ];
-  }, [effectiveEvents]);
-
-  const filteredEvents = useMemo(() => {
-    let list = effectiveEvents;
-
-    if (leaveTypeFilter !== 'all') {
-      list = list.filter((e) => String(e.calendarName || '') === leaveTypeFilter);
-    }
-
-    if (!searchTerm) return list;
-    const q = searchTerm.toLowerCase();
-    return list.filter((e) => String(e.title || "").toLowerCase().includes(q));
-  }, [effectiveEvents, searchTerm, leaveTypeFilter]);
-
-  // get unique leave types for legend display
-  const uniqueLeaveTypes = useMemo(() => {
-    const types = Array.from(
-      new Set(
-        filteredEvents
           .map((e) => e.calendarName)
           .filter((v) => typeof v === 'string' && v.trim().length)
       )
@@ -390,27 +334,26 @@ export default function Leave() {
       name: leaveType,
       color: (LEAVE_TYPE_COLORS[leaveType] || DEFAULT_LEAVE_COLOR).dotColor,
     }));
-  }, [filteredEvents]);
+  }, [effectiveEvents]);
 
-  const defaultLeaveType = "all";
+  useEffect(() => {
+    setEnabledTypes(allLeaveTypes.map((t) => t.name));
+  }, [rawEvents]);
 
-  const activeFiltersCount = useMemo(() => {
-    let n = 0;
-    if (leaveTypeFilter !== defaultLeaveType) n += 1;
-    if (searchTerm.trim()) n += 1;
-    return n;
-  }, [leaveTypeFilter, searchTerm]);
-
-  const clearFilters = () => {
-    setDraftLeaveTypeFilter(defaultLeaveType);
-    setDraftSearchTerm("");
+  const toggleType = (type) => {
+    setEnabledTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
   };
 
-  const applyDraftFilters = () => {
-    setLeaveTypeFilter(draftLeaveTypeFilter);
-    setSearchTerm(draftSearchTerm);
-    setFiltersOpen(false);
-  };
+  const filteredEvents = useMemo(() => {
+    let list = effectiveEvents.filter((e) =>
+      enabledTypes.includes(String(e.calendarName || ''))
+    );
+    if (!searchTerm) return list;
+    const q = searchTerm.toLowerCase();
+    return list.filter((e) => String(e.title || "").toLowerCase().includes(q));
+  }, [effectiveEvents, searchTerm, enabledTypes]);
 
   const calendarEvents = useMemo(
     () =>
@@ -531,26 +474,6 @@ export default function Leave() {
         <h1 className="text-2xl lg:text-3xl font-bold text-[#990100] text-left lg:self-center">Leave</h1>
 
         <div className="flex items-center justify-end gap-3">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen((p) => !p)}
-              className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
-              aria-haspopup="dialog"
-              aria-expanded={filtersOpen}
-            >
-              <span className="font-medium">Filters</span>
-
-              {activeFiltersCount ? (
-                <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
-                  {activeFiltersCount}
-                </span>
-              ) : null}
-
-              <span className="text-xs">▾</span>
-            </button>
-          </div>
-
           <div className="relative border border-[#990100] rounded-lg">
               <input
                 type="search"
@@ -566,54 +489,6 @@ export default function Leave() {
               />
             </div>
         </div>
-          {filtersOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-              <div
-                className="absolute inset-0 bg-black/40"
-                onClick={() => setFiltersOpen(false)}
-              />
-
-              <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                  <p className="text-sm font-bold text-[#990100]">Filters</p>
-                  <button
-                    type="button"
-                    onClick={() => setFiltersOpen(false)}
-                    className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                    aria-label="Close"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="px-4 py-4 max-h-[65vh] overflow-y-auto space-y-4">
-                  <DropDownFilter
-                    label="Leave Type"
-                    value={draftLeaveTypeFilter}
-                    onChange={setDraftLeaveTypeFilter}
-                    options={leaveTypeOptions}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
-                  <button
-                    type="button"
-                    onClick={clearFilters}
-                    className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                  >
-                    Clear all
-                  </button>
-                  <button
-                    type="button"
-                    onClick={applyDraftFilters}
-                    className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
       </div>
 
         <hr className="border-[#990100] mb-6" />
@@ -665,12 +540,13 @@ export default function Leave() {
           <div className="gc-legend">
             <div className="gc-legend-title">Leave Types</div>
             <div className="gc-legend-line" />
-            {uniqueLeaveTypes.length > 0 ? (
-              uniqueLeaveTypes.map((type) => (
-                <div key={type.name} className="gc-legend-item">
-                  <span className="gc-legend-color" style={{ background: type.color }}/>
-                  <span>{type.name}</span>
-                </div>
+            {allLeaveTypes.length > 0 ? (
+              allLeaveTypes.map((type) => (
+                <label key={type.name} className="flex items-center gap-3 py-1.5 cursor-pointer select-none">
+                  <input type="checkbox" checked={enabledTypes.includes(type.name)} onChange={() => toggleType(type.name)} className="accent-[#990100]" />
+                  <span className="gc-legend-color" style={{ background: type.color }} />
+                  <span className="text-sm text-gray-800">{type.name}</span>
+                </label>
               ))
             ) : (
               <div className="gc-legend-item text-gray-500 text-sm">

@@ -556,10 +556,10 @@ export const regularizeEmployee = async (employeeId, regularizationDate, userId)
       logger.warn('Regularization audit log failed:', e?.message || e);
     }
 
-    // schedule Annual evaluation (regularization_date + 10 months)
+    // schedule Annual evaluation (hire_date + 9 months, 3 months before 1-year anniversary)
     try {
-      const regDateObj = parseIsoDateUtc(regDate);
-      const evaluationDate = addMonthsUtcClamped(regDateObj, 10);
+      const hireDateObj = parseIsoDateUtc(employee.hire_date);
+      const evaluationDate = addMonthsUtcClamped(hireDateObj, 9);
       const evalDateIso = toUtcIsoDate(evaluationDate);
 
       const userObj = { id: userId };

@@ -37,6 +37,9 @@ router.post(
 // get a single checklist per ID
 router.get('/checklist/:id', verifyChecklistOwnership, onboardingController.getChecklistItemById);
 
+// bulk update checklist items (is_required field only)
+router.put('/checklist', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(onboardingValidation.bulkUpdateChecklistItemsSchema), onboardingController.bulkUpdateChecklistItems);
+
 // Update checklist item
 router.put('/checklist/:id', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(onboardingValidation.updateChecklistItemSchema), onboardingController.updateChecklistItem);
 

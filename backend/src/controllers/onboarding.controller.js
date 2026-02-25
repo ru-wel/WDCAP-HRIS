@@ -87,6 +87,22 @@ export const getChecklistItemById = async (req, res, next) => {
   }
 };
 
+export const bulkUpdateChecklistItems = async (req, res, next) => {
+  try {
+    const { items } = req.body;
+    const userId = req.user.id;
+
+    const updatedItems = await onboardingService.bulkUpdateChecklistItems(items, userId);
+    res.status(200).json({
+      success: true,
+      message: `Successfully updated ${updatedItems.length} checklist item(s).`,
+      data: updatedItems
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateChecklistItem = async (req, res, next) => {
   try {
     const { id } = req.params;
