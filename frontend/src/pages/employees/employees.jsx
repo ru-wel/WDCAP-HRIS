@@ -10,6 +10,7 @@ import { get, put, del, post } from "../../services/api.js";
 import {
   EMPLOYMENT_STATUSES,
   PERSONNEL_TYPES,
+  EMPLOYEE_SEX,
 } from "../../constants/config.js";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
@@ -305,6 +306,7 @@ function ModalEmployees({
     if (
       !data.first_name ||
       !data.last_name ||
+      !data.sex ||
       !data.position_title ||
       !data.hire_date ||
       !data.personnel_type ||
@@ -327,10 +329,10 @@ function ModalEmployees({
       return;
     }
 
-    // age validation
     const today = new Date();
-    const birthDate = new Date(data.birth_date);
-    const hireDate = new Date(data.hire_date);
+    const parseLocalDate = (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, m - 1, d); };
+    const birthDate = parseLocalDate(data.birth_date);
+    const hireDate = parseLocalDate(data.hire_date);
 
     // check if birth date is in the future
     if (birthDate.getTime() > today.getTime()) {
@@ -388,7 +390,9 @@ function ModalEmployees({
 
           const response = await put(`/employees/${employee.id}`, {
             first_name: data.first_name,
+            middle_name: data.middle_name || null,
             last_name: data.last_name,
+            sex: data.sex || null,
             department_id: data.department_id,
             position_id: data.position_id,
             hire_date: data.hire_date,
@@ -531,7 +535,7 @@ function ModalEmployees({
                     <b className="uppercase">Employee ID:</b> {data.employee_id}
                   </p>
                   <p className="lg:text-sm text-xs text-[#483D3D]">
-                    <b className="uppercase">Name:</b> {data.first_name} {data.last_name}
+                    <b className="uppercase">Name:</b> {[data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ')}
                   </p>
                 </div>
               </div>
@@ -573,24 +577,7 @@ function ModalEmployees({
               />
             </div>
 
-            <div className=" items-center ">
-              {/* PLS UNCOMMENT - MIDDLE NAME
-              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
-                <b>Middle Name:</b>
-              </p>
-              <input
-                type="text"
-                name="middle_name"
-                value={data.middle_name}
-                disabled={!editData || loading}
-                onChange={handleChange}
-                className="modal-employees-field"
-              />*/}
-            </div>
-          </div>
-
-          <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left">
-            <div className="items-center md:pb-0 pb-3">
+            <div className="items-center">
               <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Last Name:</b>
               </p>
@@ -603,26 +590,38 @@ function ModalEmployees({
                 className="modal-employees-field"
               />
             </div>
+          </div>
 
-            <div className=" items-center ">
-              {/* PLS UNCOMMENT - SEX
+          <div className="md:grid md:grid-cols-2 gap-4 items-center pt-3 text-left">
+            <div className="items-center md:pb-0 pb-3">
+              <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
+                <b>Middle Name:</b>
+              </p>
+              <input
+                type="text"
+                name="middle_name"
+                value={data.middle_name || ""}
+                disabled={!editData || loading}
+                onChange={handleChange}
+                className="modal-employees-field"
+              />
+            </div>
+
+            <div className="items-center">
               <p className="lg:text-sm text-xs pb-1.5 text-[#483D3D] uppercase">
                 <b>Sex:</b>
               </p>
               <select
                 name="sex"
-                value={data.sex}
+                value={data.sex || ""}
                 disabled={!editData || loading}
                 onChange={handleChange}
                 className="modal-employees-field cursor-pointer disabled:cursor-default"
               >
                 <option value="">Select Sex</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>
-                    {dept.department_name}
-                  </option>
-                ))}
-              </select>*/}
+                <option value={EMPLOYEE_SEX.MALE}>{EMPLOYEE_SEX.MALE}</option>
+                <option value={EMPLOYEE_SEX.FEMALE}>{EMPLOYEE_SEX.FEMALE}</option>
+              </select>
             </div>
           </div>
 
@@ -1599,7 +1598,7 @@ function Employees() {
                   <tr key={row.id} className="tr-style">
                     <td className="td-style font-medium">{row.employee_id}</td>
                     <td className="td-style ">
-                      {row.first_name} {row.last_name}
+                      {[row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ')}
                     </td>
                     <td className="td-style">{row.position_title}</td>
                     <td className="td-style">{row.hire_date}</td>

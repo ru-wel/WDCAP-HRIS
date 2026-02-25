@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { get, post } from "../../services/api.js";
-import { ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from "../../constants/config.js";
+import { ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES, EMPLOYEE_SEX } from "../../constants/config.js";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import ChecklistConfig from "../../components/checklist-config.jsx";
 
@@ -30,9 +30,10 @@ function isValidPersonName(input) {
 function parseIsoDateOnly(iso) {
     const s = String(iso || '').trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
-    const d = new Date(s + 'T00:00:00');
-    if (Number.isNaN(d.getTime())) return null;
-    return d;
+    const [y, m, d] = s.split('-').map(Number);
+    const date = new Date(y, m - 1, d); // always local midnight — no timezone ambiguity
+    if (Number.isNaN(date.getTime())) return null;
+    return date;
 }
 
 function yearsBetween(fromDate, toDate) {
@@ -153,28 +154,26 @@ function StepOne({ data, setData, departments, positions, personnelCategory, onO
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.fname))}`} placeholder="Employee's First Name" value={data.fname} onChange={(e) => setData({ ...data, fname: e.target.value })} required/>
                     </div>
 
-                    {/* PLS UNCOMMENT - mname makalage as of the moment
-                    <div>
-                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Middle Name (OPTIONAL):</b></p>
-                        <input type="text" className={`input-field${validFieldClass(isNameValid(data.mname))}`} placeholder="Employee's Middle Name" value={data.mname} onChange={(e) => setData({ ...data, mname: e.target.value })} required/>
-                    </div>*/}
-                </div>
-
-                 <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
                         <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Last Name:</b></p>
                         <input type="text" className={`input-field${validFieldClass(isNameValid(data.lname))}`} placeholder="Employee's Last Name" value={data.lname} onChange={(e) => setData({ ...data, lname: e.target.value })} required/>
                     </div>
-                    
-                    {/* PLS UNCOMMENT - sex makalage as of the moment
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4 mt-3">
                     <div>
-                        <p className="md:text-sm pb-2 uppercase"><b>Sex:</b></p>
-                        <select name="status" className={`input-select${validFieldClass(isNonEmpty(data.sex))} cursor-pointer`} value={data.sex} onChange={(e) => setData({ ...data, sex: e.target.value })}>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Middle Name (OPTIONAL):</b></p>
+                        <input type="text" className={`input-field${data.mname ? validFieldClass(isNameValid(data.mname)) : ''}`} placeholder="Employee's Middle Name" value={data.mname} onChange={(e) => setData({ ...data, mname: e.target.value })} />
+                    </div>
+
+                    <div>
+                        <p className="text-sm pb-2 text-[#483D3D] uppercase"><b>Sex:</b></p>
+                        <select name="sex" className={`input-select${validFieldClass(isNonEmpty(data.sex))} cursor-pointer`} value={data.sex} onChange={(e) => setData({ ...data, sex: e.target.value })}>
                             <option value="">Select Sex</option>
+                            <option value={EMPLOYEE_SEX.MALE}>{EMPLOYEE_SEX.MALE}</option>
                             <option value={EMPLOYEE_SEX.FEMALE}>{EMPLOYEE_SEX.FEMALE}</option>
-                            <option value={EMPLOYEE_SEX.MALE}>{EMPLOYEE_SEX.FEMALE}</option>
                         </select>
-                    </div>*/}
+                    </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 mt-3">
@@ -355,7 +354,9 @@ function Onboarding(){
 
     const [formData, setFormData] = useState({
         fname: "",
+        mname: "",
         lname: "",
+        sex: "",
         position_id: "",
         hireDate: "",
         personnelType: "",
@@ -579,7 +580,9 @@ function Onboarding(){
     useEffect(() => {
         const hasChanges =
             formData.fname ||
+            formData.mname ||
             formData.lname ||
+            formData.sex ||
             formData.position_id ||
             formData.department_id ||
             formData.hireDate ||
@@ -624,6 +627,11 @@ function Onboarding(){
         if (!lname) return (setError('Last name is required'), false);
         if (!isValidPersonName(fname)) return (setError('First name contains invalid characters'), false);
         if (!isValidPersonName(lname)) return (setError('Last name contains invalid characters'), false);
+
+        const mname = String(formData.mname || '').trim();
+        if (mname && !isValidPersonName(mname)) return (setError('Middle name contains invalid characters'), false);
+
+        if (!formData.sex) return (setError('Sex is required'), false);
 
         if (!formData.department_id) return (setError('Department is required'), false);
         if (!formData.position_id) return (setError('Position is required'), false);
@@ -690,7 +698,9 @@ function Onboarding(){
                 email: isProjectBased ? null : formData.email,
                 role: isProjectBased ? ROLES.EMPLOYEE : formData.role,
                 first_name: formData.fname,
+                middle_name: String(formData.mname || '').trim() || null,
                 last_name: formData.lname,
+                sex: formData.sex || null,
                 department_id: formData.department_id,
                 position_id: formData.position_id,
                 hire_date: formData.hireDate,
@@ -799,7 +809,10 @@ function Onboarding(){
 
         const content = (
             <div className="space-y-2">
-                <div><b>Name:</b> {String(formData.fname || '')} {String(formData.lname || '')}</div>
+                <div><b>First Name:</b> {String(formData.fname || '')}</div>
+                <div><b>Last Name:</b> {String(formData.lname || '')}</div>
+                {formData.mname && <div><b>Middle Name:</b> {String(formData.mname || '')}</div>}
+                <div><b>Sex:</b> {String(formData.sex || '')}</div>
                 <div><b>Personnel Type:</b> {String(formData.personnelType || '')}</div>
                 <div><b>Department:</b> {findDeptName(formData.department_id)}</div>
                 <div><b>Position:</b> {findPosName(formData.position_id)}</div>

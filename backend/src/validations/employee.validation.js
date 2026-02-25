@@ -1,5 +1,15 @@
 import Joi from 'joi';
-import { EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from '../config/constants.js';
+import { EMPLOYMENT_STATUSES, PERSONNEL_TYPES, EMPLOYEE_SEX } from '../config/constants.js';
+
+const notInFuture = (label) => Joi.date().custom((value, helpers) => {
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  if (value.toISOString().slice(0, 10) > todayStr) {
+    return helpers.message(`${label} cannot be in the future`);
+  }
+  return value;
+}).messages({ 'date.base': `${label} must be a valid date` });
 
 // EMPLOYEE VALIDATION
 export const createEmployeeSchema = Joi.object({
@@ -20,9 +30,7 @@ export const createEmployeeSchema = Joi.object({
     'string.max': 'Last name cannot exceed 50 characters',
     'any.required': 'Last name is required'
   }),
-  birth_date: Joi.date().max('now').required().messages({
-    'date.base': 'Birth date must be a valid date',
-    'date.max': 'Birth date cannot be in the future',
+  birth_date: notInFuture('Birth date').required().messages({
     'any.required': 'Birth date is required'
   }),
   phone_number: Joi.string().pattern(/^09\d{9}$/).required().messages({
@@ -43,9 +51,7 @@ export const createEmployeeSchema = Joi.object({
     'string.pattern.base': 'Emergency contact number must be in the format 09XXXXXXXXX (11 digits starting with 09)',
     'any.required': 'Emergency contact number is required'
   }),
-  hire_date: Joi.date().max('now').required().messages({
-    'date.base': 'Hire date must be a valid date',
-    'date.max': 'Hire date cannot be in the future',
+  hire_date: notInFuture('Hire date').required().messages({
     'any.required': 'Hire date is required'
   }),
   position_id: Joi.string().uuid().required().messages({
@@ -78,10 +84,7 @@ export const updateEmployeeSchema = Joi.object({
     'string.min': 'Last name must be at least 2 characters long',
     'string.max': 'Last name cannot exceed 50 characters'
   }),
-  birth_date: Joi.date().max('now').messages({
-    'date.base': 'Birth date must be a valid date',
-    'date.max': 'Birth date cannot be in the future'
-  }),
+  birth_date: notInFuture('Birth date'),
   phone_number: Joi.string().pattern(/^09\d{9}$/).messages({
     'string.pattern.base': 'Phone number must be in the format 09XXXXXXXXX (11 digits starting with 09)'
   }),
@@ -96,15 +99,16 @@ export const updateEmployeeSchema = Joi.object({
   emergency_contact_number: Joi.string().pattern(/^09\d{9}$/).messages({
     'string.pattern.base': 'Emergency contact number must be in the format 09XXXXXXXXX (11 digits starting with 09)'
   }),
-  hire_date: Joi.date().max('now').messages({
-    'date.base': 'Hire date must be a valid date',
-    'date.max': 'Hire date cannot be in the future'
-  }),
+  hire_date: notInFuture('Hire date'),
   position_id: Joi.string().uuid().messages({
     'string.guid': 'Position ID must be a valid UUID'
   }),
   department_id: Joi.string().uuid().messages({
     'string.guid': 'Department ID must be a valid UUID'
+  }),
+  sex: Joi.string().valid(EMPLOYEE_SEX.MALE, EMPLOYEE_SEX.FEMALE).required().messages({
+    'any.only': 'Sex must be Male or Female',
+    'any.required': 'Sex is required'
   }),
   employment_status: Joi.string().valid(EMPLOYMENT_STATUSES.ACTIVE, EMPLOYMENT_STATUSES.INACTIVE).messages({
     'any.only': 'Employment status must be either Active or Inactive'

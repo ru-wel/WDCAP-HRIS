@@ -16,6 +16,11 @@ export const AUDIT_ACTIONS = {
   PASSWORD_RESET_REQUEST: 'PASSWORD_RESET_REQUEST'
 };
 
+export const EMPLOYEE_SEX = {
+  MALE: 'Male',
+  FEMALE: 'Female'
+};
+
 export const EMPLOYMENT_STATUSES = {
   ACTIVE: 'Active',
   INACTIVE: 'Inactive'

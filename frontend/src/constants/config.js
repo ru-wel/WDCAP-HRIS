@@ -21,6 +21,12 @@ export const EMPLOYMENT_STATUSES = {
   INACTIVE: 'Inactive'
 };
 
+// employee sex
+export const EMPLOYEE_SEX = {
+  MALE: 'Male',
+  FEMALE: 'Female',
+};
+
 // project status
 export const PROJECT_STATUSES = {
   ACTIVE: 'Active',

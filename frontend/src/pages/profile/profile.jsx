@@ -247,18 +247,6 @@ export default function Profile() {
             </div>*/}
             
             <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">EMPLOYEE ID:</p>
-              <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
-                {employeeDetails?.employee_id || profile?.employee_id || '—'}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-[#483D3D] pb-1">NAME:</p>
-              <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
-                {empName || displayName || '—'}
-              </div>
-            </div>
-            <div>
               <p className="text-xs font-bold text-[#483D3D] pb-1">EMAIL:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
                 {profile?.email || '—'}
@@ -295,13 +283,12 @@ export default function Profile() {
                 {formatShortDate(employeeDetails?.birth_date)}
               </div>
             </div>
-            {/* PLS UNCOMMENT - FOR SEX
             <div>
               <p className="text-xs font-bold text-[#483D3D] pb-1">SEX:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">
-                {formatShortDate(employeeDetails?.sex)}
+                {employeeDetails?.sex || '—'}
               </div>
-            </div>*/}
+            </div>
             <div>
               <p className="text-xs font-bold text-[#483D3D] pb-1">PHONE NUMBER:</p>
               <div className="bg-[#ffffff] rounded-lg border border-gray-300 md:h-11 h-10 flex items-center px-3 text-sm text-gray-900">

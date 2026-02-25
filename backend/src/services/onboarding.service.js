@@ -218,6 +218,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       first_name,
       middle_name,
       last_name,
+      sex,
       birth_date,
       phone_number,
       address,
@@ -258,6 +259,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
             p_first_name: first_name,
             p_middle_name: middle_name || null,
             p_last_name: last_name,
+            p_sex: sex || null,
             p_birth_date: birth_date,
             p_phone_number: phone_number,
             p_address: address,
@@ -385,6 +387,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
               p_first_name: first_name,
               p_middle_name: middle_name || null,
               p_last_name: last_name,
+              p_sex: sex || null,
               p_birth_date: birth_date,
               p_phone_number: phone_number,
               p_address: address,
@@ -410,7 +413,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
         .from('employees')
         .select(`
           id, employee_id, user_id, first_name, middle_name, last_name,
-          birth_date, phone_number, address, emergency_contact_name,
+          sex, birth_date, phone_number, address, emergency_contact_name,
           emergency_contact_number, hire_date, employment_status, personnel_type,
           created_at, updated_at,
           departments (id, department_name),
@@ -634,6 +637,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
         p_first_name: first_name,
         p_middle_name: middle_name || null,
         p_last_name: last_name,
+        p_sex: sex || null,
         p_birth_date: birth_date,
         p_phone_number: phone_number,
         p_address: address,
@@ -656,7 +660,7 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       .from('employees')
       .select(`
           id, employee_id, user_id, first_name, middle_name, last_name,
-          birth_date, phone_number, address, emergency_contact_name,
+          sex, birth_date, phone_number, address, emergency_contact_name,
           emergency_contact_number, hire_date, employment_status, personnel_type,
           created_at, updated_at,
           departments (id, department_name),

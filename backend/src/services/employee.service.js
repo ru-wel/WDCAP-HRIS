@@ -6,13 +6,14 @@ import { createChecklistForEmployee } from "./onboarding.service.js";
 import { autoScheduleInitialEvaluation, ensureSchedule } from "./evaluation.service.js";
 
 // this will be changed later on kapag alam na yung mga fields na need idisplay
-const employeeFields = 
+const employeeFields =
   `id,
   employee_id,
   user_id,
   first_name,
   middle_name,
   last_name,
+  sex,
   birth_date,
   phone_number,
   address,

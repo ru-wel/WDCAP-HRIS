@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import { ONBOARDING_STATUSES, ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES } from '../config/constants.js';
+import { ONBOARDING_STATUSES, ROLES, EMPLOYMENT_STATUSES, PERSONNEL_TYPES, EMPLOYEE_SEX } from '../config/constants.js';
 
 const normalizePhMobile = (input) => {
   const digits = String(input || '').replace(/\D/g, '');
@@ -93,6 +93,10 @@ export const createEmployeeWithAccountSchema = Joi.object({
     'any.only': 'Employment status must be either Active or Inactive',
     'any.required': 'Employment status is required'
   }),
+  sex: Joi.string().valid(EMPLOYEE_SEX.MALE, EMPLOYEE_SEX.FEMALE).required().messages({
+    'any.only': 'Sex must be Male or Female',
+    'any.required': 'Sex is required'
+  }),
   personnel_type: Joi.string().valid(PERSONNEL_TYPES.REGULAR, PERSONNEL_TYPES.PROBATIONARY, PERSONNEL_TYPES.PROJECT_BASED).required().messages({
     'any.only': 'Personnel type is invalid',
     'any.required': 'Personnel type is required'
@@ -104,23 +108,29 @@ export const createEmployeeWithAccountSchema = Joi.object({
 
   if (Number.isNaN(birth.getTime())) return helpers.error('any.invalid', { message: 'Birth date must be a valid date' });
   if (Number.isNaN(hire.getTime())) return helpers.error('any.invalid', { message: 'Hire date must be a valid date' });
-  if (birth.getTime() > now.getTime()) return helpers.message('Birth date cannot be in the future');
-  if (hire.getTime() > now.getTime()) return helpers.message('Hire date cannot be in the future');
+
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const todayStr = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+  const birthStr = birth.toISOString().slice(0, 10);
+  const hireStr  = hire.toISOString().slice(0, 10);
+
+  if (birthStr > todayStr) return helpers.message('Birth date cannot be in the future');
+  if (hireStr  > todayStr) return helpers.message('Hire date cannot be in the future');
 
   const ageYears = (() => {
-    let years = now.getFullYear() - birth.getFullYear();
-    const m = now.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) years -= 1;
+    let years = now.getFullYear() - birth.getUTCFullYear();
+    const m = now.getMonth() - birth.getUTCMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birth.getUTCDate())) years -= 1;
     return years;
   })();
 
   if (ageYears < 18) return helpers.message('Employee must be at least 18 years old');
-  if (hire.getTime() < birth.getTime()) return helpers.message('Hire date cannot be before birth date');
+  if (hireStr < birthStr) return helpers.message('Hire date cannot be before birth date');
 
   const ageAtHire = (() => {
-    let years = hire.getFullYear() - birth.getFullYear();
-    const m = hire.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && hire.getDate() < birth.getDate())) years -= 1;
+    let years = hire.getUTCFullYear() - birth.getUTCFullYear();
+    const m = hire.getUTCMonth() - birth.getUTCMonth();
+    if (m < 0 || (m === 0 && hire.getUTCDate() < birth.getUTCDate())) years -= 1;
     return years;
   })();
 
