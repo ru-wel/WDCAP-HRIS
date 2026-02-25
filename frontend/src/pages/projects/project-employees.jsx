@@ -5,7 +5,7 @@ import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import { compareDate, compareText } from "../../utils/sort";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { ROLES } from "../../constants/config.js";
+import { ROLES, PROJECT_STATUSES } from "../../constants/config.js";
 
 function AddEmployeeModal({
   isOpen,
@@ -225,9 +225,9 @@ function ProjectEmployees() {
 
   const canEditProject = user?.role === ROLES.EXECUTIVE || user?.role === ROLES.HR;
 
-  const [locationEditOpen, setLocationEditOpen] = useState(false);
-  const [locationInput, setLocationInput] = useState("");
-  const [locationSaving, setLocationSaving] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   const [projectEmployees, setProjectEmployees] = useState([]);
   const [projectDetails, setProjectDetails] = useState(null);
@@ -423,46 +423,64 @@ const applyDraftFilters = () => {
     }
   };
 
-  useEffect(() => {
-    const loc = projectDetails?.site_location || "";
-    setLocationInput(loc);
-  }, [projectDetails?.site_location]);
+  const openEditForm = () => {
+    setEditData({
+      project_name: projectDetails?.project_name || "",
+      site_location: projectDetails?.site_location || "",
+      start_date: projectDetails?.start_date || "",
+      end_date: projectDetails?.end_date || "",
+      status: projectDetails?.status || PROJECT_STATUSES.ACTIVE,
+    });
+    setEditOpen(true);
+  };
 
-  const saveLocation = async () => {
-    const next = locationInput.trim();
-    if (!next || !projectId) return;
+  const saveProject = async () => {
+    if (!editData?.project_name?.trim() || !editData?.site_location?.trim()) {
+      openInfo({ title: "Missing fields", message: "Project name and location are required." });
+      return;
+    }
 
     openConfirm({
-      title: "Confirm update",
-      message: "Update project location?",
+      title: "Save changes",
+      message: `Save changes to "${editData.project_name}"?`,
       confirmText: "OK",
       cancelText: "Cancel",
       onConfirm: async () => {
         try {
-          setLocationSaving(true);
+          setEditSaving(true);
           const resp = await put(`/projects/${projectId}`, {
-            site_location: next,
+            project_name: editData.project_name.trim(),
+            site_location: editData.site_location.trim(),
+            start_date: editData.start_date || null,
+            end_date: editData.end_date || null,
+            status: editData.status,
           });
           if (resp?.success) {
-            setProjectDetails((prev) =>
-              prev ? { ...prev, site_location: next } : prev
-            );
-            setLocationEditOpen(false);
-            openInfo({ title: "Success", message: "Project location updated." });
+            setProjectDetails((prev) => prev ? { ...prev, ...editData } : prev);
+            setEditOpen(false);
+            openInfo({ title: "Success", message: "Project updated successfully." });
           } else {
-            openInfo({
-              title: "Error",
-              message: resp?.message || "Failed to update project location",
-            });
+            openInfo({ title: "Error", message: resp?.message || "Failed to update project." });
           }
         } catch (e) {
-          console.error("Failed to update project location:", e);
-          openInfo({
-            title: "Error",
-            message: e?.message || "Failed to update project location",
-          });
+          openInfo({ title: "Error", message: e?.message || "Failed to update project." });
         } finally {
-          setLocationSaving(false);
+          setEditSaving(false);
+        }
+      },
+    });
+  };
+
+  const handleDeleteProject = () => {
+    openConfirm({
+      title: "Delete project",
+      message: `Are you sure you want to delete "${projectDetails?.project_name}"? This action cannot be undone. Note: all employee assignments must be removed first.`,
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        const resp = await del(`/projects/${projectId}`);
+        if (resp?.success) {
+          navigate("/projects");
         }
       },
     });
@@ -726,126 +744,112 @@ const applyDraftFilters = () => {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-lg  pt-3 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
+        <div className="mt-6 bg-white rounded-lg border border-gray-200 shadow-lg pt-3 p-5">
+          <div className="flex justify-between items-center gap-3 pb-3">
+            <h2 className="text-lg font-semibold text-[#990100] text-left">
+              Project Overview
+            </h2>
 
-              <div className="flex justify-between items-center gap-3 pb-3">
-                <h2 className="text-lg font-semibold text-[#990100] text-left">
-                  Project Overview
-                </h2>
+            {canEditProject && (
+              <div className="flex gap-2">
+                {editOpen ? (
+                  <>
+                    <button type="button" onClick={saveProject} disabled={editSaving} className="bg-[#22C55E] hover:bg-[#16A34A] text-white text-sm px-4 py-2 rounded-lg hover:scale-105 transition disabled:opacity-50 disabled:pointer-events-none" >
+                      {editSaving ? "Saving..." : "Save Changes"}
+                    </button>
+                    <button type="button" onClick={() => setEditOpen(false)} disabled={editSaving} className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-4 py-2 rounded-lg hover:scale-105 transition disabled:opacity-50 disabled:pointer-events-none" >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={openEditForm} className="mustard-button font-medium" >
+                      Edit Project
+                    </button>
+                    <button type="button" onClick={handleDeleteProject} className="generate-report-button text-white text-sm px-4 py-2 rounded-lg hover:scale-105 transition" >
+                      Delete Project
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
 
-                {/*canEditProject && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLocationEditOpen((v) => !v);
-                    }}
-                    className="generate-report-button mt-2 font-medium"
-                  >
-                    {locationEditOpen ? "Close" : "Update Location"}
-                  </button>
-                )*/}
-
+          <div className="flex justify-center">
+            <div className="w-full max-w-3xl rounded-md border border-gray-200 overflow-hidden mx-auto shadow-sm">
+              <div className="bg-[#990100] px-4 py-3">
+                <p className="text-center font-bold text-white tracking-wide uppercase">
+                  {editOpen
+                    ? `${editData.project_name || ""}${editData.site_location ? `, ${editData.site_location}` : ""}`
+                    : `${projectDetails?.project_name || `Project #${projectId}`}${projectDetails?.site_location ? `, ${projectDetails.site_location}` : ""}`
+                  }
+                </p>
               </div>
 
-              <div className="flex justify-center">
-              <div className="t-3 w-full max-w-3xl rounded-md border border-gray-200 overflow-hidden mx-auto shadow-sm">
-                <div className="bg-[#990100] px-4 py-3">
-                  <p className="text-center font-bold text-white tracking-wide uppercase">
-                    {(projectDetails?.project_name || `Project #${projectId}`) +
-                      (projectDetails?.site_location
-                        ? `, ${projectDetails.site_location}`
-                        : "")}
-                  </p>
-                </div>
+              <div className="px-4 py-4">
+                <div className="grid grid-cols-1 sm:grid-cols-[180px_12px_1fr] gap-y-3 text-sm text-gray-900">
+                  <div className="font-semibold uppercase tracking-wide self-center">Project ID</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="break-words self-center">{projectDetails?.project_code || projectId || "—"}</div>
 
-                <div className="px-4 py-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-[180px_12px_1fr] gap-y-2 text-sm text-gray-900">
-                    <div className="font-semibold uppercase tracking-wide">
-                      Project ID
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {projectDetails?.project_code || projectId || "—"}
-                    </div>
+                  <div className="font-semibold uppercase tracking-wide self-center">Project Name</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="self-center">
+                    {editOpen ? (
+                      <input type="text" value={editData.project_name} onChange={(e) => setEditData((d) => ({ ...d, project_name: e.target.value }))} className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#990100]" disabled={editSaving} />
+                    ) : (
+                      <span className="break-words">{projectDetails?.project_name || "—"}</span>
+                    )}
+                  </div>
 
-                    <div className="font-semibold uppercase tracking-wide">
-                      Project Name
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {projectDetails?.project_name || "—"}
-                    </div>
+                  <div className="font-semibold uppercase tracking-wide self-center">Status</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="self-center">
+                    {editOpen ? (
+                      <select value={editData.status} onChange={(e) => setEditData((d) => ({ ...d, status: e.target.value }))} className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#990100] bg-white" disabled={editSaving} >
+                        <option value={PROJECT_STATUSES.ACTIVE}>{PROJECT_STATUSES.ACTIVE}</option>
+                        <option value={PROJECT_STATUSES.COMPLETED}>{PROJECT_STATUSES.COMPLETED}</option>
+                        <option value={PROJECT_STATUSES.ON_HOLD}>{PROJECT_STATUSES.ON_HOLD}</option>
+                        <option value={PROJECT_STATUSES.CANCELLED}>{PROJECT_STATUSES.CANCELLED}</option>
+                      </select>
+                    ) : (
+                      <span className="break-words">{projectDetails?.status || "—"}</span>
+                    )}
+                  </div>
 
-                    <div className="font-semibold uppercase tracking-wide">
-                      Status
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {projectDetails?.status || "—"}
-                    </div>
+                  <div className="font-semibold uppercase tracking-wide self-center">Date Started</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="self-center">
+                    {editOpen ? (
+                      <input type="date" value={editData.start_date || ""} onChange={(e) => setEditData((d) => ({ ...d, start_date: e.target.value }))} max={editData.end_date || undefined} className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#990100]" disabled={editSaving} />
+                    ) : (
+                      <span className="break-words">{formatDate(projectDetails?.start_date)}</span>
+                    )}
+                  </div>
 
-                    <div className="font-semibold uppercase tracking-wide">
-                      Date Started
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {formatDate(projectDetails?.start_date)}
-                    </div>
+                  <div className="font-semibold uppercase tracking-wide self-center">Contract Completion Date</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="self-center">
+                    {editOpen ? (
+                      <input type="date" value={editData.end_date || ""} onChange={(e) => setEditData((d) => ({ ...d, end_date: e.target.value }))} min={editData.start_date || undefined} className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#990100]" disabled={editSaving} />
+                    ) : (
+                      <span className="break-words">{formatDate(projectDetails?.end_date)}</span>
+                    )}
+                  </div>
 
-                    <div className="font-semibold uppercase tracking-wide">
-                      Contract Completion Date
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {formatDate(projectDetails?.end_date)}
-                    </div>
-
-                    <div className="font-semibold uppercase tracking-wide">
-                      Location
-                    </div>
-                    <div className="font-semibold hidden sm:block">:</div>
-                    <div className="break-words">
-                      {projectDetails?.site_location || "—"}
-                    </div>
+                  <div className="font-semibold uppercase tracking-wide self-center">Location</div>
+                  <div className="font-semibold hidden sm:block self-center">:</div>
+                  <div className="self-center">
+                    {editOpen ? (
+                      <input type="text" value={editData.site_location} onChange={(e) => setEditData((d) => ({ ...d, site_location: e.target.value }))} className="w-full border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-[#990100]" disabled={editSaving} />
+                    ) : (
+                      <span className="break-words">{projectDetails?.site_location || "—"}</span>
+                    )}
                   </div>
                 </div>
               </div>
-              </div>
             </div>
-
-            
           </div>
-
-          {locationEditOpen && canEditProject && (
-            <div className="mt-4">
-              <div className="mt-3 flex flex-col md:flex-row gap-3 items-start md:items-center">
-                <div className="flex-1 w-full">
-                  <input
-                    type="text"
-                    value={locationInput}
-                    onChange={(e) => setLocationInput(e.target.value)}
-                    placeholder="Enter location"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={saveLocation}
-                  disabled={locationSaving || !locationInput.trim()}
-                  className={`px-5 py-2 rounded-md text-sm text-white transition ${
-                    locationSaving || !locationInput.trim()
-                      ? "bg-[#ad3332]/60 cursor-not-allowed"
-                      : "bg-[#990100] hover:bg-[#ad3332] hover:scale-105"
-                  }`}
-                >
-                  {locationSaving ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         {loading && (

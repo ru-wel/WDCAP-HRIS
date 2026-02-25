@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar";
-import { get, post, put, del } from "../../services/api.js";
+import { get, post } from "../../services/api.js";
 import { PROJECT_STATUSES } from "../../constants/config.js";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
@@ -68,7 +68,10 @@ function ViewProjectCard({ project, index, onClick, disabled }) {
 
           <div className="flex items-center text-base gap-3">
             <img src="icons/red-employees.png" alt="employees" className="w-6 h-6" />
-            <span className = "font-semibold">Number of Employees</span>
+            <span>
+              <span className="font-semibold">{project.employee_count ?? 0}</span>{" "}
+              {project.employee_count === 1 ? "Employee" : "Employees"}
+            </span>
           </div>
 
           
@@ -88,102 +91,6 @@ function ViewProjectCard({ project, index, onClick, disabled }) {
   );
 }
 
-function EditableProjectCard({ project, index, onChange, onDelete, onSave, loading }) {
-  const handleChange = (field, value) => {
-    onChange(project.id, field, value);
-  };
-
-  const handleSaveClick = async () => {
-    await onSave(project);
-  };
-
-  const today = new Date().toISOString().split("T")[0];
-
-  return (
-    <div className="bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-6 py-5 min-h-[170px] flex flex-col justify-between">
-      <h2 className="text-xl font-bold text-[#990100] mb-2">
-        {project.project_name || `Project #${index + 1}`}
-      </h2>
-
-      <div className="mb-3">
-        <label className="block text-sm font-semibold mb-1 text-[#483D3D] uppercase">Project Name</label>
-        <input
-          type="text"
-          value={project.project_name || ""}
-          onChange={(e) => handleChange("project_name", e.target.value)}
-          className="w-full project-field"
-          placeholder="Enter project name"
-          disabled={loading}
-        />
-      </div>
-
-      <div className="mb-3 flex items-center gap-2">
-        <img src="icons/red-location.png" alt="location" className="w-4 h-4 mt-[2px]" />
-        <input
-          type="text"
-          value={project.site_location || ""}
-          onChange={(e) => handleChange("site_location", e.target.value)}
-          className="flex-1 project-field"
-          placeholder="Location"
-          disabled={loading}
-        />
-      </div>
-
-      <div className="mb-3 flex items-center gap-2">
-        <img src="icons/red-leave.png" alt="calendar" className="w-4 h-4 mt-[2px]" />
-        <input
-          type="date"
-          value={project.start_date || ""}
-          onChange={(e) => handleChange("start_date", e.target.value)}
-          className="project-field w-[40%]"
-          max={project.end_date || today}
-          disabled={loading}
-        />
-        <span className="text-sm">to</span>
-        <input
-          type="date"
-          value={project.end_date || ""}
-          onChange={(e) => handleChange("end_date", e.target.value)}
-          className="project-field w-[40%]"
-          min={project.start_date || today}
-          disabled={loading}
-        />
-      </div>
-
-      <div className="mb-4 flex items-center gap-2">
-        <span className="w-4" />
-        <select
-          value={project.status || PROJECT_STATUSES.ACTIVE}
-          onChange={(e) => handleChange("status", e.target.value)}
-          className="project-field w-40"
-          disabled={loading}
-        >
-          <option value={PROJECT_STATUSES.ACTIVE}>{PROJECT_STATUSES.ACTIVE}</option>
-          <option value={PROJECT_STATUSES.COMPLETED}>{PROJECT_STATUSES.COMPLETED}</option>
-          <option value={PROJECT_STATUSES.ON_HOLD}>{PROJECT_STATUSES.ON_HOLD}</option>
-          <option value={PROJECT_STATUSES.CANCELLED}>{PROJECT_STATUSES.CANCELLED}</option>
-        </select>
-      </div>
-
-      <div className="flex justify-center items-center gap-4 ">
-        <button
-          onClick={handleSaveClick}
-          disabled={loading}
-          className="bg-[#22C55E] hover:bg-[#16A34A] green-button disabled:opacity-50 py-1.5 disabled:pointer-events-none"
-        >
-          {loading ? "Saving..." : "Save"}
-        </button>
-
-        <button
-          onClick={() => onDelete(project.id)}
-          className="bg-[#CC0000] hover:bg-[#aa0000]  green-button py-1.5 disabled:pointer-events-none disabled:opacity-50"
-        >
-          Delete Project
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function NewProjectCard({ values, onChange, onSave, loading }) {
   const handleChange = (field, value) => {
@@ -280,7 +187,6 @@ function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
-  const [showUpdateActions, setShowUpdateActions] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = "project_name_az";
@@ -486,11 +392,6 @@ function Projects() {
       { type: "new" },
       ...filteredProjects.map((p) => ({ type: "view", project: p })),
     ];
-  } else if (mode === "edit") {
-    cardDescriptors = filteredProjects.map((p) => ({
-      type: "edit",
-      project: p,
-    }));
   } else {
     cardDescriptors = filteredProjects.map((p) => ({
       type: "view",
@@ -513,10 +414,6 @@ function Projects() {
     setItemOffset(0);
   }, [mode, projects.length, searchTerm, sortOrder]);
 
-  useEffect(() => {
-    setShowUpdateActions(false);
-  }, [mode]);
-
   const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
@@ -537,10 +434,6 @@ function Projects() {
   useEffect(() => {
     fetchProjects();
   }, [fetchProjects]);
-
-  const handleEditClick = () => {
-    setMode("edit");
-  };
 
   const handleCreateProject = async () => {
     if (!newProject.project_name || !newProject.site_location) {
@@ -600,100 +493,6 @@ function Projects() {
         }
       },
     });
-  };
-
-  const handleSaveProject = async (project) => {
-    if (!project.project_name || !project.site_location) {
-      openConfirm({
-        title: "Missing fields",
-        message: "Please fill in project name and location.",
-        confirmText: "OK",
-        cancelText: null,
-      });
-      return;
-    }
-
-    openConfirm({
-      message: `Save changes to "${project.project_name}"?`,
-      confirmText: "OK",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setActionLoading(true);
-
-          const response = await put(`/projects/${project.id}`, {
-            project_name: project.project_name,
-            site_location: project.site_location,
-            start_date: project.start_date || null,
-            end_date: project.end_date || null,
-            status: project.status,
-          });
-
-          if (response.success) {
-            setProjects((prev) => prev.map((p) => (p.id === project.id ? response.data : p)));
-            openConfirm({
-              title: "Success",
-              message: `Project "${project.project_name}" updated successfully.`,
-              confirmText: "OK",
-              cancelText: null,
-            });
-          }
-        } catch (error) {
-          console.error("Update project error:", error);
-          openConfirm({
-            title: "Error",
-            message: error.message || "Failed to update project",
-            confirmText: "OK",
-            cancelText: null,
-          });
-        } finally {
-          setActionLoading(false);
-        }
-      },
-    });
-  };
-
-  const handleDeleteProject = async (id) => {
-    const project = projects.find((p) => p.id === id);
-    openConfirm({
-      title: "Delete project",
-      message: `Are you sure you want to delete "${project?.project_name}"? This action cannot be undone. Note: projects with assigned employees may need assignments removed first.`,
-      confirmText: "OK",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setActionLoading(true);
-
-          const response = await del(`/projects/${id}`);
-
-          if (response.success) {
-            setProjects((prev) => prev.filter((p) => p.id !== id));
-            openConfirm({
-              title: "Success",
-              message: "Project deleted successfully.",
-              confirmText: "OK",
-              cancelText: null,
-            });
-          }
-        } catch (error) {
-          console.error("Delete project error:", error);
-          openConfirm({
-            title: "Error",
-            message: error.message || "Failed to delete project",
-            confirmText: "OK",
-            cancelText: null,
-          });
-        } finally {
-          setActionLoading(false);
-        }
-      },
-    });
-  };
-
-  const handleFieldChange = (id, field, value) => {
-    setProjects((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, [field]: value } : p))
-    );
   };
 
   const addProj = {
@@ -962,70 +761,14 @@ function Projects() {
                 defaultCategory="all"
               />
 
-              {!showUpdateActions && (
-                <div className="flex gap-3">
-                  <button className="green-button" onClick={handleEditClick}>
-                    Edit Projects
-                  </button>
-                  <button className="mustard-button" onClick={handleAddClick}>
-                    Add New Project
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {mode === "edit" && (
-            <>
-              <button
-                className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
-                onClick={() =>
-                  openConfirm({
-                    
-                    title: "Cancel editing",
-                    message: "Exit edit mode without saving pending changes?",
-                    confirmText: "OK",
-                    cancelText: "Cancel",
-                    onConfirm: async () => {
-                      try {
-                        const response = await get("/projects");
-                        if (response?.success) setProjects(response.data);
-                      } catch {
-                        // best-effort
-                      } finally {
-                        setMode("view");
-                      }
-                    },
-                  })
-                }
-              >
-                Cancel Changes
-              </button>
-
-              <button
-                className="bg-[#16A34A] text-white lg:px-6 md:py-[7px] px-5 py-[6px] lg:text-sm text-xs rounded-md hover:bg-[#15803D] hover:scale-105 transition duration-300 ease-in-out"
-                onClick={() =>
-                  openConfirm({
-                    title: "Done editing",
-                    message: "Would you like to exit the edit mode?",
-                    confirmText: "OK",
-                    cancelText: "Cancel",
-                    onConfirm: () => {
-                      setMode("view");
-                    },
-                  })
-                }
-              >
-                Done Editing
+              <button className="mustard-button" onClick={handleAddClick}>
+                Add New Project
               </button>
             </>
           )}
 
           {mode === "add" && (
-            <button
-              className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
-              onClick={handleCancelAdd}
-            >
+            <button className="cursor-pointer text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out" onClick={handleCancelAdd} >
               Cancel Changes
             </button>
           )}
@@ -1056,27 +799,8 @@ function Projects() {
                 );
               }
 
-              if (item.type === "edit") {
-                return (
-                  <EditableProjectCard
-                    key={item.project.id}
-                    project={item.project}
-                    index={index}
-                    onChange={handleFieldChange}
-                    onDelete={handleDeleteProject}
-                    onSave={handleSaveProject}
-                    loading={actionLoading}
-                  />
-                );
-              }
-
               return (
-                <ViewProjectCard
-                  project={item.project}
-                  index={index}
-                  disabled={mode === "edit"}
-                  onClick={() => navigate(`/projects/${item.project.id}`)}
-                />
+                <ViewProjectCard key={item.project.id} project={item.project} index={index} onClick={() => navigate(`/projects/${item.project.id}`)} />
               );
             })}
           </div>

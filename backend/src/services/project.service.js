@@ -98,14 +98,19 @@ export const getAllProjects = async () => {
   try {
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, project_name, site_location, start_date, end_date, status, created_at, updated_at')
+      .select('id, project_name, site_location, start_date, end_date, status, created_at, updated_at, project_assignments(count)')
       .order('project_name', { ascending: true });
 
     if (error) {
       throw new InternalServerError(error.message);
     }
 
-    return attachProjectCodes(projects || []);
+    const normalized = (projects || []).map(({ project_assignments, ...rest }) => ({
+      ...rest,
+      employee_count: project_assignments?.[0]?.count ?? 0,
+    }));
+
+    return attachProjectCodes(normalized);
   } catch (error) {
     logger.error('Error fetching projects:', error);
     throw error;
