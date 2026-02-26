@@ -1222,7 +1222,7 @@ export default function EvaluationHistory() {
                       <tr key={r.id} className={`tr-style ${isInactive ? 'opacity-60' : ''}`}>
                         <td className="td-style">{r.employeeCode || '—'}</td>
                         <td className="td-style">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-center gap-2">
                             <span>{r.name || '—'}</span>
                             {isInactive && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-200 text-gray-700">

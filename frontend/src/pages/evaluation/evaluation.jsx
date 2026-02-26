@@ -545,6 +545,9 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
       ? 'Schedule Project-based Evaluation'
       : 'Schedule Evaluation';
 
+  //FOR DATE
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <ModalShell open={open} title={modalTitle} onClose={handleClose}>
       <div className="space-y-5 text-sm">
@@ -590,6 +593,7 @@ function ScheduleModal({ open, mode, employees, initial, onClose, onSaved, onNot
             type="date"
             className="input-select"
             value={evaluationDate}
+            min={today}
             onChange={(e) => {setEvaluationDate(e.target.value); setUnsavedChanges(true);}}
           />
         </div>

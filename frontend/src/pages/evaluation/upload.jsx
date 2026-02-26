@@ -101,6 +101,7 @@ export default function EvaluationUpload() {
 
   const role = user?.role;
   const isEmployee = role === ROLES.EMPLOYEE;
+  const isHR = role === ROLES.HR;
 
   const preselectedEmployeeId = query.get('employeeId');
   const preselectedEvaluationId = query.get('evaluationId');
@@ -130,7 +131,7 @@ export default function EvaluationUpload() {
   const [breakdownProgress, setBreakdownProgress] = useState(null);
   const [finalProgress, setFinalProgress] = useState(null);
 
-  const [submissionMode, setSubmissionMode] = useState('files');
+  const [submissionMode, setSubmissionMode] = useState( role === ROLES.HR ? 'files' : 'form');
 
   // template state
   const [template, setTemplate] = useState(null);
@@ -1142,6 +1143,7 @@ export default function EvaluationUpload() {
             <div className="mt-6 px-3">
               <label className="block text-sm font-semibold text-gray-800 mb-2 text-[#483D3D] uppercase">Submission Method:</label>
               <div className="flex flex-wrap gap-4">
+                {!isHR &&(
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -1162,7 +1164,7 @@ export default function EvaluationUpload() {
                   <span className="text-sm text-gray-800">
                     {templateLoading ? 'Loading form…' : template ? `Fill ${template.name}` : 'Fill evaluation form'}
                   </span>
-                </label>
+                </label>)}
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
