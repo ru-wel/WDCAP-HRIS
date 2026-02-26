@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
-import "../../assets/styles/calendar.css";
 import {
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   Tooltip,
+  Legend,
   BarChart,
   Bar,
   XAxis,
@@ -56,35 +54,6 @@ function Greeting() {
   return "Evening";
 }
 
-function CalendarModal({ open, onClose }) {
-  if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-x-hidden">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-gray-200">
-          <h2 className="text-base sm:text-lg font-semibold text-[#990100]">
-            Calendar
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-500 hover:text-[#990100] text-xl leading-none cursor-pointer"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="p-4 sm:p-6 flex items-center justify-center overflow-x-hidden">
-          <div className="flex justify-center w-full min-w-0 overflow-x-hidden">
-            <Calendar className="rounded-lg border border-gray-300 p-2 sm:p-3 w-full max-w-full" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const toNumberOrNull = (value) => {
   if (value === null || typeof value === "undefined") return null;
   const n = Number(value);
@@ -94,20 +63,16 @@ const toNumberOrNull = (value) => {
 const normalizeSummary = (payload) => {
   const src = payload && typeof payload === "object" ? payload : {};
 
-  const recentAuditLogs = Array.isArray(src.recentAuditLogs)
-    ? src.recentAuditLogs
-    : [];
   const pendingEvaluations = Array.isArray(src.pendingEvaluations)
     ? src.pendingEvaluations
     : [];
 
   return {
-    role: typeof src.role === "string" ? src.role : "",
     pendingLeaveRequestsCount: toNumberOrNull(src.pendingLeaveRequestsCount),
     employeesCount: toNumberOrNull(src.employeesCount),
-    departmentsCount: toNumberOrNull(src.departmentsCount),
     activeProjectsCount: toNumberOrNull(src.activeProjectsCount),
     pendingEvaluationsCount: toNumberOrNull(src.pendingEvaluationsCount),
+    onLeaveTodayCount: toNumberOrNull(src.onLeaveTodayCount),
     pendingEvaluations: pendingEvaluations
       .filter((r) => r && typeof r === "object")
       .map((r) => ({
@@ -121,321 +86,10 @@ const normalizeSummary = (payload) => {
         evaluation_type:
           typeof r.evaluation_type === "string" ? r.evaluation_type : "",
       })),
-    recentAuditLogs: recentAuditLogs
-      .filter((r) => r && typeof r === "object")
-      .map((r) => ({
-        id: r.id,
-        action_type: typeof r.action_type === "string" ? r.action_type : "",
-        table_name: typeof r.table_name === "string" ? r.table_name : "",
-        record_id: typeof r.record_id === "string" ? r.record_id : "",
-        old_values:
-          r.old_values && typeof r.old_values === "object" ? r.old_values : null,
-        new_values:
-          r.new_values && typeof r.new_values === "object" ? r.new_values : null,
-        timestamp: r.timestamp,
-        actor:
-          r.actor && typeof r.actor === "object"
-            ? {
-                name: typeof r.actor.name === "string" ? r.actor.name : "",
-                email: typeof r.actor.email === "string" ? r.actor.email : "",
-                role: typeof r.actor.role === "string" ? r.actor.role : "",
-                employeeCode:
-                  typeof r.actor.employee_code === "string"
-                    ? r.actor.employee_code
-                    : null,
-              }
-            : null,
-        targetEmployee:
-          r.target_employee && typeof r.target_employee === "object"
-            ? {
-                id:
-                  typeof r.target_employee.id === "string"
-                    ? r.target_employee.id
-                    : null,
-                employeeCode:
-                  typeof r.target_employee.employee_code === "string"
-                    ? r.target_employee.employee_code
-                    : null,
-                name:
-                  typeof r.target_employee.name === "string"
-                    ? r.target_employee.name
-                    : null,
-              }
-            : null,
-        targetProject:
-          r.target_project && typeof r.target_project === "object"
-            ? {
-                id:
-                  typeof r.target_project.id === "string"
-                    ? r.target_project.id
-                    : null,
-                name:
-                  typeof r.target_project.name === "string"
-                    ? r.target_project.name
-                    : null,
-              }
-            : null,
-        user: {
-          email: typeof r.user?.email === "string" ? r.user.email : "",
-          role: typeof r.user?.role === "string" ? r.user.role : "",
-        },
-      })),
   };
-};
-
-const toTitleCase = (input) =>
-  String(input || "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-
-const humanizeAuditEntity = (tableName) => {
-  const t = String(tableName || "").trim().toLowerCase();
-  if (!t) return "";
-  const map = {
-    employees: "Employee",
-    users: "User Account",
-    departments: "Department",
-    positions: "Position",
-    projects: "Project",
-    project_assignments: "Project Assignment",
-    leave_requests: "Leave Request",
-    leave_types: "Leave Type",
-    employee_leave_balances: "Leave Credits",
-    onboarding_checklists: "201 File",
-    onboarding_items: "Onboarding Item",
-    documents: "201 File",
-    reports: "Report",
-    evaluation: "Evaluation",
-    performance_evaluations: "Evaluation",
-  };
-  if (map[t]) return map[t];
-  const cleaned = t.replace(/_/g, " ");
-  return toTitleCase(cleaned);
-};
-
-const pickAuditTarget = (row) => {
-  const table = String(row?.table_name || "").trim().toLowerCase();
-  const preferred =
-    row?.new_values && typeof row.new_values === "object" ? row.new_values : null;
-  const fallback =
-    row?.old_values && typeof row.old_values === "object" ? row.old_values : null;
-  const v = preferred || fallback || {};
-
-  const targetEmployeeLabel = (() => {
-    const name = String(row?.targetEmployee?.name || "").trim();
-    const code = String(row?.targetEmployee?.employeeCode || "").trim();
-    if (name && code) return `${name} (${code})`;
-    if (name) return name;
-    if (code) return code;
-    return "";
-  })();
-
-  if (table === "employees") {
-    const empId = String(v.employee_id || v.employee_code || "").trim();
-    if (empId) return empId;
-    const fn = String(v.first_name || "").trim();
-    const ln = String(v.last_name || "").trim();
-    const full = `${fn} ${ln}`.trim();
-    if (full) return full;
-  }
-  if (table === "users") {
-    const email = String(v.email || "").trim();
-    if (email) return email;
-  }
-  if (table === "departments") {
-    const name = String(v.department_name || v.name || "").trim();
-    if (name) return name;
-  }
-  if (table === "projects") {
-    const name = String(v.project_name || v.name || "").trim();
-    if (name) return name;
-  }
-  if (table === "leave_requests") {
-    const id = String(v.leave_request_id || v.id || "").trim();
-    const shortId = id && /^[0-9a-f-]{20,}$/i.test(id) ? id.slice(0, 8) : id;
-    const who = String(
-      targetEmployeeLabel ||
-        v.employee_name ||
-        v.name ||
-        (v.employees
-          ? `${String(v.employees?.first_name || "").trim()} ${String(
-              v.employees?.last_name || ""
-            ).trim()}`.trim()
-          : "") ||
-        v.employee_id ||
-        ""
-    ).trim();
-    const type = String(v.leave_type_name || v.type || "").trim();
-    const label = [who, type].filter(Boolean).join(" - ");
-    if (label && shortId) return `${label} (#${shortId})`;
-    if (label) return label;
-    if (shortId) return `#${shortId}`;
-  }
-
-  if (table === "employee_leave_balances") {
-    const who = String(
-      targetEmployeeLabel ||
-        (v.employees
-          ? `${String(v.employees?.first_name || "").trim()} ${String(
-              v.employees?.last_name || ""
-            ).trim()}`.trim()
-          : "") ||
-        v.employee_name ||
-        v.employee_id ||
-        ""
-    ).trim();
-    const type = String(
-      v.leave_types?.leave_type_name || v.leave_type_name || ""
-    ).trim();
-    const label = [who, type].filter(Boolean).join(" - ");
-    if (label) return label;
-    return "";
-  }
-  if (table === "leave_types") {
-    const type = String(v.leave_type_name || v.name || "").trim();
-    if (type) return type;
-  }
-  if (table === "documents" || table === "onboarding_checklists") {
-    const file = String(v.file_name || v.filename || v.file_path || "").trim();
-    if (file) return targetEmployeeLabel ? `${file} (${targetEmployeeLabel})` : file;
-    if (targetEmployeeLabel) return targetEmployeeLabel;
-  }
-  if (table === "project_assignments") {
-    const empLabel = (() => {
-      const name = String(row?.targetEmployee?.name || "").trim();
-      const code = String(row?.targetEmployee?.employeeCode || "").trim();
-      if (name && code) return `${name} (${code})`;
-      return name || code || "";
-    })();
-    const projLabel = String(row?.targetProject?.name || v.project_name || "").trim();
-    const label = [empLabel, projLabel].filter(Boolean).join(" → ");
-    if (label) return label;
-  }
-  if (table === "performance_evaluations" || table === "evaluation") {
-    const empCode = String(
-      v.employee_code || v.employee_id || v.employees?.employee_id || ""
-    ).trim();
-    const empName = String(
-      v.employee_name ||
-        `${v.employees?.first_name || ""} ${v.employees?.last_name || ""}`.trim()
-    ).trim();
-    const type = String(v.evaluation_type || "").trim();
-
-    const looksLikeUuid = (s) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        String(s || "").trim()
-      );
-    const who =
-      targetEmployeeLabel ||
-      (empCode && !looksLikeUuid(empCode) ? empCode : empName || "");
-    const label = [who, type].filter(Boolean).join(" - ");
-    if (label) return label;
-  }
-
-  const recordId = String(row?.record_id || "").trim();
-  // Avoid showing raw UUIDs on the dashboard.
-  if (recordId && !/^[0-9a-f]{8}-/i.test(recordId)) return recordId;
-  return "";
-};
-
-const formatAuditAction = (row) => {
-  const action = String(row?.action_type || "").toUpperCase();
-  const table = String(row?.table_name || "");
-  const entity = humanizeAuditEntity(table);
-  const target = pickAuditTarget(row);
-  const reportName = String(
-    row?.new_values?.report_name || row?.new_values?.reportName || ""
-  ).trim();
-  const reportSource = String(row?.new_values?.source || "").trim();
-  const requestedEmail = String(row?.new_values?.email || "").trim();
-  if (action === "LOGIN") return "Logged in";
-  if (action === "LOGOUT") return "Logged out";
-  if (action === "CREATE")
-    return `${entity ? `Created ${entity}` : "Created record"}${
-      target ? ` — ${target}` : ""
-    }`;
-  if (action === "UPDATE")
-    return `${entity ? `Updated ${entity}` : "Updated record"}${
-      target ? ` — ${target}` : ""
-    }`;
-  if (action === "DELETE")
-    return `${entity ? `Deleted ${entity}` : "Deleted record"}${
-      target ? ` — ${target}` : ""
-    }`;
-  if (action === "PASSWORD_RESET_REQUEST") {
-    return requestedEmail
-      ? `Password reset requested: ${requestedEmail}`
-      : "Password reset requested";
-  }
-  if (action === "GENERATE_REPORT") {
-    if (reportName) return `Generated report: ${reportName}`;
-    if (reportSource) return `Generated report (${reportSource})`;
-    return "Generated report";
-  }
-  return `${action || "Activity"}${entity ? ` ${entity}` : ""}${
-    target ? ` — ${target}` : ""
-  }`.trim();
-};
-
-const getAuditRouteForRow = (row) => {
-  const action = String(row?.action_type || "").toUpperCase();
-  const table = String(row?.table_name || "").trim().toLowerCase();
-  const reportSource = String(row?.new_values?.source || "").trim().toLowerCase();
-
-  // For report generation audit logs, table_name is the report source (users/employees/projects/etc).
-  if (action === "GENERATE_REPORT") {
-    const effective = reportSource || table;
-    if (effective === "users") return "/audit/user-accounts";
-    if (effective === "employees") return "/audit/employees";
-    if (effective === "departments") return "/audit/departments";
-    if (effective === "projects") return "/audit/projects";
-    if (effective === "evaluation" || effective === "performance_evaluations")
-      return "/audit/evaluation";
-    if (
-      effective === "leave" ||
-      effective === "leave_requests" ||
-      effective === "leave_types" ||
-      effective === "employee_leave_balances"
-    ) {
-      return "/audit/leave";
-    }
-    return "/audit/reports";
-  }
-
-  // Non-report audit logs
-  if (table === "users") return "/audit/user-accounts";
-  if (table === "employees") return "/audit/employees";
-  if (table === "departments") return "/audit/departments";
-  if (table === "projects") return "/audit/projects";
-  if (table === "project_assignments") return "/audit/projects";
-  if (table === "evaluation" || table === "performance_evaluations")
-    return "/audit/evaluation";
-  if (
-    table === "leave" ||
-    table === "leave_requests" ||
-    table === "leave_types" ||
-    table === "employee_leave_balances"
-  ) {
-    return "/audit/leave";
-  }
-  // 201 files are part of Employees module in the UI
-  if (
-    table === "documents" ||
-    table === "onboarding_checklists" ||
-    table === "onboarding_items"
-  ) {
-    return "/audit/employees";
-  }
-  if (table === "reports") return "/audit/reports";
-
-  return null;
 };
 
 function Dashboard() {
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [summary, setSummary] = useState(() => normalizeSummary(null));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -462,17 +116,26 @@ function Dashboard() {
   const canSeeAuditDashboard = isExecutive || isHR;
   // Show the admin dashboard if user is not in self-dashboard roles, or if they are Exec/HR (e.g. Executive + Manager)
   const showAdminDashboard = !canSeeSelfDashboard || canSeeAuditDashboard;
-  const [isProjectBased, setIsProjectBased] = useState(false);
 
   // Employee/Manager quick context
   const [meDetails, setMeDetails] = useState(null);
-  const [meDocs, setMeDocs] = useState([]);
-  const [meDocsLoading, setMeDocsLoading] = useState(false);
 
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
   const [employeeStatusData, setEmployeeStatusData] = useState([]);
+  const [employeesByPersonnelType, setEmployeesByPersonnelType] = useState([]);
   const [projectsByStatus, setProjectsByStatus] = useState([]);
+
+  const [weekEvents, setWeekEvents] = useState([]);
+  const [weekEventsLoading, setWeekEventsLoading] = useState(false);
+
+  const [selfDataLoading, setSelfDataLoading] = useState(false);
+  const [selfDataError, setSelfDataError] = useState("");
+  const [myProjectsCount, setMyProjectsCount] = useState(null);
+  const [nextEvalDate, setNextEvalDate] = useState(null);
+  const [myLeaveCreditsTotal, setMyLeaveCreditsTotal] = useState(null);
+  const [myDocsActionCount, setMyDocsActionCount] = useState(null);
+  const [myDocsPendingItems, setMyDocsPendingItems] = useState([]);
 
   const rawName = String(user?.name || "").trim();
   const safeName = rawName && !rawName.includes("@") ? rawName : "";
@@ -560,6 +223,7 @@ function Dashboard() {
         setAnalyticsLoading(false);
         setAnalyticsError("");
         setEmployeeStatusData([]);
+        setEmployeesByPersonnelType([]);
         setProjectsByStatus([]);
         return;
       }
@@ -606,6 +270,13 @@ function Dashboard() {
             "total",
           ])
         );
+        setEmployeesByPersonnelType(
+          normalizePairs(data.employeesByPersonnelType, ["name", "label"], [
+            "count",
+            "value",
+            "total",
+          ])
+        );
         setProjectsByStatus(
           normalizePairs(data.projectsByStatus, ["status", "name", "label"], [
             "count",
@@ -626,43 +297,22 @@ function Dashboard() {
     };
   }, [canSeeAuditDashboard]);
 
-  // Employee/Manager: load "me" details + a lightweight documents preview
+  // Employee/Manager: load "me" details
   useEffect(() => {
     let cancelled = false;
 
     const run = async () => {
       if (!canSeeSelfDashboard) {
         setMeDetails(null);
-        setMeDocs([]);
-        setMeDocsLoading(false);
         return;
       }
 
       try {
-        setMeDocsLoading(true);
-
         const meRes = await get("/employees/me");
         const details = meRes?.data && typeof meRes.data === "object" ? meRes.data : null;
-        if (cancelled) return;
-        setMeDetails(details);
-
-        const empId = details?.id;
-        if (!empId) {
-          setMeDocs([]);
-          return;
-        }
-
-        const docsRes = await get(`/documents/${empId}`);
-        const docs = Array.isArray(docsRes?.data) ? docsRes.data : [];
-        if (cancelled) return;
-        setMeDocs(docs);
+        if (!cancelled) setMeDetails(details);
       } catch {
-        if (!cancelled) {
-          setMeDetails(null);
-          setMeDocs([]);
-        }
-      } finally {
-        if (!cancelled) setMeDocsLoading(false);
+        if (!cancelled) setMeDetails(null);
       }
     };
 
@@ -672,70 +322,130 @@ function Dashboard() {
     };
   }, [canSeeSelfDashboard]);
 
-  // For employees: determine if project-based to hide Projects card
+  const isProjectBased = useMemo(() => {
+    if (!isEmployee) return false;
+    const type = String(meDetails?.personnel_type || "").trim().toLowerCase();
+    return type === "project-based" || type === "project based";
+  }, [isEmployee, meDetails?.personnel_type]);
+
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      if (!isEmployee) {
-        setIsProjectBased(false);
+      if (!canSeeSelfDashboard) {
+        setMyProjectsCount(null);
+        setNextEvalDate(null);
+        setMyLeaveCreditsTotal(null);
+        setMyDocsActionCount(null);
+        setMyDocsPendingItems([]);
+        setSelfDataError("");
         return;
       }
+      setSelfDataLoading(true);
+      setSelfDataError("");
       try {
-        const cached = meDetails?.personnel_type;
-        const personnelRaw =
-          typeof cached === "string" && cached.trim() ? cached : null;
+        const [projectsRes, creditsRes, evalsRes, checklistRes] = await Promise.all([
+          get("/projects/my").catch(() => null),
+          get("/leave/credits/me").catch(() => null),
+          get("/evaluations/me").catch(() => null),
+          get("/onboarding/me/checklist").catch(() => null),
+        ]);
+        if (cancelled) return;
 
-        const personnel = String(
-          personnelRaw ?? (await get("/employees/me"))?.data?.personnel_type ?? ""
-        )
-          .trim()
-          .toLowerCase();
-        if (!cancelled)
-          setIsProjectBased(
-            personnel === "project-based" || personnel === "project based"
-          );
+        const projects = Array.isArray(projectsRes?.data) ? projectsRes.data : [];
+        setMyProjectsCount(projects.length);
+
+        const credits = Array.isArray(creditsRes?.data) ? creditsRes.data : [];
+        const total = credits.reduce((sum, c) => sum + (Number(c?.current_balance) || 0), 0);
+        setMyLeaveCreditsTotal(total);
+
+        const today = new Date().toISOString().split("T")[0];
+        const evals = Array.isArray(evalsRes?.data) ? evalsRes.data : [];
+        const upcoming = evals
+          .filter((e) => {
+            if (!e?.evaluation_date || String(e.evaluation_date) < today) return false;
+            const hasDoc = !!e?.evaluation_document_path;
+            const hasResult = /^\s*(score|remarks)\s*:/im.test(String(e?.evaluation_notes || ""));
+            return !hasDoc && !hasResult;
+          })
+          .sort((a, b) => String(a.evaluation_date).localeCompare(String(b.evaluation_date)));
+        setNextEvalDate(upcoming[0]?.evaluation_date || null);
+
+        const checklist = Array.isArray(checklistRes?.data) ? checklistRes.data : [];
+        const pendingItems = checklist.filter(
+          (item) => item?.is_required && (item?.status === "pending" || item?.status === "rejected")
+        );
+        setMyDocsActionCount(pendingItems.length);
+        setMyDocsPendingItems(pendingItems);
       } catch {
-        if (!cancelled) setIsProjectBased(false);
+        if (!cancelled) {
+          setMyProjectsCount(null);
+          setMyLeaveCreditsTotal(null);
+          setNextEvalDate(null);
+          setMyDocsActionCount(null);
+          setMyDocsPendingItems([]);
+          setSelfDataError("Some dashboard data could not be loaded.");
+        }
+      } finally {
+        if (!cancelled) setSelfDataLoading(false);
       }
     };
     run();
-    return () => {
-      cancelled = true;
+    return () => { cancelled = true; };
+  }, [canSeeSelfDashboard]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setWeekEventsLoading(true);
+        const now = new Date();
+        const day = now.getDay(); 
+        const diffToMonday = day === 0 ? -6 : 1 - day;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + diffToMonday);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+
+        const startStr = monday.toISOString().split("T")[0];
+        const endStr = sunday.toISOString().split("T")[0];
+
+        const res = await get(`/calendar/events?start=${startStr}&end=${endStr}`);
+        if (cancelled) return;
+        const events = Array.isArray(res?.data) ? res.data : [];
+        const todayStr = now.toISOString().split("T")[0];
+        setWeekEvents(
+          events.filter(
+            (e) =>
+              e?.extendedProps?.type !== "leave" &&
+              String(e?.start || "").split("T")[0] >= todayStr
+          )
+        );
+      } catch {
+        if (!cancelled) setWeekEvents([]);
+      } finally {
+        if (!cancelled) setWeekEventsLoading(false);
+      }
     };
-  }, [isEmployee, meDetails?.personnel_type]);
+    run();
+    return () => { cancelled = true; };
+  }, []);
 
   const departmentName =
     String(meDetails?.departments?.department_name || "").trim() || "—";
-  const departmentId =
-    meDetails?.departments?.department_id ?? meDetails?.department_id ?? null;
-  const departmentRoute = departmentId
-    ? `/employees/departments/${encodeURIComponent(String(departmentId))}`
-    : "/employees/departments";
-
-  const meDocsCount = Array.isArray(meDocs) ? meDocs.length : 0;
-  const meDocsPreview = Array.isArray(meDocs) ? meDocs.slice(0, 5) : [];
 
   const statValues = useMemo(() => {
     return {
       employees: summary.employeesCount ?? "—",
       activeProjects: summary.activeProjectsCount ?? "—",
-      departments: summary.departmentsCount ?? "—",
       pendingLeaves: summary.pendingLeaveRequestsCount ?? "—",
       pendingEvaluations: summary.pendingEvaluationsCount ?? "—",
     };
   }, [summary]);
 
-  const employeeStatusCounts = useMemo(() => {
+  const activeEmployeesCount = useMemo(() => {
     const norm = (v) => String(v || "").trim().toLowerCase();
-    const active =
-      employeeStatusData.find((r) => norm(r?.name) === "active")?.value ?? 0;
-    const inactive =
-      employeeStatusData.find((r) => norm(r?.name) === "inactive")?.value ?? 0;
-    const total = employeeStatusData.reduce(
-      (sum, r) => sum + (Number(r?.value) || 0),
-      0
-    );
-    return { active, inactive, total };
+    return employeeStatusData.find((r) => norm(r?.name) === "active")?.value ?? 0;
   }, [employeeStatusData]);
 
   const projectsStatusTotal = useMemo(() => {
@@ -744,6 +454,18 @@ function Dashboard() {
       0
     );
   }, [projectsByStatus]);
+
+  const weekEventsByDay = useMemo(() => {
+    const map = new Map();
+    for (const evt of weekEvents) {
+      const dateKey = String(evt?.start || "").split("T")[0];
+      if (!dateKey) continue;
+      if (!map.has(dateKey)) map.set(dateKey, []);
+      map.get(dateKey).push(evt);
+    }
+
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [weekEvents]);
 
   return (
     <div>
@@ -758,13 +480,6 @@ function Dashboard() {
             </p>
           </div>
 
-          {/*<button
-            type="button"
-            onClick={() => setIsCalendarOpen(true)}
-            className="self-start md:self-auto text-xs md:text-sm bg-[#990100] hover:bg-[#ad3332] text-white px-4 py-2 rounded-full font-medium shadow-sm transition duration-200 ease-in-out cursor-pointer"
-          >
-            View Calendar
-          </button>*/}
         </header>
 
         {error ? (
@@ -778,51 +493,57 @@ function Dashboard() {
             <section
               className={`mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 ${
                 isManager || (isEmployee && !isProjectBased)
-                  ? "lg:grid-cols-5 xl:grid-cols-5"
-                  : "lg:grid-cols-4 xl:grid-cols-4"
+                  ? "lg:grid-cols-4 xl:grid-cols-4"
+                  : "lg:grid-cols-3 xl:grid-cols-3"
               }`}
             >
               <StatCard
                 title="My Department"
                 icon="icons/red-departments.png"
                 value={departmentName}
-                onClick={() => navigate()}
+                onClick={() => navigate("/employees/departments")}
               />
               <StatCard
-                title="My Documents"
-                icon="icons/red-employees.png"
-                value={meDocsLoading ? "…" : meDocsCount}
-                onClick={() => navigate("/employees/my-documents")}
-              />
-
-              <StatCard
-                title="Leave"
+                title="Leave Credits"
                 icon="icons/red-leave.png"
-                value={loading ? "…" : statValues.pendingLeaves}
+                value={selfDataLoading ? "…" : (myLeaveCreditsTotal !== null ? myLeaveCreditsTotal : "—")}
                 onClick={() => navigate("/leave/my-leaves")}
               />
               <StatCard
-                title="Evaluation"
+                title="Next Evaluation"
                 icon="icons/sidenav/red-evaluation.png"
-                value="View"
+                value={selfDataLoading ? "…" : (nextEvalDate
+                  ? new Date(nextEvalDate + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                  : "—")}
                 onClick={() => navigate("/evaluation/my-evaluations")}
               />
               {isEmployee && isProjectBased ? null : (
                 <StatCard
-                  title="Projects"
+                  title="My Projects"
                   icon="icons/red-projects.png"
-                  value={loading ? "…" : statValues.activeProjects}
+                  value={selfDataLoading ? "…" : (myProjectsCount !== null ? myProjectsCount : "—")}
                   onClick={() => navigate("/projects")}
                 />
               )}
             </section>
 
+            {selfDataError && (
+              <p className="mt-3 text-xs text-[#990100]">{selfDataError}</p>
+            )}
+
             <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    My Documents
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
+                      My Documents
+                    </h2>
+                    {!selfDataLoading && myDocsActionCount !== null && myDocsActionCount > 0 && (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-semibold">
+                        {myDocsActionCount} pending
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={() => navigate("/employees/my-documents")}
@@ -833,114 +554,81 @@ function Dashboard() {
                 </div>
 
                 <div className="mt-3 rounded-lg border border-gray-200 overflow-hidden">
-                  <ul className="divide-y divide-gray-200">
-                    {meDocsLoading ? (
-                      <li className="px-4 py-3 text-sm text-gray-600">
-                        Loading documents…
-                      </li>
-                    ) : meDocsPreview.length ? (
-                      meDocsPreview.map((d, idx) => (
+                  <ul data-lenis-prevent className="divide-y divide-gray-200 max-h-[420px] overflow-y-auto">
+                    {selfDataLoading ? (
+                      <li className="px-4 py-3 text-sm text-gray-500">Loading…</li>
+                    ) : myDocsPendingItems.length ? (
+                      myDocsPendingItems.map((item) => (
                         <li
-                          key={String(d?.id || d?.document_id || d?.document_name || idx)}
+                          key={String(item?.id)}
                           className="px-4 py-3 text-sm flex items-center justify-between gap-3"
                         >
-                          <div className="min-w-0">
-                            <p className="text-gray-900 font-medium truncate">
-                              {String(d?.document_name || d?.file_name || d?.filename || "Document").trim()}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {String(d?.file_name || d?.filename || d?.file_path || "").trim() || "—"}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => navigate("/employees/my-documents")}
-                            className="shrink-0 text-xs px-3 py-1 rounded-md border border-gray-200 hover:bg-gray-50"
-                          >
-                            View
-                          </button>
+                          <p className="text-gray-900 font-medium truncate">
+                            {String(item?.onboarding_items?.item_name || "Document").trim()}
+                          </p>
+                          <span className={`shrink-0 text-xs px-2.5 py-0.5 rounded-full font-semibold ${
+                            item?.status === "rejected"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}>
+                            {item?.status === "rejected" ? "Rejected" : "Pending Upload"}
+                          </span>
                         </li>
                       ))
                     ) : (
-                      <li className="px-4 py-3 text-sm text-gray-600">
-                        No documents found.
+                      <li className="px-4 py-3 text-sm text-green-700 font-medium">
+                        ✓ All required documents submitted
                       </li>
                     )}
                   </ul>
                 </div>
 
                 <p className="mt-3 text-xs text-gray-500">
-                  Quick access to your 201 files and uploaded documents.
+                  Required documents pending submission or re-upload.
                 </p>
               </div>
 
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <div className="">
+              {!showAdminDashboard && (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                   <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    Department
+                    Events for the Week
                   </h2>
-                  <p className="mt-1 mb-3 text-xs text-gray-500">
-                  You’ll see department details based on where you’re assigned.
-                  </p>
-                  {/*<button
-                    type="button"
-                    onClick={() => navigate(departmentRoute)}
-                    className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
-                  >
-                    Open
-                  </button>*/}
+                  <div data-lenis-prevent className="mt-3 max-h-[420px] overflow-y-auto rounded-lg border border-gray-100 pr-1">
+                    {weekEventsLoading ? (
+                      <p className="text-sm text-gray-500 px-2 py-3">Loading events…</p>
+                    ) : weekEventsByDay.length === 0 ? (
+                      <p className="text-sm text-gray-500 px-2 py-3">No events this week.</p>
+                    ) : (
+                      weekEventsByDay.map(([dateKey, events]) => {
+                        const date = new Date(dateKey + "T00:00:00");
+                        const dayLabel = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                        const weekdayLabel = date.toLocaleDateString("en-US", { weekday: "long" });
+                        return (
+                          <div key={dateKey} className="border-b border-[#f0dede] py-3 last:border-b-0">
+                            <p className="font-semibold bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg text-sm">
+                              {dayLabel} | {weekdayLabel}
+                            </p>
+                            <ul className="px-4 space-y-1">
+                              {events.map((evt, idx) => (
+                                <li key={String(evt?.id || idx)} className="text-sm text-gray-800">
+                                  — {String(evt?.title || "").replace(/^🎂\s*/, "🎂 ")}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-
-                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Employee ID
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {String(meDetails?.employee_id || meDetails?.employee_code || "—").trim() || "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Personnel Type
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {String(meDetails?.personnel_type || "—").trim() || "—"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Assigned Department
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {departmentName}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Position
-                    </p>
-                    <p className="mt-1 text-base font-semibold text-gray-900">
-                      {String(meDetails?.positions?.position_title || "—").trim() || "—"}
-                    </p>
-                  </div>
-
-
-                </div>
-
-                
-              </div>
+              )}
             </section>
           </>
         ) : null}
 
         {showAdminDashboard ? (
           <>
-            <section className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <section className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               <StatCard
                 title="Employees"
                 icon="icons/red-employees.png"
@@ -959,38 +647,32 @@ function Dashboard() {
                 value={loading ? "…" : statValues.pendingLeaves}
                 onClick={() => navigate("/leave/request")}
               />
-              <StatCard
-                title="Total Departments"
-                icon="icons/red-departments.png"
-                value={loading ? "…" : statValues.departments}
-                onClick={() => navigate("/employees/departments")}
-              />
             </section>
 
             <section className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
-                    Pending Evaluations
+                    Evaluations Due This Month
                   </h2>
                   <span className="text-xs px-3 py-1 rounded-full bg-[#ad3332] text-white">
                     {loading ? "…" : statValues.pendingEvaluations}
                   </span>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border border-[#e5e5e5]">
-                  <table className="min-w-[420px] w-full text-sm">
+                <div data-lenis-prevent className="overflow-x-auto overflow-y-auto max-h-[280px] rounded-lg border border-[#e5e5e5]">
+                  <table className="min-w-[600px] w-full text-sm">
                     <thead className="bg-[#ad3332] text-white">
                       <tr>
                         <th className="px-4 py-2 text-left font-medium">Name</th>
-                        <th className="px-4 py-2 text-left font-medium">
-                          Position
-                        </th>
+                        <th className="px-4 py-2 text-left font-medium">Position</th>
+                        <th className="px-4 py-2 text-left font-medium">Type</th>
+                        <th className="px-4 py-2 text-left font-medium">Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {!loading && summary.pendingEvaluations.length ? (
-                        summary.pendingEvaluations.slice(0, 5).map((row) => (
+                        summary.pendingEvaluations.map((row) => (
                           <tr
                             key={String(row.evaluation_id || row.employee_id)}
                             role="button"
@@ -1028,11 +710,23 @@ function Dashboard() {
                             <td className="px-4 py-2 text-gray-900">
                               {row.position_title || "N/A"}
                             </td>
+                            <td className="px-4 py-2 text-gray-900">
+                              {row.evaluation_type || "N/A"}
+                            </td>
+                            <td className="px-4 py-2 text-gray-900 whitespace-nowrap">
+                              {row.evaluation_date
+                                ? new Date(row.evaluation_date + "T00:00:00").toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  })
+                                : "N/A"}
+                            </td>
                           </tr>
                         ))
                       ) : (
                         <tr className="bg-white">
-                          <td className="px-4 py-2 text-gray-900" colSpan={2}>
+                          <td className="px-4 py-2 text-gray-900" colSpan={4}>
                             {loading ? "Loading…" : "No pending evaluations."}
                           </td>
                         </tr>
@@ -1047,28 +741,41 @@ function Dashboard() {
               </div>
 
               <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h2 className="text-lg md:text-xl font-semibold text-[#990100] ">
+                <h2 className="text-lg md:text-xl font-semibold text-[#990100]">
                   Events for the Week
                 </h2>
 
-                <div className="px-2">
-                  <div className="border-b border-[#f0dede] py-3">
-                    <p className="font-semibold pb-1.5 bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg">
-                      Jan 12 | Monday
-                    </p>
-
-                    <div className="px-4 md:grid md:grid-cols-2 ">
-                      <p className="pb-1.5 text-sm">
-                        - Birthday of Reuel Christian Sundiam!
-                      </p>
-                      <p className="pb-1.5 text-sm">
-                        - Evaluation of Carl Paldeng
-                      </p>
-                      <p className="pb-1.5 text-sm">
-                        - Meeting of the Executives with a Client
-                      </p>
-                    </div>
-                  </div>
+                <div data-lenis-prevent className="mt-3 max-h-[420px] overflow-y-auto rounded-lg border border-gray-100 pr-1">
+                  {weekEventsLoading ? (
+                    <p className="text-sm text-gray-500 px-2 py-3">Loading events…</p>
+                  ) : weekEventsByDay.length === 0 ? (
+                    <p className="text-sm text-gray-500 px-2 py-3">No events this week.</p>
+                  ) : (
+                    weekEventsByDay.map(([dateKey, events]) => {
+                      const date = new Date(dateKey + "T00:00:00");
+                      const dayLabel = date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      });
+                      const weekdayLabel = date.toLocaleDateString("en-US", {
+                        weekday: "long",
+                      });
+                      return (
+                        <div key={dateKey} className="border-b border-[#f0dede] py-3 last:border-b-0">
+                          <p className="font-semibold bg-[#ad3332] px-3 py-1.5 mb-3 text-white rounded-lg text-sm">
+                            {dayLabel} | {weekdayLabel}
+                          </p>
+                          <ul className="px-4 space-y-1">
+                            {events.map((evt, idx) => (
+                              <li key={String(evt?.id || idx)} className="text-sm text-gray-800" >
+                                — {String(evt?.title || "").replace(/^🎂\s*/, "🎂 ")}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             </section>
@@ -1100,13 +807,13 @@ function Dashboard() {
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Employees (Total)
+                      On Leave Today
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-[#990100]">
-                      {analyticsLoading ? "…" : employeeStatusCounts.total}
+                      {loading ? "…" : (summary.onLeaveTodayCount ?? "—")}
                     </p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
@@ -1114,20 +821,12 @@ function Dashboard() {
                       Active Employees
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-[#990100]">
-                      {analyticsLoading ? "…" : employeeStatusCounts.active}
+                      {analyticsLoading ? "…" : activeEmployeesCount}
                     </p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Inactive Employees
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
-                      {analyticsLoading ? "…" : employeeStatusCounts.inactive}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Projects (All)
+                      Total Projects
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-[#990100]">
                       {analyticsLoading ? "…" : projectsStatusTotal}
@@ -1138,33 +837,34 @@ function Dashboard() {
                 <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="bg-white border border-gray-200 rounded-xl p-4">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">
-                      Employee Status
+                      Employee Type
                     </h3>
-                    <div className="h-[240px]">
+                    <div className="h-[280px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
-                            data={employeeStatusData}
+                            data={employeesByPersonnelType}
                             dataKey="value"
                             nameKey="name"
-                            innerRadius={55}
-                            outerRadius={85}
+                            innerRadius={50}
+                            outerRadius={78}
                             paddingAngle={2}
                           >
-                            {employeeStatusData.map((_, idx) => (
+                            {employeesByPersonnelType.map((_, idx) => (
                               <Cell
                                 key={idx}
                                 fill={[
                                   "#990100",
-                                  "#6B7280",
+                                  "#2563EB",
                                   "#F59E0B",
                                   "#22C55E",
-                                  "#2563EB",
+                                  "#6B7280",
                                 ][idx % 5]}
                               />
                             ))}
                           </Pie>
                           <Tooltip />
+                          <Legend iconType="circle" iconSize={10} />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
@@ -1205,8 +905,6 @@ function Dashboard() {
           </>
         ) : null}
       </div>
-
-      <CalendarModal open={isCalendarOpen} onClose={() => setIsCalendarOpen(false)} />
     </div>
   );
 }

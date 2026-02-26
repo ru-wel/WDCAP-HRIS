@@ -22,7 +22,7 @@ router.post(
 router.get('/checklists', authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), onboardingController.getAllChecklists);
 
 // get checklist for current employee
-router.get('/me/checklist', authorizeRoles(ROLES.EMPLOYEE), onboardingController.getMyChecklist);
+router.get('/me/checklist', authorizeRoles(ROLES.EMPLOYEE, ROLES.MANAGER), onboardingController.getMyChecklist);
 
 // get checklist for a specific employee
 router.get('/employee/:employeeId/checklist', verifyEmployeeOwnership, onboardingController.getEmployeeChecklist);

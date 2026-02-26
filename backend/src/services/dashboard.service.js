@@ -102,8 +102,12 @@ const getRecentAuditLogsByUser = async (userId, limit = 5) => {
 };
 
 const getPendingEvaluations = async ({ limit = 5 } = {}) => {
-  // "Pending" = scheduled evaluation with no submitted result yet.
+  // "Pending" = evaluation scheduled this calendar month with no submitted result yet.
   // A result can be either uploaded docs OR score/remarks saved into notes.
+
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
 
   const { data, error } = await supabase
     .from('performance_evaluations')
@@ -125,8 +129,10 @@ const getPendingEvaluations = async ({ limit = 5 } = {}) => {
       `
     )
     .is('evaluation_document_path', null) // filter out completed evaluations that have documents
+    .gte('evaluation_date', firstDay)
+    .lte('evaluation_date', lastDay)
     .order('evaluation_date', { ascending: true })
-    .limit(50);
+    .limit(100);
 
   if (error) throw new InternalServerError(error.message);
 
@@ -174,6 +180,18 @@ const getPendingEvaluations = async ({ limit = 5 } = {}) => {
   };
 };
 
+const countOnLeaveToday = async () => {
+  const today = new Date().toISOString().split('T')[0];
+  const { count, error } = await supabase
+    .from('leave_requests')
+    .select('leave_request_id', { count: 'exact', head: true })
+    .eq('status', 'APPROVED')
+    .lte('start_date', today)
+    .gte('end_date', today);
+  if (error) throw new InternalServerError(error.message);
+  return toCount(count);
+};
+
 export const getDashboardSummary = async (user) => {
   try {
     const role = user?.role || '';
@@ -195,7 +213,7 @@ export const getDashboardSummary = async (user) => {
 
     // Executive/HR-only dashboard blocks.
     if (role === ROLES.EXECUTIVE || role === ROLES.HR) {
-      const [employeesCount, departmentsCount, activeProjectsCount, recentAuditLogs, pendingEvaluations] = await Promise.all([
+      const [employeesCount, departmentsCount, activeProjectsCount, recentAuditLogs, pendingEvaluations, onLeaveTodayCount] = await Promise.all([
         countRows('employees', { column: 'id', filters: [{ op: 'eq', col: 'employment_status', val: EMPLOYMENT_STATUSES.ACTIVE }] }),
         countRows('departments', { column: 'id' }),
         countRows('projects', {
@@ -203,7 +221,8 @@ export const getDashboardSummary = async (user) => {
           filters: [{ op: 'eq', col: 'status', val: PROJECT_STATUSES.ACTIVE }]
         }),
         getRecentAuditLogs(5),
-        getPendingEvaluations({ limit: 5 })
+        getPendingEvaluations({ limit: 20 }),
+        countOnLeaveToday()
       ]);
 
       Object.assign(summary, {
@@ -212,15 +231,8 @@ export const getDashboardSummary = async (user) => {
         activeProjectsCount,
         recentAuditLogs,
         pendingEvaluationsCount: pendingEvaluations?.count ?? 0,
-        pendingEvaluations: pendingEvaluations?.items ?? []
-      });
-    } else if (role === ROLES.EMPLOYEE) {
-      const [recentAuditLogs] = await Promise.all([
-        getRecentAuditLogsByUser(userId, 5)
-      ]);
-
-      Object.assign(summary, {
-        recentAuditLogs
+        pendingEvaluations: pendingEvaluations?.items ?? [],
+        onLeaveTodayCount
       });
     }
 

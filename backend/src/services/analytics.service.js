@@ -93,7 +93,7 @@ export const getAnalyticsSummary = async () => {
     };
 
     const [employeeRows, projectRows, leaveRows, reportAuditRows] = await Promise.all([
-      supabase.from('employees').select('employment_status, departments ( department_name )'),
+      supabase.from('employees').select('employment_status, personnel_type, departments ( department_name )'),
       supabase.from('projects').select('status'),
       supabase.from('leave_requests').select('status, leave_types ( leave_type_name )'),
       supabase
@@ -119,12 +119,16 @@ export const getAnalyticsSummary = async () => {
 
     const departmentCounts = new Map();
     const employmentStatusCounts = new Map();
+    const personnelTypeCounts = new Map();
     for (const r of employeeRows.data || []) {
       const dept = r.departments?.department_name || 'Unassigned';
       inc(departmentCounts, dept);
 
       const status = r.employment_status || 'Unknown';
       inc(employmentStatusCounts, status);
+
+      const type = titleize(r.personnel_type || 'Unknown');
+      inc(personnelTypeCounts, type);
     }
 
     // Ensure stable keys for the donut chart (Active/Inactive)
@@ -150,6 +154,7 @@ export const getAnalyticsSummary = async () => {
 
     const employeesByDepartment = mapToChartRows(departmentCounts, { keyName: 'department', sort: 'desc' });
     const employeeStatusData = mapToChartRows(employmentStatusCounts, { keyName: 'name', sort: 'desc' });
+    const employeesByPersonnelType = mapToChartRows(personnelTypeCounts, { keyName: 'name', sort: 'desc' });
     const projectsByStatus = mapToChartRows(projectStatusCounts, { keyName: 'name', sort: 'desc' });
     const leaveStatusData = mapToChartRows(leaveStatusCounts, { keyName: 'name', sort: 'desc' });
     const leaveTypesData = mapToChartRows(leaveTypeCounts, { keyName: 'name', sort: 'desc' });
@@ -186,6 +191,7 @@ export const getAnalyticsSummary = async () => {
       summary,
       employeesByDepartment,
       employeeStatusData,
+      employeesByPersonnelType,
       projectsByStatus,
       leaveStatusData,
       leaveTypesData,
