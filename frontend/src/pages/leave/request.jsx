@@ -54,7 +54,7 @@ function ModalShell({ open, title, onClose, children }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/20"
-        onClick={onClose}
+        
         aria-hidden="true"
       />
 
@@ -115,6 +115,9 @@ function LeaveRequestDetailsModal({
     }
     onClose();
   };
+
+  const { user } = useAuth();
+  const isHR = user?.role === ROLES.HR;
 
   return (
     <ModalShell
@@ -177,9 +180,7 @@ function LeaveRequestDetailsModal({
           {row?.updatedBy ?? ""}
         </div>
 
-        <div className="flex pt-3 gap-x-6 justify-end">
-          
-
+        {!isHR && (<div className="flex pt-3 gap-x-6 justify-end">
           {isEditing && (
             <button
               type="button"
@@ -226,7 +227,7 @@ function LeaveRequestDetailsModal({
               ? "Save Changes"
               : "Update Request"}
           </button>
-        </div>
+        </div>)}
       </div>
     </ModalShell>
   );
@@ -474,6 +475,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
 function LeaveRequest() {
   const { user } = useAuth();
   const isEmployee = user?.role === ROLES.EMPLOYEE;
+  const isHR = user?.role === ROLES.HR;
 
   const [confirmState, setConfirmState] = useState({
     open: false,
