@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase.js";
 import { BadRequestError, InternalServerError, NotFoundError } from '../utils/errors.js';
-import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES, ROLES } from '../config/constants.js';
+import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES, PERSONNEL_TYPES, ROLES } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from './mail.service.js';
 import fs from 'node:fs/promises';
@@ -1281,13 +1281,14 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
   try {
     const effectiveYear = year || new Date().getUTCFullYear();
 
-    // For admin/HR views, hide inactive employees.
+    // For admin/HR views, hide inactive and project-based employees (project-based have no system access or leave entitlement).
     let activeEmployeeIds = null;
     if (!employee_id) {
       const { data: employees, error: empErr } = await supabase
         .from('employees')
         .select('employee_id, employment_status')
-        .neq('employment_status', EMPLOYMENT_STATUSES.INACTIVE);
+        .neq('employment_status', EMPLOYMENT_STATUSES.INACTIVE)
+        .neq('personnel_type', PERSONNEL_TYPES.PROJECT_BASED);
 
       if (empErr) throw new InternalServerError(empErr.message);
       activeEmployeeIds = (employees || []).map((e) => e.employee_id).filter(Boolean);
@@ -1388,7 +1389,7 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
         current_balance,
         created_at,
         updated_at,
-        employees (employee_id, first_name, last_name),
+        employees (employee_id, first_name, last_name, positions (position_title)),
         leave_types (leave_type_id, leave_type_name, default_credits)
       `)
       .order('year', { ascending: false });
@@ -1455,6 +1456,7 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
         employee_id: r.employee_id,
         employee_code: r.employees?.employee_id || r.employee_id,
         employee_name: formatEmployeeName(r.employees),
+        position_title: r.employees?.positions?.position_title || '',
         leave_type_id: r.leave_type_id,
         leave_type_name: r.leave_types?.leave_type_name || '',
         default_credits: r.leave_types?.default_credits ?? null,
@@ -1536,12 +1538,15 @@ export const generateYearlyLeaveCredits = async ({ year, user_id, user_role } = 
       throw new BadRequestError('Only Executive and HR can generate yearly leave credits');
     }
 
-    // get all active Regular employees
+    // get all active Regular employees with at least 1 year of service by Jan 1 of the target year
+    // (PH Labor Code: SIL entitlement requires at least 1 year of service)
+    const serviceCutoff = `${targetYear - 1}-01-01`;
     const { data: employees, error: empErr } = await supabase
       .from('employees')
-      .select('employee_id, first_name, last_name')
+      .select('employee_id, first_name, last_name, hire_date')
       .eq('employment_status', EMPLOYMENT_STATUSES.ACTIVE)
-      .ilike('personnel_type', 'regular');
+      .ilike('personnel_type', 'regular')
+      .lte('hire_date', serviceCutoff);
 
     if (empErr) throw new InternalServerError(empErr.message);
     if (!employees || employees.length === 0) {
@@ -1550,7 +1555,7 @@ export const generateYearlyLeaveCredits = async ({ year, user_id, user_role } = 
         employees_processed: 0,
         records_created: 0,
         records_skipped: 0,
-        message: 'No active Regular employees found'
+        message: `No active Regular employees with at least 1 year of service by ${targetYear} found`
       };
     }
 
@@ -1620,7 +1625,7 @@ export const generateYearlyLeaveCredits = async ({ year, user_id, user_role } = 
     try {
       await supabase.from('audit_logs').insert({
         user_id,
-        action: AUDIT_ACTIONS.GENERATE_LEAVE_CREDITS,
+        action_type: AUDIT_ACTIONS.GENERATE_LEAVE_CREDITS,
         table_name: 'employee_leave_balances',
         description: `Generated ${targetYear} yearly leave credits for ${employees.length} Regular employees (${recordsCreated} new records created, ${recordsSkipped} skipped)`,
         new_values: {

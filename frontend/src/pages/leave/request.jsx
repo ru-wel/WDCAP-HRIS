@@ -130,13 +130,13 @@ function LeaveRequestDetailsModal({
       <div className="space-y-5 text-sm px-2">
         <div className="grid grid-cols-[140px_1fr] gap-x-4 gap-y-2">
           <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
-          <div>{row?.dateRequested ?? "10/29/2025"}</div>
+          <div>{row?.dateRequested || "—"}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Employee Name:</div>
           <div>{row?.name ?? ""}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Position:</div>
-          <div>{row?.position ?? "Web Developer"}</div>
+          <div>{row?.position || "—"}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Leave Type:</div>
           <div>
@@ -1173,7 +1173,7 @@ function LeaveRequest() {
           if (type === "unsaved") {
             openConfirm({
               title: "Unsaved Changes",
-              message: "You have unsaved changes. Do you want to close it without saving??",
+              message: "You have unsaved changes. Do you want to close it without saving?",
               confirmText: "OK",
               cancelText: "Cancel",
               onConfirm: () => {

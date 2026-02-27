@@ -151,7 +151,7 @@ function LeaveCreditsDetailsModal({
           </div>
           <div className="flex gap-2">
             <span className="font-semibold text-[#483D3D] uppercase">Position:</span>
-            <span>Web Developer</span>
+            <span>{row?.position_title || "—"}</span>
           </div>
         </div>
 
@@ -519,6 +519,7 @@ export default function LeaveCredits() {
           employee_id: employeeId,
           id: r.employee_code || employeeId,
           name: r.employee_name || "",
+          position_title: r.position_title || "",
           credits: 0,
           usedLeave: 0,
         };
@@ -552,7 +553,7 @@ export default function LeaveCredits() {
 
     openConfirm({
       title: "Generate Yearly Leave Credits",       // change testYear to currentYear when done testing
-      message: `Generate ${testYear} leave credits for all Regular employees?\n\nThis will create records for all leave types:\n- Service Incentive Leave: 5 days\n- Leave Without Pay: 0 days\n- Special Leaves (Maternity, Paternity, etc.): 0 days\n\nOnly creates records for employees who don't have them yet for ${testYear}.\n\nExisting records will not be modified.`,
+      message: `Generate ${testYear} leave credits for eligible Regular employees?\n\nEligibility requirement:\n- Must have at least 1 year of service by January 1, ${testYear}\n\nThis will create records for all leave types:\n- Service Incentive Leave: 5 days\n- Leave Without Pay: 0 days\n- Special Leaves (Maternity, Paternity, etc.): 0 days\n\nOnly creates records for employees who don't have them yet for ${testYear}.\n\nExisting records will not be modified.`,
       confirmText: "Generate",
       cancelText: "Cancel",
       onCancel: closeConfirm,

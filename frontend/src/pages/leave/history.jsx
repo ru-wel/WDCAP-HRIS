@@ -192,13 +192,13 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate, ope
       <div className="space-y-5 text-sm">
         <div className="grid grid-cols-[140px_1fr] gap-x-6 gap-y-2 px-2">
           <div className="font-semibold text-[#483D3D] uppercase">Date Requested:</div>
-          <div>{row?.dateRequested ?? "10/29/2025"}</div>
+          <div>{row?.dateRequested || "—"}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Employee Name:</div>
           <div>{row?.name ?? ""}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Position:</div>
-          <div>{row?.position ?? "Web Developer"}</div>
+          <div>{row?.position || "—"}</div>
 
           <div className="font-semibold text-[#483D3D] uppercase">Leave Type:</div>
           <div>
