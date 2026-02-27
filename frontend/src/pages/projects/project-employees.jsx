@@ -334,7 +334,7 @@ const applyDraftFilters = () => {
       title: title || "Confirmation",
       message: message || "",
       confirmText: confirmText || "OK",
-      cancelText: cancelText || "Cancel",
+      cancelText: cancelText === undefined ? "Cancel" : cancelText,
       onConfirm: onConfirm || null,
     });
   };
@@ -1009,7 +1009,7 @@ const applyDraftFilters = () => {
         confirmText={confirmBusy ? "Processing…" : confirmState.confirmText}
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
-        onCancel={confirmBusy ? undefined : closeConfirm}
+        onCancel={ confirmBusy || confirmState.cancelText == null || confirmState.cancelText === "" ? undefined : closeConfirm}     
         confirmDisabled={confirmBusy}
       />
     </div>
