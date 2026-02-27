@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { get, post, del, put } from "../../services/api.js";
 import ReactPaginate from "react-paginate";
@@ -6,6 +6,82 @@ import ConfirmModal from "../../components/confirm-modal.jsx";
 import { compareDate, compareText } from "../../utils/sort";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { ROLES, PROJECT_STATUSES } from "../../constants/config.js";
+
+function EmployeeSearchDropdown({ employees, assignedIds, value, onChange, placeholder = "Select employee..." }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredEmployees = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return employees.filter((emp) => {
+      if (assignedIds.has(emp.id)) return false;
+      if (!q) return true;
+      const fullName = `${emp.first_name} ${emp.middle_name || ""} ${emp.last_name}`.toLowerCase();
+      const empId = String(emp.employee_id || "").toLowerCase();
+      return fullName.includes(q) || empId.includes(q);
+    });
+  }, [employees, assignedIds, search]);
+
+  const selectedEmployee = employees.find((emp) => emp.id === value);
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button type="button" onClick={() => setIsOpen((prev) => !prev)} className="w-full px-3 py-2 text-left border border-[#990100] rounded-md bg-white flex items-center justify-between focus:outline-none text-sm shadow-sm" >
+        <span className={selectedEmployee ? "" : "text-gray-400"}>
+          {selectedEmployee
+            ? `${selectedEmployee.first_name}${selectedEmployee.middle_name ? ` ${selectedEmployee.middle_name}` : ""} ${selectedEmployee.last_name} (${selectedEmployee.employee_id})`
+            : placeholder}
+        </span>
+        <svg className={`w-4 h-4 flex-shrink-0 ml-2 transition-transform ${isOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-72 overflow-hidden">
+          <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
+            <input type="text" placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#990100]" autoFocus onClick={(e) => e.stopPropagation()} />
+          </div>
+
+          <div className="overflow-y-auto max-h-56" data-lenis-prevent>
+            {filteredEmployees.length === 0 ? (
+              <div className="px-3 py-4 text-gray-500 text-center text-sm">No employees found</div>
+            ) : (
+              filteredEmployees.map((emp) => (
+                <button
+                  key={emp.id}
+                  type="button"
+                  onClick={() => {
+                    onChange(emp.id);
+                    setIsOpen(false);
+                    setSearch("");
+                  }}
+                  className={`w-full px-3 py-2 text-left hover:bg-gray-100 transition ${emp.id === value ? "bg-gray-100 font-semibold" : ""}`}
+                >
+                  <div className="text-sm">
+                    {emp.first_name}{emp.middle_name ? ` ${emp.middle_name}` : ""} {emp.last_name}
+                  </div>
+                  <div className="text-xs text-gray-500">{emp.employee_id}{emp.positions?.position_title ? ` · ${emp.positions.position_title}` : ""}</div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AddEmployeeModal({
   isOpen,
@@ -15,28 +91,32 @@ function AddEmployeeModal({
   existingEmployeeIds,
   onNotify,
 }) {
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [selectedEmployee, setSelectedEmployee] = React.useState(null);
-  const [availableEmployees, setAvailableEmployees] = React.useState([]);
-  const [assignmentDate, setAssignmentDate] = React.useState(
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+  const [assignmentDate, setAssignmentDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [status, setStatus] = React.useState("Active");
-  const [loading, setLoading] = React.useState(false);
-  const [addLoading, setAddLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       fetchAvailableEmployees();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, projectId]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedEmployeeId(null);
+      setAssignmentDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [isOpen]);
+
   const fetchAvailableEmployees = async () => {
     try {
       setLoading(true);
       const response = await get("/employees");
-
       if (response.success) {
         setAvailableEmployees(response.data);
       }
@@ -56,19 +136,7 @@ function AddEmployeeModal({
       ? existingEmployeeIds
       : new Set(existingEmployeeIds || []);
 
-  const filteredEmployees = searchTerm
-    ? availableEmployees
-        .filter((emp) => !assignedIds.has(emp.id))
-        .filter((emp) => {
-          const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-          return fullName.includes(searchTerm.toLowerCase());
-        })
-    : [];
-
-  const handleSelectEmployee = (employee) => {
-    setSelectedEmployee(employee);
-    setSearchTerm("");
-  };
+  const selectedEmployee = availableEmployees.find((emp) => emp.id === selectedEmployeeId) || null;
 
   const handleAdd = async () => {
     if (!selectedEmployee) return;
@@ -80,19 +148,15 @@ function AddEmployeeModal({
         project_id: projectId,
         employee_id: selectedEmployee.id,
         assignment_date: assignmentDate,
-        status: status,
+        status: "Active",
       });
 
       if (response.success) {
         onNotify?.({
           title: "Success",
-          message: `${selectedEmployee.first_name} ${selectedEmployee.last_name} added to project successfully!`,
+          message: `${selectedEmployee.first_name}${selectedEmployee.middle_name ? ` ${selectedEmployee.middle_name}` : ""} ${selectedEmployee.last_name} added to project successfully!`,
         });
         onEmployeeAdded();
-        setSelectedEmployee(null);
-        setSearchTerm("");
-        setAssignmentDate(new Date().toISOString().split("T")[0]);
-        setStatus("Active");
         onClose();
       }
     } catch (error) {
@@ -110,10 +174,7 @@ function AddEmployeeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
-      <div
-        className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 min-h-[300px] max-h-[90vh] overflow-y-auto"
-        
-      >
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 max-h-[90vh] overflow-y-auto">
         <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:pb-[10px] lg:pt-[8px] py-[6px] md:px-4 px-3">
           <h1 className="text-white text-lg font-medium lg:text-lg text-sm">Add New Employee</h1>
           <button
@@ -124,92 +185,33 @@ function AddEmployeeModal({
           </button>
         </div>
 
-        <div className="mt-10 flex flex-col items-center gap-3 lg:mx-15 md:mx-25 mx-15">
+        <div className="mt-8 flex flex-col gap-4 max-w-md mx-auto">
           {loading ? (
-            <p className="text-gray-600">Loading employees...</p>
+            <p className="text-gray-600 text-center">Loading employees...</p>
           ) : (
             <>
-              <div className="flex items-center gap-3 w-full max-w-md">
-                <input
-                  type="text"
-                  placeholder="Search Name"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1 px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
-                />
-
-                <button
-                  onClick={handleAdd}
-                  disabled={!selectedEmployee || addLoading}
-                  className={`px-6 py-2 rounded-lg text-base font-medium transition
-                    ${
-                      selectedEmployee && !addLoading
-                        ? "bg-[#990100] text-white hover:bg-[#7a0100] hover:scale-105"
-                        : "bg-[#990100]/70 text-white cursor-default"
-                    }`}
-                >
-                  {addLoading ? "Adding ..." : "Add"}
-                </button>
+              <div>
+                <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
+                  Employee
+                </label>
+                <EmployeeSearchDropdown employees={availableEmployees} assignedIds={assignedIds} value={selectedEmployeeId} onChange={setSelectedEmployeeId} />
               </div>
 
-              {filteredEmployees.length > 0 && (
-                <div
-                  className="w-full max-w-md border rounded-lg bg-white shadow max-h-40 overflow-y-auto"
-                  
-                >
-                  {filteredEmployees.map((employee) => (
-                    <button
-                      key={employee.id}
-                      type="button"
-                      onClick={() => handleSelectEmployee(employee)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-[#F5F5F5]"
-                    >
-                      {employee.first_name} {employee.last_name} (
-                      {employee.employee_id})
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
+                  Assignment Date
+                </label>
+                <input type="date" value={assignmentDate} onChange={(e) => setAssignmentDate(e.target.value)} className="w-full border px-2 lg:py-2 py-1.5 rounded-md border-[#990100] focus:outline-gray-400 shadow-sm cursor-pointer" />
+              </div>
 
-              {selectedEmployee && (
-                <input
-                  type="text"
-                  value={`${selectedEmployee.first_name} ${selectedEmployee.last_name} (${selectedEmployee.employee_id})`}
-                  readOnly
-                  className="w-full max-w-md px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
-                />
-              )}
-
-              {selectedEmployee && (
-                <>
-                  <div className="w-full max-w-md mb-5">
-                    <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
-                      Assignment Date
-                    </label>
-                    <input
-                      type="date"
-                      value={assignmentDate}
-                      onChange={(e) => setAssignmentDate(e.target.value)}
-                      className="w-full border px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm cursor-pointer"
-                    />
-                  </div>
-
-                  {/*<div className="w-full max-w-md">
-                    <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
-                      Status
-                    </label>
-                    <select
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value)}
-                      className="w-full px-2 lg:py-2 py-1.5 rounded-md border border-[#990100] focus:outline-gray-400 shadow-sm"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </div>*/}
-                </>
-              )}
+              <div className="flex justify-end gap-3 mt-2">
+                <button type="button" onClick={onClose} disabled={addLoading} className="px-5 py-2 rounded-lg text-sm bg-gray-200 text-gray-900 hover:bg-gray-300 transition cursor-pointer" >
+                  Cancel
+                </button>
+                <button type="button" onClick={handleAdd} disabled={!selectedEmployee || addLoading} className="px-6 py-2 rounded-lg text-sm bg-[#990100] text-white hover:bg-[#7a0100] transition disabled:opacity-50 disabled:pointer-events-none cursor-pointer" >
+                  {addLoading ? "Adding..." : "Add Employee"}
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -549,7 +551,7 @@ const applyDraftFilters = () => {
       ? projectEmployees
       : projectEmployees.filter((a) => {
           const emp = a.employees || {};
-          const name = `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
+          const name = `${emp.first_name || ""} ${emp.middle_name || ""} ${emp.last_name || ""}`.toLowerCase();
           const empId = String(emp.employee_id || "").toLowerCase();
           const position = String(emp.positions?.position_title || "").toLowerCase();
           const type = String(emp.personnel_type || "").toLowerCase();
@@ -788,10 +790,6 @@ const applyDraftFilters = () => {
 
               <div className="px-4 py-4">
                 <div className="grid grid-cols-1 sm:grid-cols-[180px_12px_1fr] gap-y-3 text-sm text-gray-900">
-                  <div className="font-semibold uppercase tracking-wide self-center">Project ID</div>
-                  <div className="font-semibold hidden sm:block self-center">:</div>
-                  <div className="break-words self-center">{projectDetails?.project_code || projectId || "—"}</div>
-
                   <div className="font-semibold uppercase tracking-wide self-center">Project Name</div>
                   <div className="font-semibold hidden sm:block self-center">:</div>
                   <div className="self-center">
@@ -909,9 +907,11 @@ const applyDraftFilters = () => {
                     {assignment.employees?.employee_id || "N/A"}
                   </td>
                   <td className="td-style">
-                    {(assignment.employees?.first_name || "") +
-                      " " +
-                      (assignment.employees?.last_name || "") || "Unknown"}
+                    {[
+                      assignment.employees?.first_name,
+                      assignment.employees?.middle_name,
+                      assignment.employees?.last_name,
+                    ].filter(Boolean).join(" ") || "Unknown"}
                   </td>
                   <td className="td-style">
                     {assignment.employees?.positions?.position_title || "N/A"}

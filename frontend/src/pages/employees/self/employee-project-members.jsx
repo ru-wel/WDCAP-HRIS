@@ -37,8 +37,6 @@ export default function EmployeeProjectMembers() {
       { value: 'name_za', label: 'Name: Z - A' },
       { value: 'position_az', label: 'Position: A - Z' },
       { value: 'position_za', label: 'Position: Z - A' },
-      { value: 'status_az', label: 'Status: A - Z' },
-      { value: 'status_za', label: 'Status: Z - A' },
     ],
     []
   );
@@ -137,9 +135,8 @@ export default function EmployeeProjectMembers() {
       const emp = a?.employees;
       return {
         id: a?.id,
-        status: a?.status,
         employee_id: emp?.employee_id,
-        name: `${emp?.first_name || ''} ${emp?.last_name || ''}`.trim(),
+        name: [emp?.first_name, emp?.middle_name, emp?.last_name].filter(Boolean).join(' '),
         position: emp?.positions?.position_title || 'N/A'
       };
     });
@@ -152,8 +149,7 @@ export default function EmployeeProjectMembers() {
       const employeeCode = String(m.employee_id || '').toLowerCase();
       const name = String(m.name || '').toLowerCase();
       const position = String(m.position || '').toLowerCase();
-      const status = String(m.status || '').toLowerCase();
-      return employeeCode.includes(q) || name.includes(q) || position.includes(q) || status.includes(q);
+      return employeeCode.includes(q) || name.includes(q) || position.includes(q);
     });
   }, [flattened, searchTerm]);
 
@@ -172,10 +168,6 @@ export default function EmployeeProjectMembers() {
           return compareText(a?.position, b?.position);
         case 'position_za':
           return compareText(b?.position, a?.position);
-        case 'status_az':
-          return compareText(a?.status, b?.status);
-        case 'status_za':
-          return compareText(b?.status, a?.status);
         default:
           return compareText(a?.name, b?.name);
       }
@@ -310,10 +302,6 @@ export default function EmployeeProjectMembers() {
 
           <div className="px-4 py-4">
             <div className="grid grid-cols-1 sm:grid-cols-[180px_12px_1fr] gap-y-2 text-sm text-gray-900">
-              <div className="font-semibold uppercase tracking-wide">Project ID</div>
-              <div className="font-semibold hidden sm:block">:</div>
-              <div className="break-words">{projectDetails?.project_code || projectId || '—'}</div>
-
               <div className="font-semibold uppercase tracking-wide">Project Name</div>
               <div className="font-semibold hidden sm:block">:</div>
               <div className="break-words">{projectDetails?.project_name || '—'}</div>
@@ -340,9 +328,21 @@ export default function EmployeeProjectMembers() {
 
       <div className="mt-6">
         {loading ? (
-          <div className="text-sm text-gray-600">Loading members…</div>
+          <div className="text-sm text-gray-600">Loading members...</div>
         ) : error ? (
-          <div className="text-sm text-red-700">{error}</div>
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => {
+                setError('');
+                fetchAll();
+              }}
+              className="mt-2 bg-red-600 text-white px-4 py-2 rounded text-sm cursor-pointer"
+            >
+              Retry
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="text-sm text-gray-600">No members found.</div>
         ) : (
@@ -352,8 +352,7 @@ export default function EmployeeProjectMembers() {
                 <tr>
                   <th className="th-style rounded-tl-lg rounded-bl-lg">Employee ID</th>
                   <th className="th-style">Name</th>
-                  <th className="th-style">Position</th>
-                  {/*<th className="th-style rounded-tr-lg rounded-br-lg">Status</th>*/}
+                  <th className="th-style rounded-tr-lg rounded-br-lg">Position</th>
                 </tr>
               </thead>
               <tbody className="tbody-style">
@@ -362,7 +361,6 @@ export default function EmployeeProjectMembers() {
                     <td className="td-style">{m.employee_id || '—'}</td>
                     <td className="td-style">{m.name || '—'}</td>
                     <td className="td-style">{m.position}</td>
-                    {/*<td className="td-style">{m.status || '—'}</td>*/}
                   </tr>
                 ))}
               </tbody>

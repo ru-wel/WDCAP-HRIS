@@ -3,33 +3,6 @@ import { NotFoundError, InternalServerError, ConflictError } from "../utils/erro
 import { AUDIT_ACTIONS } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
-const formatProjectCode = (n) => {
-  const num = Number(n);
-  const safe = Number.isFinite(num) && num > 0 ? Math.floor(num) : 0;
-  return `PRJ-${String(safe).padStart(5, '0')}`;
-};
-
-const attachProjectCodes = (projects) => {
-  const list = Array.isArray(projects) ? projects : [];
-  const byCreated = [...list]
-    .filter((p) => p && p.id)
-    .sort((a, b) => {
-      const da = new Date(a.created_at || 0);
-      const db = new Date(b.created_at || 0);
-      return da.getTime() - db.getTime();
-    });
-
-  const idToCode = new Map();
-  byCreated.forEach((p, idx) => {
-    idToCode.set(p.id, formatProjectCode(idx + 1));
-  });
-
-  return list.map((p) => ({
-    ...p,
-    project_code: idToCode.get(p?.id) || null,
-  }));
-};
-
 // create a new project
 export const createNewProject = async (projectName, siteLocation, startDate, endDate, status, userId) => {
   try {
@@ -77,17 +50,7 @@ export const createNewProject = async (projectName, siteLocation, startDate, end
 
     logger.info(`New project created: ${newProject.project_name}`);
 
-    // Add a stable display code based on created_at ordering (oldest = PRJ-00001).
-    // We keep the UUID id as the primary key for relations/routes.
-    const { data: allProjectsForCode } = await supabase
-      .from('projects')
-      .select('id, created_at')
-      .order('created_at', { ascending: true });
-
-    const withCodes = attachProjectCodes(allProjectsForCode || []);
-    const code = withCodes.find((p) => String(p.id) === String(newProject.id))?.project_code || null;
-
-    return { ...newProject, project_code: code };
+    return newProject;
   } catch (error) {
     logger.error('Error creating project', error);
     throw error;
@@ -110,7 +73,7 @@ export const getAllProjects = async () => {
       employee_count: project_assignments?.[0]?.count ?? 0,
     }));
 
-    return attachProjectCodes(normalized);
+    return normalized;
   } catch (error) {
     logger.error('Error fetching projects:', error);
     throw error;
@@ -129,16 +92,7 @@ export const getProjectById = async (projectId) => {
       throw new NotFoundError('Project not found');
     }
 
-    // Compute project_code based on created_at ordering.
-    const { data: allProjectsForCode } = await supabase
-      .from('projects')
-      .select('id, created_at')
-      .order('created_at', { ascending: true });
-
-    const withCodes = attachProjectCodes(allProjectsForCode || []);
-    const code = withCodes.find((p) => String(p.id) === String(project.id))?.project_code || null;
-
-    return { ...project, project_code: code };
+    return project;
   } catch (error) {
     logger.error(`Error fetching project ${projectId}:`, error);
     throw error;
@@ -153,7 +107,7 @@ export const getProjectMembers = async (projectId) => {
     const { data: assignments, error } = await supabase
       .from('project_assignments')
       .select(
-        'id, assignment_date, end_date, status, employees (employee_id, first_name, last_name, positions (position_title))'
+        'id, assignment_date, end_date, status, employees (employee_id, first_name, middle_name, last_name, personnel_type, positions (position_title))'
       )
       .eq('project_id', projectId)
       .order('assignment_date', { ascending: true });
@@ -188,7 +142,7 @@ export const getProjectsForEmployee = async (employeeDbId) => {
       .map((r) => r?.projects)
       .filter((p) => p && p.id);
 
-    return attachProjectCodes(projects);
+    return projects;
   } catch (error) {
     logger.error(`Error fetching projects for employee ${employeeDbId}:`, error);
     throw error;

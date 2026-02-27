@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { PROJECT_STATUSES, ASSIGNMENT_STATUSES } from "../config/constants.js";
+import { PROJECT_STATUSES } from "../config/constants.js";
 
 // PROJECT VALIDATION
 export const createProjectSchema = Joi.object({
@@ -38,7 +38,7 @@ export const updateProjectSchema = Joi.object({
   }),
   site_location: Joi.string().min(3).max(255).messages({
     'string.min': 'Site location must be at least 3 characters long',
-    'string.max': 'Site location cannot exceed 255 charaters'
+    'string.max': 'Site location cannot exceed 255 characters'
   }),
   start_date: Joi.date().messages({
     'date.base': 'Start date must be a valid date'
@@ -50,7 +50,7 @@ export const updateProjectSchema = Joi.object({
     }),
     otherwise: Joi.date()
   }).messages({
-    'date.base': 'End date must be a valid ate'
+    'date.base': 'End date must be a valid date'
   }),
   status: Joi.string().valid(PROJECT_STATUSES.ACTIVE, PROJECT_STATUSES.COMPLETED, PROJECT_STATUSES.ON_HOLD, PROJECT_STATUSES.CANCELLED).messages({
     'any.only': 'Status must be Active, Completed, On Hold, or Cancelled'
@@ -66,59 +66,4 @@ export const projectIdSchema = Joi.object({
     'string.guid': 'Invalid project ID format',
     'any.required': 'Project ID is required'
   })
-});
-
-// PROJECT ASSIGNMENT VALIDATION
-export const createAssignmentSchema = Joi.object({
-  employee_id: Joi.string().uuid().required().messages({
-    'string.guid': 'Employee ID must be a valid UUID',
-    'any.required': 'Employee ID is required'
-  }),
-  project_id: Joi.string().uuid().required().messages({
-    'string.guid': 'Project ID must be a valid UUID',
-    'any.required': 'Project ID is required'
-  }),
-  assignment_date: Joi.date().default(() => new Date()).messages({ // by default is set to today if walang naka set
-    'date.base': 'Assignment date must be a valid date'
-  }),
-  end_date: Joi.date().greater(Joi.ref('assignment_date')).allow(null).messages({
-    'date.base': 'End date must be a valid date',
-    'date.greater': 'End date must be after assignment date'
-  }),
-  status: Joi.string().valid(ASSIGNMENT_STATUSES.ACTIVE, ASSIGNMENT_STATUSES.COMPLETED).required().messages({
-    'any.only': 'Status must be Active or Completed',
-    'any.required': 'Status is required'
-  }),
-  notes: Joi.string().max(500).allow('', null).messages({
-    'string.max': 'Notes cannot exceed 500 characters'
-  })
-});
-
-export const updateAssignmentSchema = Joi.object({
-employee_id: Joi.string().uuid().required().messages({
-    'string.guid': 'Employee ID must be a valid UUID'
-  }),
-  project_id: Joi.string().uuid().required().messages({
-    'string.guid': 'Project ID must be a valid UUID'
-  }),
-  assignment_date: Joi.date().messages({ 
-    'date.base': 'Assignment date must be a valid date'
-  }),
-  end_date: Joi.date().when('assignment_date', { // if else to check if merong assignment_date
-    is: Joi.exist(),
-    then: Joi.date().greater(Joi.ref('assignment_date')).messages({
-      'date.greater': 'End date must be after assignment date'
-    }),
-    otherwise: Joi.date().allow(null)
-  }).messages({
-    'date.base': 'End date must be a valid ate'
-  }),
-  status: Joi.string().valid(ASSIGNMENT_STATUSES.ACTIVE, ASSIGNMENT_STATUSES.COMPLETED).required().messages({
-    'any.only': 'Status must be Active or Completed'
-  }),
-  notes: Joi.string().max(500).allow('', null).messages({
-    'string.max': 'Notes cannot exceed 500 characters'
-  })
-}).min(1).messages({
-  'object.min': 'At least one field must be provided for update'
 });

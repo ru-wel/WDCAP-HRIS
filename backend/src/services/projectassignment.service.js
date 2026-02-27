@@ -13,7 +13,7 @@ end_date,
 status,
 created_at,
 updated_at,
-employees (first_name, last_name, employee_id, personnel_type, positions (position_title)),
+employees (first_name, middle_name, last_name, employee_id, personnel_type, positions (position_title)),
 projects (project_name)
 `;
 
