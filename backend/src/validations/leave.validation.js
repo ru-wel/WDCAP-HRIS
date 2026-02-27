@@ -14,9 +14,17 @@ export const createLeaveRequestSchema = Joi.object({
   leave_type_id: Joi.alternatives().try(Joi.string().uuid(), Joi.number().integer()).required().messages({
     'any.required': 'Leave type is required'
   }),
-  start_date: Joi.date().required().messages({
+  start_date: Joi.date().required().custom((value, helpers) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (value < today) {
+      return helpers.error('date.past');
+    }
+    return value;
+  }).messages({
     'date.base': 'Start date must be a valid date',
-    'any.required': 'Start date is required'
+    'any.required': 'Start date is required',
+    'date.past': 'Start date cannot be in the past'
   }),
   end_date: Joi.date().min(Joi.ref('start_date')).required().messages({
     'date.base': 'End date must be a valid date',
@@ -26,8 +34,8 @@ export const createLeaveRequestSchema = Joi.object({
   reason: Joi.string().max(500).allow('', null).messages({
     'string.max': 'Reason cannot exceed 500 characters'
   }),
-  leave_purpose: Joi.string().valid('vacation', 'sick').allow(null, '').optional().messages({
-    'any.only': 'Leave purpose must be either "vacation" or "sick"'
+  leave_purpose: Joi.string().valid('vacation', 'sick', 'bereavement').allow(null, '').optional().messages({
+    'any.only': 'Leave purpose must be either "vacation", "sick", or "bereavement"'
   })
 });
 

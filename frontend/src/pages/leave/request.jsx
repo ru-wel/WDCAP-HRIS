@@ -12,8 +12,8 @@ const formatDateShort = (iso) => {
   if (Number.isNaN(d.getTime())) return "";
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${mm}/${dd}/${yy}`;
+  const yyyy = String(d.getFullYear());
+  return `${mm}/${dd}/${yyyy}`;
 };
 
 const formatPrettyDate = (iso) => {
@@ -31,7 +31,9 @@ const formatRange = (startIso, endIso, mode) => {
   const start = formatPrettyDate(startIso);
   const end = formatPrettyDate(endIso);
   if (!start && !end) return "";
-  if (!end || start === end) return start;
+  if (!end || start === end) {
+    return mode === "short" ? formatDateShort(startIso) : start;
+  }
   if (mode === "short") {
     return `${formatDateShort(startIso)} - ${formatDateShort(endIso)}`;
   }
@@ -141,7 +143,7 @@ function LeaveRequestDetailsModal({
             {row?.type ?? "SIL"}
             {row?.leave_purpose && (
               <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {row.leave_purpose === 'vacation' ? 'Vacation' : 'Sick'}
+                {row.leave_purpose === 'vacation' ? 'Vacation' : row.leave_purpose === 'bereavement' ? 'Bereavement' : 'Sick'}
               </span>
             )}
           </div>
@@ -449,6 +451,7 @@ function LeaveRequestCreateModal({ open, onClose, onCreated, onNotify }) {
                 <option value="">Select purpose</option>
                 <option value="vacation">Vacation</option>
                 <option value="sick">Sick</option>
+                <option value="bereavement">Bereavement</option>
               </select>
             </>
           )}
@@ -692,7 +695,7 @@ function LeaveRequest() {
         endDateRaw: r.end_date || "",
         date: formatRange(r.start_date, r.end_date, "short"),
         status: r.status || "PENDING",
-        dateRequested: formatPrettyDate(r.created_at),
+        dateRequested: formatDateShort(r.created_at),
         createdAtTs: (() => {
           const ts = new Date(r.created_at).getTime();
           return Number.isNaN(ts) ? 0 : ts;

@@ -105,7 +105,7 @@ export default function Sidenav({
 
 
       "/leave": { main: "Leave", sub: null },
-      "/leave/request": { main: "Leave", sub: "Leave Request" },
+      "/leave/request": { main: "Leave", sub: "Leave Requests" },
       "/leave/credits": { main: "Leave", sub: "Leave Credits" },
       "/leave/history": { main: "Leave", sub: "Leave History" },
       "/leave/my-leaves": { main: "Leave", sub: "My Leaves" },
@@ -210,7 +210,7 @@ export default function Sidenav({
         }
         return[
           { label: "Leave Calendar", path: "/leave"},
-          { label: "Leave Request", path: "/leave/request" },
+          { label: "Leave Requests", path: "/leave/request" },
           { label: "Leave Credits", path: "/leave/credits" },
           { label: "Leave History", path: "/leave/history" },
           { label: "My Leaves", path:"/leave/my-leaves" },

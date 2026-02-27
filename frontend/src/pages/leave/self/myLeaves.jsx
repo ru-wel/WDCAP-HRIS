@@ -151,7 +151,16 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
     const credit = leaveCredits.find((c) =>
       String(c.leave_type_name || "").toLowerCase() === selectedLeaveTypeName.toLowerCase()
     );
-    return credit ? credit.current_balance : null;
+    if (!credit) return null;
+    const pending = Number(credit.pending_days ?? 0);
+    return credit.current_balance - pending;
+  }, [leaveCredits, selectedLeaveTypeName]);
+
+  const pendingDays = useMemo(() => {
+    const credit = leaveCredits.find((c) =>
+      String(c.leave_type_name || "").toLowerCase() === selectedLeaveTypeName.toLowerCase()
+    );
+    return credit ? Number(credit.pending_days ?? 0) : 0;
   }, [leaveCredits, selectedLeaveTypeName]);
 
   // excludes weekends on leave credit calculation
@@ -181,7 +190,7 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
   const hasInsufficientBalance = useMemo(() => {
     if (currentBalance === null) return false;
     return requestedDays > currentBalance;
-  }, [currentBalance, requestedDays]);
+  }, [currentBalance, requestedDays, pendingDays]);
 
   useEffect(() => {
     if (!isSILSelected && leavePurpose) {
@@ -302,6 +311,12 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
                       </div>
                     )}
 
+                    {pendingDays > 0 && (
+                      <div className="col-span-2 p-2 bg-blue-50 border border-blue-300 text-blue-800 rounded text-xs">
+                        {pendingDays} day{pendingDays !== 1 ? 's' : ''} are pending approval and have been excluded from your available balance.
+                      </div>
+                    )}
+
                     {hasInsufficientBalance && (
                       <div className="col-span-2 p-2 bg-yellow-100 border border-yellow-400 text-yellow-800 rounded text-xs">
                         Warning: Requested days ({requestedDays}) exceed available balance ({currentBalance})
@@ -327,6 +342,7 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
                           <option value="">Select purpose</option>
                           <option value="vacation">Vacation</option>
                           <option value="sick">Sick</option>
+                          <option value="bereavement">Bereavement</option>
                         </select>
                       </>
                     )}
@@ -397,7 +413,7 @@ function ViewDetails ({ data, onClose, onCancel }){
               {data.type}
               {data.leave_purpose && (
                 <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                  {data.leave_purpose === 'vacation' ? '🏖️ Vacation' : '🏥 Sick'}
+                  {data.leave_purpose === 'vacation' ? '🏖️ Vacation' : data.leave_purpose === 'bereavement' ? '🕊️ Bereavement' : '🏥 Sick'}
                 </span>
               )}
             </div>
@@ -940,7 +956,8 @@ function MyLeaves() {
       const credit = leaveCredits.find((c) =>
         String(c.leave_type_name || "").toLowerCase().includes(leaveTypeName.toLowerCase())
       );
-      return credit ? credit.current_balance : 0;
+      if (!credit) return 0;
+      return Math.max(0, credit.current_balance - Number(credit.pending_days ?? 0));
     };
 
     const silBalance = useMemo(() => getLeaveBalance("service incentive"), [leaveCredits]);

@@ -126,13 +126,6 @@ function EventPopover({ open, data, onClose, onCancelClick, canCancel }) {
             </button>
           )}*/}
 
-          <a
-            className="gc-icon-cancel"
-            href = "/leave/history"
-          >
-            Edit
-          </a>
-          
           <button className="gc-icon-btn" onClick={onClose}>
             ✕
           </button>
@@ -169,7 +162,7 @@ function EventPopover({ open, data, onClose, onCancelClick, canCancel }) {
                 <span className="inline-flex items-center gap-2">
                   Purpose:
                   <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                    {String(data.leave_purpose).toLowerCase() === 'vacation' ? 'Vacation' : 'Sick'}
+                    {String(data.leave_purpose).toLowerCase() === 'vacation' ? 'Vacation' : String(data.leave_purpose).toLowerCase() === 'bereavement' ? 'Bereavement' : 'Sick'}
                   </span>
                 </span>
               </div>

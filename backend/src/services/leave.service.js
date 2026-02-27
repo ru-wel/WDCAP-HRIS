@@ -687,13 +687,13 @@ export const createLeaveRequest = async (payload, user) => {
       const isSIL = leaveTypeName === 'Service Incentive Leave';
 
       if (isSIL && !payload.leave_purpose) {
-        throw new BadRequestError('Please specify if this Service Incentive Leave is for vacation or sick leave.');
+        throw new BadRequestError('Please specify if this Service Incentive Leave is for vacation, sick, or bereavement.');
       }
 
       if (isSIL && payload.leave_purpose) {
-        const validPurposes = ['vacation', 'sick'];
+        const validPurposes = ['vacation', 'sick', 'bereavement'];
         if (!validPurposes.includes(payload.leave_purpose.toLowerCase())) {
-          throw new BadRequestError('Service Incentive Leave purpose must be either "vacation" or "sick".');
+          throw new BadRequestError('Service Incentive Leave purpose must be either "vacation", "sick", or "bereavement".');
         }
       }
     }
@@ -720,10 +720,26 @@ export const createLeaveRequest = async (payload, user) => {
     if (!isLWOP) {
       const currentBalance = balanceRow?.current_balance ?? 0;
 
-      if (currentBalance < requestedDays) {
-        throw new BadRequestError(
-          `Insufficient leave credits. You have ${currentBalance} day${currentBalance !== 1 ? 's' : ''} available for ${leaveTypeName}, but you're requesting ${requestedDays} day${requestedDays !== 1 ? 's' : ''}.`
-        );
+      // sum up days from existing PENDING requests for the same leave type and year
+      const { data: pendingRequests } = await supabase
+        .from('leave_requests')
+        .select('start_date, end_date')
+        .eq('employee_id', payload.employee_id)
+        .eq('leave_type_id', payload.leave_type_id)
+        .eq('status', 'PENDING');
+
+      const pendingDays = (pendingRequests || []).reduce((sum, req) => {
+        if (String(getYearFromIso(req.start_date)) !== String(year)) return sum;
+        return sum + calcBusinessDays(req.start_date, req.end_date);
+      }, 0);
+
+      const effectiveBalance = currentBalance - pendingDays;
+
+      if (effectiveBalance < requestedDays) {
+        const msg = pendingDays > 0
+          ? `Insufficient leave credits. You have ${currentBalance} day${currentBalance !== 1 ? 's' : ''} for ${leaveTypeName}, but ${pendingDays} day${pendingDays !== 1 ? 's' : ''} are pending approval, leaving only ${effectiveBalance} day${effectiveBalance !== 1 ? 's' : ''} available. You are requesting ${requestedDays} day${requestedDays !== 1 ? 's' : ''}.`
+          : `Insufficient leave credits. You have ${currentBalance} day${currentBalance !== 1 ? 's' : ''} available for ${leaveTypeName}, but you're requesting ${requestedDays} day${requestedDays !== 1 ? 's' : ''}.`;
+        throw new BadRequestError(msg);
       }
     }
 
@@ -1393,6 +1409,7 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
     const leaveTypeIds = [...new Set(rows.map(r => r.leave_type_id).filter(Boolean))];
 
     let usedLeaveMap = new Map(); // key: "employee_id:leave_type_id:year"
+    let pendingDaysMap = new Map(); // key: "employee_id:leave_type_id:year"
 
     if (employeeIds.length && leaveTypeIds.length) {
       const { data: approvedLeaves, error: leavesErr } = await supabase
@@ -1410,11 +1427,28 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
           usedLeaveMap.set(key, (usedLeaveMap.get(key) || 0) + days);
         }
       }
+
+      const { data: pendingLeaves, error: pendingErr } = await supabase
+        .from('leave_requests')
+        .select('employee_id, leave_type_id, start_date, end_date')
+        .in('employee_id', employeeIds)
+        .in('leave_type_id', leaveTypeIds)
+        .eq('status', 'PENDING');
+
+      if (!pendingErr && pendingLeaves) {
+        for (const leave of pendingLeaves) {
+          const days = calcBusinessDays(leave.start_date, leave.end_date);
+          const year = getYearFromIso(leave.start_date);
+          const key = `${leave.employee_id}:${leave.leave_type_id}:${year}`;
+          pendingDaysMap.set(key, (pendingDaysMap.get(key) || 0) + days);
+        }
+      }
     }
 
     return rows.map((r) => {
       const key = `${r.employee_id}:${r.leave_type_id}:${r.year}`;
       const actualUsedLeave = usedLeaveMap.get(key) || 0;
+      const pendingDays = pendingDaysMap.get(key) || 0;
 
       return {
         leave_balance_id: r.leave_balance_id,
@@ -1427,6 +1461,7 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
         year: r.year,
         current_balance: r.current_balance,
         used_leave: actualUsedLeave,
+        pending_days: pendingDays,
         created_at: r.created_at,
         updated_at: r.updated_at
       };

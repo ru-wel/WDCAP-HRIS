@@ -205,7 +205,7 @@ function LeaveHistoryDetailsModal({ open, row, onClose, canUpdate, onUpdate, ope
             {row?.type ?? "SIL"}
             {row?.leave_purpose && (  
               <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {row.leave_purpose === 'vacation' ? 'Vacation' : 'Sick'}
+                {row.leave_purpose === 'vacation' ? 'Vacation' : row.leave_purpose === 'bereavement' ? 'Bereavement' : 'Sick'}
               </span>
             )}
           </div>
