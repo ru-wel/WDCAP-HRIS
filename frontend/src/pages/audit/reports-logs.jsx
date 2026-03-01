@@ -5,6 +5,7 @@ import ReactPaginate from "react-paginate";
 import { compareDate, compareText } from "../../utils/sort";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 import ReportModal from "../../components/report-modal.jsx";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
 
@@ -48,6 +49,7 @@ function ReportsLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("timestamp_newest");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
@@ -125,10 +127,13 @@ function ReportsLogs() {
     try {
       setLoading(true);
       const response = await get("/audit-logs/table/reports");
-      if (response?.success) setLogs(Array.isArray(response.data) ? response.data : []);
+      const data = Array.isArray(response?.data) ? response.data : [];
+      if (response?.success) setLogs(data);
+      return data;
     } catch (err) {
       console.error("Failed to fetch report logs:", err);
       setError("Failed to load report logs");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -197,47 +202,54 @@ function ReportsLogs() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, logs.length]);
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport =
-      startDate || endDate
-        ? filterRowsByDateRange(visibleLogs, (log) => log?.timestamp, startDate, endDate)
-        : visibleLogs;
+  const handleGenerateReport = async ({ startDate, endDate, fileType } = {}) => {
+    setReportLoading(true);
+    try {
+      const freshData = await fetchReportLogs();
 
-    const columns = [
-      {
-        header: "Date | Time",
-        value: (log) => (log?.timestamp ? new Date(log.timestamp).toLocaleString() : ""),
-      },
-      { header: "Email", value: (log) => log?.users?.email || "N/A" },
-      { header: "Action", value: (log) => formatReportAction(log) },
-      { header: "Changes", value: (log) => getReportName(log) },
-    ];
+      const rowsForExport =
+        startDate || endDate
+          ? filterRowsByDateRange(freshData, (log) => log?.timestamp, startDate, endDate)
+          : freshData;
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    if (fileType === "CSV") {
-      exportRowsToCsv({ filename: `audit-reports-${stamp}.csv`, columns, rows: rowsForExport });
-    } else {
-      exportRowsToXlsx({
-        filename: `audit-reports-${stamp}.xlsx`,
-        sheetName: "Reports Logs",
-        columns,
-        rows: rowsForExport,
-      });
+      const columns = [
+        {
+          header: "Date | Time",
+          value: (log) => {
+            const dt = formatDateTimePht(log?.timestamp);
+            return dt.date && dt.time ? `${dt.date} | ${dt.time}` : "";
+          },
+        },
+        { header: "User", value: (log) => log?.users?.email || "N/A" },
+        { header: "Action", value: (log) => formatReportAction(log) },
+        { header: "Changes", value: (log) => getReportName(log) },
+      ];
+
+      const stamp = new Date().toISOString().slice(0, 10);
+      if (fileType === "PDF") {
+        await exportReportToPdf({
+          filename: `audit-reports-${stamp}.pdf`,
+          title: "Audit Log - Reports",
+          summaryLines: [
+            startDate || endDate ? `Range: ${startDate || "…"} to ${endDate || "…"}` : "Range: All time",
+            `Rows: ${rowsForExport.length}`,
+          ],
+          columns,
+          rows: rowsForExport,
+        });
+      } else if (fileType === "CSV") {
+        exportRowsToCsv({ filename: `audit-reports-${stamp}.csv`, columns, rows: rowsForExport });
+      } else {
+        exportRowsToXlsx({ filename: `audit-reports-${stamp}.xlsx`, sheetName: "Reports Logs", columns, rows: rowsForExport });
+      }
+
+      setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
     }
-
-    setReportOpen(false);
   };
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Reports Logs...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="">
@@ -252,6 +264,10 @@ function ReportsLogs() {
           </div>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+              Generate Report
+            </button>
+
             <div className="relative">
               <button
                 type="button"
@@ -327,150 +343,135 @@ function ReportsLogs() {
               ) : null}
             </div>
 
-            <div className="relative text-gray-600 border border-[#990100] rounded-lg ">
+            <div className="relative text-gray-600 border border-[#990100] rounded-lg">
               <input
                 type="search"
                 name="search"
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-white lg:h-10 md:h-9 h-8 px-2 lg:pr-10 md:pr-5 pr-5 md:w-auto w-35 rounded-lg text-sm focus:outline-none"
+                className="bg-white lg:h-10 h-9 px-2 pr-10 rounded-lg text-sm focus:outline-none"
               />
-              <button
-                type="submit"
-                className="absolute right-0 top-0 md:mt-3 mt-2 lg:mr-3 mr-2 items-center cursor-pointer"
-              >
-                <img
-                  src="/icons/red-search.png"
-                  className="lg:w-5 lg:h-5 w-4 h-4 items-center"
-                  alt="search"
-                />
-              </button>
+              <img
+                src="/icons/red-search.png"
+                className="absolute right-2 top-2 w-5 h-5"
+                alt="search"
+              />
             </div>
           </div>
         </div>
 
         <hr className="text-[#990100] mt-6 " />
 
-        <div className="flex justify-end mt-5">
-          <button className="generate-report-button" onClick={() => setReportOpen(true)}>
-            Generate Report
-          </button>
-        </div>
+        <ReportModal open={reportOpen} title="Generate Report - Reports Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
 
-        <ReportModal
-          open={reportOpen}
-          title="Generate Report - Reports Logs"
-          onClose={() => setReportOpen(false)}
-          onGenerate={handleGenerateReport}
-          enableDateRange={true}
-        />
-
-        <div className="div-table">
-          <table className="table-style">
-            <thead className="thead-style">
-              <tr>
-                <th className="th-style rounded-tl-lg rounded-bl-lg">Date | Time</th>
-                <th className="th-style">Email</th>
-                <th className="th-style">Action</th>
-                <th className="th-style rounded-tr-lg rounded-br-lg">
-                  Changes
-                </th>
-              </tr>
-            </thead>
-            <tbody className="tbody-style">
-              {loading ? (
-                <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                    Loading report logs...
-                  </td>
-                </tr>
-              ) : error ? (
-                <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-red-600">
-                    {error}
-                  </td>
-                </tr>
-              ) : visibleLogs.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                    No report logs found
-                  </td>
-                </tr>
-              ) : (
-                currentLogs.map((log) => {
-                  const dt = formatDateTimePht(log?.timestamp);
-                  return (
-                    <tr
-                      key={log?.id || `${log?.timestamp}-${log?.user_id}`}
-                      className="tr-style"
-                    >
-                      <td className="td-style-nobtn">
-                        {dt.date} | {dt.time}
-                      </td>
-                      <td className="td-style-nobtn font-medium">
-                        {log?.users?.email || "N/A"}
-                      </td>
-                      <td className="td-style-nobtn">{formatReportAction(log)}</td>
-                      <td className="td-style-nobtn">
-                        {getReportName(log)}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-
-          <br />
-
-          <div className="lg:flex items-center lg:justify-between">
-            <p className="lg:text-md text-sm">
-              Showing <b>{currentLogs.length}</b> of <b>{visibleLogs.length}</b> log
-              {visibleLogs.length !== 1 ? "s" : ""}
-              {pageCount ? (
-                <>
-                  {" "}
-                  | Page <b>{currentPage}</b> of <b>{pageCount}</b>
-                </>
-              ) : null}
-            </p>
-
-            {pageCount > 1 && (
-              <div className=" ">
-                <ReactPaginate
-                  breakLabel="..."
-                  nextLabel=">"
-                  onPageChange={handlePageClick}
-                  pageRangeDisplayed={2}
-                  pageCount={pageCount}
-                  previousLabel="<"
-                  renderOnZeroPageCount={null}
-                  marginPagesDisplayed={2}
-                  pageClassName=""
-                  pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                  previousClassName={
-                    multiPages
-                      ? "cursor-pointer hover:text-gray-500 hover:underline"
-                      : "text-gray-400 cursor-not-allowed pointer-events-none"
-                  }
-                  previousLinkClassName="page-link"
-                  nextClassName={
-                    multiPages
-                      ? "cursor-pointer hover:text-gray-500 hover:underline"
-                      : "text-gray-400 cursor-not-allowed pointer-events-none"
-                  }
-                  nextLinkClassName="page-link"
-                  breakClassName="page-item"
-                  breakLinkClassName="page-link"
-                  containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
-                  activeClassName="underline font-medium"
-                  forcePage={Math.floor(itemOffset / itemsPerPage)}
-                />
-              </div>
-            )}
+        {loading && (
+          <div className="py-20 text-center text-gray-600">
+            Loading report audit logs...
           </div>
-        </div>
+        )}
+
+        {error && (
+          <div className="bg-red-100 text-red-700 px-4 py-3 rounded mt-5">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && (
+          <div className="div-table">
+            <table className="table-style">
+              <thead className="thead-style">
+                <tr>
+                  <th className="th-style rounded-tl-lg rounded-bl-lg">Date | Time</th>
+                  <th className="th-style">User</th>
+                  <th className="th-style">Action</th>
+                  <th className="th-style rounded-tr-lg rounded-br-lg">
+                    Changes
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="tbody-style">
+                {visibleLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                      No report logs found
+                    </td>
+                  </tr>
+                ) : (
+                  currentLogs.map((log) => {
+                    const dt = formatDateTimePht(log?.timestamp);
+                    return (
+                      <tr
+                        key={log?.id || `${log?.timestamp}-${log?.user_id}`}
+                        className="tr-style"
+                      >
+                        <td className="td-style-nobtn">
+                          {dt.date} | {dt.time}
+                        </td>
+                        <td className="td-style-nobtn font-medium">
+                          {log?.users?.email || "N/A"}
+                        </td>
+                        <td className="td-style-nobtn">{formatReportAction(log)}</td>
+                        <td className="td-style-nobtn">
+                          {getReportName(log)}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+
+            <br />
+
+            <div className="lg:flex items-center lg:justify-between">
+              <p className="lg:text-md text-sm">
+                Showing <b>{currentLogs.length}</b> of <b>{visibleLogs.length}</b> log
+                {visibleLogs.length !== 1 ? "s" : ""}
+                {pageCount ? (
+                  <>
+                    {" "}
+                    | Page <b>{currentPage}</b> of <b>{pageCount}</b>
+                  </>
+                ) : null}
+              </p>
+
+              {pageCount > 1 && (
+                <div className=" ">
+                  <ReactPaginate
+                    breakLabel="..."
+                    nextLabel=">"
+                    onPageChange={handlePageClick}
+                    pageRangeDisplayed={2}
+                    pageCount={pageCount}
+                    previousLabel="<"
+                    renderOnZeroPageCount={null}
+                    marginPagesDisplayed={2}
+                    pageClassName=""
+                    pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                    previousClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    previousLinkClassName="page-link"
+                    nextClassName={
+                      multiPages
+                        ? "cursor-pointer hover:text-gray-500 hover:underline"
+                        : "text-gray-400 cursor-not-allowed pointer-events-none"
+                    }
+                    nextLinkClassName="page-link"
+                    breakClassName="page-item"
+                    breakLinkClassName="page-link"
+                    containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                    activeClassName="underline font-medium"
+                    forcePage={Math.floor(itemOffset / itemsPerPage)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

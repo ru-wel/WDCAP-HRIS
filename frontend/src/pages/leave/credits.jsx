@@ -7,6 +7,7 @@ import { ROLES } from "../../constants/config.js";
 import { compareNumber, compareText } from "../../utils/sort.js";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 import ReportModal from "../../components/report-modal.jsx";
 
 function ModalShell({ open, title, onClose, children }) {
@@ -433,6 +434,7 @@ export default function LeaveCredits() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [sortOrder, setSortOrder] = useState("requested_newest");
 
@@ -498,10 +500,11 @@ export default function LeaveCredits() {
     </button>
   );
 
-  const fetchCredits = async () => {
+  const fetchCredits = async (year = null) => {
     try {
       setLoading(true);
-      const endpoint = isEmployee ? "/leave/credits/me" : "/leave/credits";
+      const base = isEmployee ? "/leave/credits/me" : "/leave/credits";
+      const endpoint = year ? `${base}?year=${year}` : base;
       const res = await get(endpoint);
       const apiRows = Array.isArray(res?.data) ? res.data : [];
 
@@ -532,11 +535,14 @@ export default function LeaveCredits() {
       }
 
       setDetailsByEmployeeId(detailsMap);
-      setRows(Array.from(byEmployee.values()));
+      const rowsData = Array.from(byEmployee.values());
+      setRows(rowsData);
+      return { rows: rowsData, detailsByEmployeeId: detailsMap };
     } catch (e) {
       console.error("Failed to load leave credits:", e);
       setRows([]);
       setDetailsByEmployeeId({});
+      return { rows: [], detailsByEmployeeId: {} };
     } finally {
       setLoading(false);
     }
@@ -585,6 +591,21 @@ export default function LeaveCredits() {
       },
     });
   };
+
+  const leaveTypeOptions = useMemo(() => {
+    const types = new Set();
+    Object.values(detailsByEmployeeId).forEach((details) => {
+      if (Array.isArray(details)) {
+        details.forEach((d) => {
+          if (d?.leave_type_name) types.add(d.leave_type_name);
+        });
+      }
+    });
+    return [
+      { value: 'all', label: 'All Leave Types' },
+      ...Array.from(types).sort().map((t) => ({ value: t, label: t })),
+    ];
+  }, [detailsByEmployeeId]);
 
   const filteredRows = useMemo(() => {
     if (!searchTerm) return rows;
@@ -636,10 +657,15 @@ export default function LeaveCredits() {
     setItemOffset(event.selected * itemsPerPage);
   };
 
-  const handleGenerateReport = ({ startingDate, endDate, fileType }) => {
-    const detailRows = visibleRows.flatMap((employee) => {
+  const handleGenerateReport = async ({ startDate, endDate, fileType, year, category }) => {
+    setReportLoading(true);
+    try {
+    const freshResult = await fetchCredits(year);
+    const freshRows = freshResult.rows;
+    const freshDetails = freshResult.detailsByEmployeeId;
+    const detailRows = freshRows.flatMap((employee) => {
       const employeeId = employee?.employee_id;
-      const details = employeeId ? detailsByEmployeeId?.[employeeId] : null;
+      const details = employeeId ? freshDetails?.[employeeId] : null;
 
       if (!Array.isArray(details) || details.length === 0) {
         return [
@@ -662,22 +688,30 @@ export default function LeaveCredits() {
       }));
     });
 
-    const dateTag = [startingDate, endDate].filter(Boolean).join("_to_");
-    const ext = fileType === "XLSX" ? "xlsx" : "csv";
-    const filename = `leave-credits-report${dateTag ? `-${dateTag}` : ""}-${new Date()
-      .toISOString()
-      .slice(0, 10)}.${ext}`;
+    const cat = category || 'all';
+    const rowsForExport = cat === 'all'
+      ? detailRows
+      : detailRows.filter((r) => r.leave_type_name === cat);
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    const reportYear = year ?? new Date().getFullYear();
+    const upperType = String(fileType || "XLSX").toUpperCase();
+    const isCsv = upperType === "CSV";
+    const isPdf = upperType === "PDF";
+    const ext = isPdf ? "pdf" : isCsv ? "csv" : "xlsx";
+    const filename = `leave-credits-report-${reportYear}-${stamp}.${ext}`;
 
     post("/audit-logs/reports", {
       report_name: "Leave Credits Report",
       filename,
-      start_date: startingDate || null,
+      start_date: startDate || null,
       end_date: endDate || null,
-      row_count: detailRows.length,
+      row_count: rowsForExport.length,
       source: "leave-credits",
     }).catch(() => {});
 
     const columns = [
+      { header: "Year", value: () => reportYear },
       { header: "Employee ID", value: (r) => r.employee_code },
       { header: "Employee Name", value: (r) => r.employee_name },
       { header: "Leave Type", value: (r) => r.leave_type_name },
@@ -685,22 +719,31 @@ export default function LeaveCredits() {
       { header: "Used Leave", value: (r) => r.used_leave },
     ];
 
-    if (fileType === "XLSX") {
-      exportRowsToXlsx({
+    if (isPdf) {
+      exportReportToPdf({
         filename,
-        sheetName: "Leave Credits",
+        title: "Leave Credits Report",
+        summaryLines: [
+          `Year: ${reportYear}`,
+          `Leave Type: ${cat === 'all' ? 'All' : cat}`,
+          `Total Employees: ${freshRows.length}`,
+          `Generated: ${stamp}`,
+        ],
         columns,
-        rows: detailRows,
-      });
+        rows: rowsForExport,
+      }).catch(() => {});
+    } else if (isCsv) {
+      exportRowsToCsv({ filename, columns, rows: rowsForExport });
     } else {
-      exportRowsToCsv({
-        filename,
-        columns,
-        rows: detailRows,
-      });
+      exportRowsToXlsx({ filename, sheetName: "Leave Credits", columns, rows: rowsForExport });
     }
 
     setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const handleSaveCredits = (employeeRow, draft, done) => {
@@ -795,6 +838,11 @@ export default function LeaveCredits() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            {!isEmployee && (
+              <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+                Generate Report
+              </button>
+            )}
 
             <div className="relative">
               <button
@@ -898,17 +946,6 @@ export default function LeaveCredits() {
         <hr className="text-[#990100] mt-6" />
 
         <div className="flex justify-end gap-4 mt-4">
-
-          {!isEmployee && (
-            <button
-              type="button"
-              className="generate-report-button"
-              onClick={() => setReportOpen(true)}
-            >
-              Generate Report
-            </button>
-        )}
-
           {canEdit && (
               <button type="button" onClick={handleGenerateYearlyCredits} className="green-button" title="Generate all leave types for all Regular employees for the new year">
                 Generate Yearly Credits
@@ -1047,11 +1084,13 @@ export default function LeaveCredits() {
     open={reportOpen}
     title="Generate Report - Leave Credits"
     onClose={() => setReportOpen(false)}
-    onGenerate={({ startDate, endDate, fileType }) =>
-      handleGenerateReport({ startingDate: startDate, endDate, fileType })
-    }
-    enableDateRange={true}
-    fileTypes={["XLSX", "CSV"]}
+    onGenerate={handleGenerateReport}
+    loading={reportLoading}
+    enableDateRange={false}
+    fileTypes={["XLSX", "CSV", "PDF"]}
+    yearOptions={[new Date().getFullYear()]}
+    categoryOptions={leaveTypeOptions}
+    defaultCategory="all"
   />
 )}
 

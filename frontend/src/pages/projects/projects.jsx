@@ -187,6 +187,7 @@ function Projects() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("project_name_az");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = "project_name_az";
@@ -421,11 +422,15 @@ function Projects() {
       const response = await get("/projects");
 
       if (response.success) {
-        setProjects(response.data);
+        const data = Array.isArray(response.data) ? response.data : [];
+        setProjects(data);
+        return data;
       }
+      return [];
     } catch (error) {
       console.error("Failed to fetch projects:", error);
       setError(error.message || "Failed to load projects");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -533,20 +538,61 @@ function Projects() {
     });
   };
 
-  const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+  const handleGenerateReport = async ({ startDate, endDate, fileType, category } = {}) => {
+    setReportLoading(true);
+    try {
+    const freshData = await fetchProjects();
     const base =
       startDate || endDate
-        ? filterRowsByDateRange(filteredProjects, (p) => p?.start_date, startDate, endDate)
-        : filteredProjects;
+        ? filterRowsByDateRange(freshData, (p) => p?.start_date, startDate, endDate)
+        : freshData;
 
     const cat = category || "all";
-    const rowsForExport = base.filter((p) => {
+    const filteredProjects = base.filter((p) => {
       const s = String(p?.status || "");
       if (cat === "active") return s === PROJECT_STATUSES.ACTIVE;
       if (cat === "completed") return s === PROJECT_STATUSES.COMPLETED;
       if (cat === "on_hold") return s === PROJECT_STATUSES.ON_HOLD;
-      if (cat === "cancelled") return s === PROJECT_STATUSES.CANCELLED;
       return true;
+    });
+
+    const membersResults = await Promise.all(
+      filteredProjects.map((p) =>
+        get(`/projects/${p.id}/members`)
+          .then((res) => (res?.success ? res.data : []))
+          .catch(() => [])
+      )
+    );
+
+    const rowsForExport = filteredProjects.flatMap((p, i) => {
+      const members = Array.isArray(membersResults[i]) ? membersResults[i] : [];
+      if (members.length === 0) {
+        return [{
+          project_name: p.project_name,
+          site_location: p.site_location,
+          start_date: p.start_date,
+          end_date: p.end_date || '—',
+          status: p.status,
+          employee_count: p.employee_count ?? 0,
+          employee_id: '',
+          employee_name: '',
+          position: '',
+          personnel_type: '',
+        }];
+      }
+      return members.map((m) => ({
+        project_name: p.project_name,
+        site_location: p.site_location,
+        start_date: p.start_date,
+        end_date: p.end_date || '—',
+        status: p.status,
+        employee_count: p.employee_count ?? 0,
+        employee_id: m.employees?.employee_id || '',
+        employee_name: [m.employees?.first_name, m.employees?.middle_name, m.employees?.last_name]
+          .filter(Boolean).join(' '),
+        position: m.employees?.positions?.position_title || '',
+        personnel_type: m.employees?.personnel_type || '',
+      }));
     });
 
     const stamp = new Date().toISOString().slice(0, 10);
@@ -566,19 +612,23 @@ function Projects() {
     }).catch(() => {});
 
     const columns = [
-      { header: "Project Name", value: (p) => p.project_name },
-      { header: "Site Location", value: (p) => p.site_location },
-      { header: "Start Date", value: (p) => p.start_date },
-      { header: "End Date", value: (p) => p.end_date },
-      { header: "Status", value: (p) => p.status },
+      { header: "Project Name", value: (r) => r.project_name },
+      { header: "Site Location", value: (r) => r.site_location },
+      { header: "Start Date", value: (r) => r.start_date },
+      { header: "End Date", value: (r) => r.end_date },
+      { header: "Status", value: (r) => r.status },
+      { header: "Employee Count", value: (r) => r.employee_count },
+      { header: "Employee ID", value: (r) => r.employee_id },
+      { header: "Employee Name", value: (r) => r.employee_name },
+      { header: "Position", value: (r) => r.position },
+      { header: "Personnel Type", value: (r) => r.personnel_type },
     ];
 
     if (isPdf) {
       const counts = {
-        [PROJECT_STATUSES.ACTIVE]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.ACTIVE).length,
-        [PROJECT_STATUSES.COMPLETED]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.COMPLETED).length,
-        [PROJECT_STATUSES.ON_HOLD]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.ON_HOLD).length,
-        [PROJECT_STATUSES.CANCELLED]: rowsForExport.filter((p) => p.status === PROJECT_STATUSES.CANCELLED).length,
+        [PROJECT_STATUSES.ACTIVE]: filteredProjects.filter((p) => p.status === PROJECT_STATUSES.ACTIVE).length,
+        [PROJECT_STATUSES.COMPLETED]: filteredProjects.filter((p) => p.status === PROJECT_STATUSES.COMPLETED).length,
+        [PROJECT_STATUSES.ON_HOLD]: filteredProjects.filter((p) => p.status === PROJECT_STATUSES.ON_HOLD).length,
       };
 
       exportReportToPdf({
@@ -587,7 +637,7 @@ function Projects() {
         summaryLines: [
           `Category: ${cat}`,
           startDate || endDate ? `Range: ${startDate || "…"} to ${endDate || "…"}` : "Range: All time",
-          `Active: ${counts[PROJECT_STATUSES.ACTIVE]} | Completed: ${counts[PROJECT_STATUSES.COMPLETED]} | On Hold: ${counts[PROJECT_STATUSES.ON_HOLD]} | Cancelled: ${counts[PROJECT_STATUSES.CANCELLED]}`,
+          `Projects: ${filteredProjects.length} | Active: ${counts[PROJECT_STATUSES.ACTIVE]} | Completed: ${counts[PROJECT_STATUSES.COMPLETED]} | On Hold: ${counts[PROJECT_STATUSES.ON_HOLD]}`,
         ],
         columns,
         rows: rowsForExport,
@@ -599,6 +649,11 @@ function Projects() {
     }
 
     setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   if (loading) {
@@ -637,6 +692,12 @@ function Projects() {
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Projects</h1>
 
           <div className="flex items=center justify-end md:gap-4 gap-3">
+            {mode === "view" && (
+              <button className="generate-report-button" onClick={() => setReportOpen(true)}>
+                Generate Report
+              </button>
+            )}
+
             <div className="relative">
               <button
                 type="button"
@@ -740,23 +801,20 @@ function Projects() {
         <div className="flex justify-end mt-6 gap-3 flex-wrap">
           {mode === "view" && (
             <>
-              <button className="generate-report-button" onClick={() => setReportOpen(true)}>
-                Generate Report
-              </button>
-
               <ReportModal
                 open={reportOpen}
                 title="Generate Report - Projects"
                 onClose={() => setReportOpen(false)}
                 onGenerate={handleGenerateReport}
+                loading={reportLoading}
                 enableDateRange={true}
+                dateRangeHint="filters by Start Date"
                 fileTypes={["XLSX", "CSV", "PDF"]}
                 categoryOptions={[
                   { value: "all", label: "All Projects" },
                   { value: "active", label: "Active" },
                   { value: "completed", label: "Completed" },
                   { value: "on_hold", label: "On Hold" },
-                  { value: "cancelled", label: "Cancelled" },
                 ]}
                 defaultCategory="all"
               />

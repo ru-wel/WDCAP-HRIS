@@ -893,6 +893,7 @@ function Employees() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("name_az");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [personnelTypeFilter, setPersonnelTypeFilter] = useState("ALL");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
@@ -1168,8 +1169,9 @@ function Employees() {
         get("/positions"),
       ]);
 
+      let mappedEmployees = [];
       if (empResponse.success) {
-        const mappedEmployees = empResponse.data.map((emp) => ({
+        mappedEmployees = empResponse.data.map((emp) => ({
           ...emp,
           department_name: emp.departments?.department_name || "N/A",
           position_title: emp.positions?.position_title || "N/A",
@@ -1186,9 +1188,12 @@ function Employees() {
       if (posResponse.success) {
         setPositions(posResponse.data);
       }
+
+      return mappedEmployees;
     } catch (error) {
       console.error("Failed to fetch data:", error);
       setError(error.message || "Failed to load data");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -1272,16 +1277,39 @@ function Employees() {
     );
   }
 
-  const handleGenerateReport = ({
+  const handleGenerateReport = async ({
     startDate,
     endDate,
     fileType,
     category,
   } = {}) => {
+    setReportLoading(true);
+    try {
+    const cat = category || "all";
+    const needsInactive = cat === "all" || cat === "inactive";
+
+    let freshData;
+    if (needsInactive) {
+      // Fetch all employees including inactive for the report without updating page state
+      const [empRes, deptRes, posRes] = await Promise.all([
+        get("/employees?include_inactive=true"),
+        get("/departments"),
+        get("/positions"),
+      ]);
+      freshData = (empRes?.data || []).map((emp) => ({
+        ...emp,
+        department_name: emp.departments?.department_name || "N/A",
+        position_title: emp.positions?.position_title || "N/A",
+        department_id: emp.departments?.id,
+        position_id: emp.positions?.id,
+      }));
+    } else {
+      freshData = await fetchEmployees();
+    }
     const selectedOnly = selectedCount > 0;
     const inputRows = selectedOnly
-      ? filteredEmployees.filter((r) => !!selectedEmployeeIds[r?.id])
-      : filteredEmployees;
+      ? freshData.filter((r) => !!selectedEmployeeIds[r?.id])
+      : freshData;
 
     const base =
       startDate || endDate
@@ -1293,7 +1321,6 @@ function Employees() {
           )
         : inputRows;
 
-    const cat = category || "all";
     const rowsForExport = base.filter((r) => {
       const status = String(r?.employment_status || "");
       const p = String(r?.personnel_type || "");
@@ -1301,11 +1328,9 @@ function Employees() {
       if (cat === "selected") return true;
       if (cat === "active") return status === EMPLOYMENT_STATUSES.ACTIVE;
       if (cat === "inactive") return status === EMPLOYMENT_STATUSES.INACTIVE;
+      if (cat === "regular") return p === PERSONNEL_TYPES.REGULAR;
+      if (cat === "probationary") return p === PERSONNEL_TYPES.PROBATIONARY;
       if (cat === "project_based") return p === PERSONNEL_TYPES.PROJECT_BASED;
-      if (cat === "standard")
-        return (
-          p === PERSONNEL_TYPES.REGULAR || p === PERSONNEL_TYPES.PROBATIONARY
-        );
       return true;
     });
 
@@ -1327,10 +1352,11 @@ function Employees() {
 
     const columns = [
       { header: "Employee ID", value: (r) => r.employee_id },
-      {
-        header: "Name",
-        value: (r) => `${r.first_name || ""} ${r.last_name || ""}`.trim(),
-      },
+      { header: "First Name", value: (r) => r.first_name || "" },
+      { header: "Middle Name", value: (r) => r.middle_name || "" },
+      { header: "Last Name", value: (r) => r.last_name || "" },
+      { header: "Sex", value: (r) => r.sex || "" },
+      { header: "Birth Date", value: (r) => r.birth_date || "" },
       { header: "Department", value: (r) => r.department_name || "N/A" },
       { header: "Position", value: (r) => r.position_title },
       { header: "Hire Date", value: (r) => r.hire_date },
@@ -1345,10 +1371,15 @@ function Employees() {
       const inactiveCount = rowsForExport.filter(
         (r) => r.employment_status === EMPLOYMENT_STATUSES.INACTIVE
       ).length;
+      const regularCount = rowsForExport.filter(
+        (r) => r.personnel_type === PERSONNEL_TYPES.REGULAR
+      ).length;
+      const probationaryCount = rowsForExport.filter(
+        (r) => r.personnel_type === PERSONNEL_TYPES.PROBATIONARY
+      ).length;
       const projectBasedCount = rowsForExport.filter(
         (r) => r.personnel_type === PERSONNEL_TYPES.PROJECT_BASED
       ).length;
-      const standardCount = rowsForExport.length - projectBasedCount;
 
       exportReportToPdf({
         filename,
@@ -1362,7 +1393,7 @@ function Employees() {
             ? `Scope: Selected employees (${selectedCount})`
             : "Scope: All filtered employees",
           `Active: ${activeCount} | Inactive: ${inactiveCount}`,
-          `Standard: ${standardCount} | Project-Based: ${projectBasedCount}`,
+          `Regular: ${regularCount} | Probationary: ${probationaryCount} | Project-Based: ${projectBasedCount}`,
         ],
         columns,
         rows: rowsForExport,
@@ -1379,6 +1410,11 @@ function Employees() {
     }
 
     setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   return (
@@ -1394,6 +1430,21 @@ function Employees() {
           </div>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            <button
+              className="generate-report-button"
+              onClick={() => setReportOpen(true)}
+              disabled={filteredEmployees.length === 0}
+              title={
+                selectedCount
+                  ? "Generate report for selected employees"
+                  : "Generate report"
+              }
+            >
+              {selectedCount
+                ? `Generate Report (Selected: ${selectedCount})`
+                : "Generate Report"}
+            </button>
+
             <div
               className="relative"
               ref={filtersWrapRef}
@@ -1549,23 +1600,6 @@ function Employees() {
           </div>
         ) : null}
 
-        <div className="flex justify-end mt-5">
-          <button
-            className="generate-report-button"
-            onClick={() => setReportOpen(true)}
-            disabled={filteredEmployees.length === 0}
-            title={
-              selectedCount
-                ? "Generate report for selected employees"
-                : "Generate report"
-            }
-          >
-            {selectedCount
-              ? `Generate Report (Selected: ${selectedCount})`
-              : "Generate Report"}
-          </button>
-        </div>
-
         <div className="div-table">
           <table className="table-style">
             <thead className="thead-style">
@@ -1635,7 +1669,9 @@ function Employees() {
             title="Generate Report - Employees"
             onClose={() => setReportOpen(false)}
             onGenerate={handleGenerateReport}
+            loading={reportLoading}
             enableDateRange={true}
+            dateRangeHint="filters by Hire Date"
             fileTypes={["XLSX", "CSV", "PDF"]}
             categoryOptions={[
               ...(selectedCount
@@ -1649,7 +1685,8 @@ function Employees() {
               { value: "all", label: "All Employees" },
               { value: "active", label: "Active Employees" },
               { value: "inactive", label: "Inactive Employees" },
-              { value: "standard", label: "Standard (Regular/Probationary)" },
+              { value: "regular", label: "Regular" },
+              { value: "probationary", label: "Probationary" },
               { value: "project_based", label: "Project-Based" },
             ]}
             defaultCategory={selectedCount ? "selected" : "all"}

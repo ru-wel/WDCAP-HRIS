@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar";
 import ReactPaginate from "react-paginate";
-import { del, get, post, put } from "../../services/api.js";
+import { get, post } from "../../services/api.js";
 import { compareNumber, compareText } from "../../utils/sort.js";
 import ConfirmModal from "../../components/confirm-modal.jsx";
 import ReportModal from "../../components/report-modal.jsx";
@@ -11,96 +11,11 @@ import { exportRowsToXlsx } from "../../utils/excel.js";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
 import { exportReportToPdf } from "../../utils/pdf.js";
 
-function DepartmentCard({
-  id,
-  name,
-  employeesCount,
-  mode,
-  editedName,
-  onNameChange,
-  onSaveEdit,
-  onDelete,
-  saving,
-  activeEditId,
-  onSelectEdit,
-  onConfirmDelete,
-  onOpen,
-}) {
-  const showDeleteOverlay = mode === "delete";
-  const isClickable = mode === "view" || mode === "edit";
-  const isActiveEdit =
-    mode === "edit" && String(activeEditId || "") === String(id || "");
-
-  const CardWrapper = isClickable ? "button" : "div";
-
+function DepartmentCard({ name, employeesCount, onOpen }) {
   return (
-    <CardWrapper
-      type={isClickable ? "button" : undefined}
-      onClick={
-        
-           mode === "view"
-          ? onOpen
-          : mode === "edit"
-          ? () => onSelectEdit?.(id)
-          : undefined
-      }
-      className={`relative bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 pt-6 transition-all duration-300 text-left w-full
-        ${showDeleteOverlay ? "pb-20" : "pb-6"}
-        ${isClickable ? "hover:scale-105 cursor-pointer" : ""}
-      `}
-      style={{ minHeight: 140 }}
-    >
-      {mode === "edit" ? (
-        <>
-          <input
-            value={editedName}
-            onChange={(e) => onNameChange(id, e.target.value)}
-            className="w-full text-xl font-bold 
-                     text-[#990100]/70 border-b-1 border-b-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400 "
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          <div className="mt-3 flex justify-end">
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete?.(id);
-                }}
-                disabled={!!saving}
-                className="bg-red-700 hover:bg-red-600 hover:scale-105 py-1.5 generate-report-button"
-              >
-                Delete
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSaveEdit?.(id);
-                }}
-                disabled={
-                  !!saving ||
-                  !String(editedName || "").trim() ||
-                  String(editedName || "").trim() === String(name || "").trim()
-                }
-                className="green-button disabled:opacity-50 py-1.5 disabled:pointer-events-none"
-              >
-                {saving ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <h2
-          className={`text-xl font-bold ${
-            mode === "delete" ? "text-[#c98b8b]" : "text-[#990100]"
-          }`}
-        >
-          {name}
-        </h2>
-      )}
-
+    <button type="button" onClick={onOpen} className="relative bg-[#FFFFFF] border border-gray-300 rounded-lg shadow-lg px-7 pt-6 pb-6 transition-all duration-300 text-left w-full hover:scale-105 cursor-pointer"
+      style={{ minHeight: 140 }} >
+      <h2 className="text-xl font-bold text-[#990100]">{name}</h2>
       <div className="flex items-center gap-4 pt-4">
         <img
           src="/icons/red-employees.png"
@@ -112,24 +27,7 @@ function DepartmentCard({
           {employeesCount !== 1 ? "s" : ""}
         </p>
       </div>
-
-      {mode === "delete" && (
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center z-10">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onConfirmDelete();
-            }}
-            className="cursor-pointer bg-red-700 text-white px-5 py-2 rounded-md shadow-md
-                       hover:bg-red-600 hover:scale-105
-                       transition duration-300 ease-in-out"
-          >
-            Delete Department
-          </button>
-        </div>
-      )}
-    </CardWrapper>
+    </button>
   );
 }
 
@@ -140,8 +38,7 @@ function NewDepartmentCard({ value, onChange }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type Department Name"
-        className="w-full text-xl font-bold 
-                     text-[#990100]/70 border-b-1 border-b-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400"
+        className="w-full text-xl font-bold text-[#990100]/70 border-b-1 border-b-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400"
       />
 
       <div className="flex items-center gap-4 pt-4">
@@ -170,9 +67,6 @@ export default function Departments() {
   const filterRef = useRef(null);
   const [mode, setMode] = useState("view");
   const [newDeptName, setNewDeptName] = useState("");
-  const [editedNames, setEditedNames] = useState({});
-  const [activeEditDeptId, setActiveEditDeptId] = useState(null);
-  const [showUpdateActions, setShowUpdateActions] = useState(false);
   const [saving, setSaving] = useState(false);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmState, setConfirmState] = useState({
@@ -185,6 +79,7 @@ export default function Departments() {
   });
 
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const sortOptions = useMemo(
     () => [
@@ -285,39 +180,30 @@ export default function Departments() {
   };
 
   useEffect(() => {
-    setShowUpdateActions(false);
-  }, [mode]);
-
-  useEffect(() => {
-    if (mode !== "edit") {
-      setActiveEditDeptId(null);
-    }
-  }, [mode]);
-
-  useEffect(() => {
     if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
   }, [filtersOpen, sortOrder]);
 
-useEffect(() => {
-  const handleEsc = (e) => {
-    if (e.key === "Escape") setFiltersOpen(false);
-  };
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") setFiltersOpen(false);
+    };
 
-  document.addEventListener("keydown", handleEsc);
-  return () => {
-    document.removeEventListener("keydown", handleEsc);
-  };
-}, []);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, []);
 
   const fetchDepartments = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const [deptRes, empRes] = await Promise.all([
+      const [deptRes, empRes, posRes] = await Promise.all([
         get("/departments"),
         get("/employees"),
+        get("/positions"),
       ]);
 
       const employees = empRes?.success ? empRes.data || [] : [];
@@ -329,17 +215,29 @@ useEffect(() => {
         counts.set(deptId, (counts.get(deptId) || 0) + 1);
       });
 
+      const allPositions = posRes?.success ? posRes.data || [] : [];
+      const positionsByDept = new Map();
+      allPositions.forEach((p) => {
+        const deptId = p?.departments?.id || p?.department_id;
+        if (!deptId) return;
+        if (!positionsByDept.has(deptId)) positionsByDept.set(deptId, []);
+        positionsByDept.get(deptId).push(p.position_title);
+      });
+
       const list = (deptRes?.success ? deptRes.data || [] : []).map((d) => ({
         id: d.id,
         name: d.department_name,
         created_at: d.created_at,
         employees: counts.get(d.id) || 0,
+        positions: positionsByDept.get(d.id) || [],
       }));
 
       setDepartments(list);
+      return list;
     } catch (e) {
       console.error("Failed to fetch departments:", e);
       setError(e.message || "Failed to load departments");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -377,86 +275,92 @@ useEffect(() => {
     return sorted;
   }, [departments, searchTerm, sortOrder]);
 
-  const handleGenerateReport = ({
+  const handleGenerateReport = async ({
     startDate,
     endDate,
     fileType,
     category,
   } = {}) => {
-    const base =
-      startDate || endDate
-        ? filterRowsByDateRange(
-            filteredDepartments,
-            (r) => r?.created_at,
-            startDate,
-            endDate
-          )
-        : filteredDepartments;
+    setReportLoading(true);
+    try {
+      const freshData = await fetchDepartments();
+      const base =
+        startDate || endDate
+          ? filterRowsByDateRange(
+              freshData,
+              (r) => r?.created_at,
+              startDate,
+              endDate
+            )
+          : freshData;
 
-    const cat = category || "all";
-    const rowsForExport = base.filter((r) => {
-      const count = Number(r?.employees ?? 0);
-      if (cat === "empty") return count <= 0;
-      if (cat === "with_employees") return count > 0;
-      return true;
-    });
-
-    const stamp = new Date().toISOString().slice(0, 10);
-    const upperType = String(fileType || "XLSX").toUpperCase();
-    const isCsv = upperType === "CSV";
-    const isPdf = upperType === "PDF";
-    const ext = isPdf ? "pdf" : isCsv ? "csv" : "xlsx";
-    const filename = `departments-report-${cat}-${stamp}.${ext}`;
-
-    post("/audit-logs/reports", {
-      report_name: "Departments Report",
-      filename,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      row_count: rowsForExport.length,
-      source: "departments",
-    }).catch(() => {});
-
-    const columns = [
-      { header: "Department ID", value: (r) => r?.id ?? "" },
-      { header: "Department Name", value: (r) => r?.name ?? "" },
-      { header: "Employees Count", value: (r) => r?.employees ?? 0 },
-      {
-        header: "Created At",
-        value: (r) =>
-          r?.created_at ? new Date(r.created_at).toLocaleString() : "",
-      },
-    ];
-
-    if (isPdf) {
-      const emptyCount = rowsForExport.filter(
-        (r) => Number(r?.employees ?? 0) <= 0
-      ).length;
-      exportReportToPdf({
-        filename,
-        title: "Departments Report",
-        summaryLines: [
-          `Category: ${cat}`,
-          startDate || endDate
-            ? `Range: ${startDate || "…"} to ${endDate || "…"}`
-            : "Range: All time",
-          `Departments: ${rowsForExport.length} | Empty: ${emptyCount}`,
-        ],
-        columns,
-        rows: rowsForExport,
-      }).catch(() => {});
-    } else if (isCsv) {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    } else {
-      exportRowsToXlsx({
-        filename,
-        sheetName: "Departments",
-        columns,
-        rows: rowsForExport,
+      const cat = category || "all";
+      const rowsForExport = base.filter((r) => {
+        const count = Number(r?.employees ?? 0);
+        if (cat === "empty") return count <= 0;
+        if (cat === "with_employees") return count > 0;
+        return true;
       });
-    }
 
-    setReportOpen(false);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const upperType = String(fileType || "XLSX").toUpperCase();
+      const isCsv = upperType === "CSV";
+      const isPdf = upperType === "PDF";
+      const ext = isPdf ? "pdf" : isCsv ? "csv" : "xlsx";
+      const filename = `departments-report-${cat}-${stamp}.${ext}`;
+
+      post("/audit-logs/reports", {
+        report_name: "Departments Report",
+        filename,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        row_count: rowsForExport.length,
+        source: "departments",
+      }).catch(() => {});
+
+      const columns = [
+        { header: "Department Name", value: (r) => r?.name ?? "" },
+        { header: "Employees Count", value: (r) => r?.employees ?? 0 },
+        { header: "Positions", value: (r) => (r?.positions ?? []).join(", ") || "—" },
+      ];
+
+      if (isPdf) {
+        const emptyCount = rowsForExport.filter(
+          (r) => Number(r?.employees ?? 0) <= 0
+        ).length;
+        const totalPositions = rowsForExport.reduce(
+          (sum, r) => sum + (r?.positions?.length || 0), 0
+        );
+        exportReportToPdf({
+          filename,
+          title: "Departments Report",
+          summaryLines: [
+            `Category: ${cat}`,
+            startDate || endDate
+              ? `Range: ${startDate || "…"} to ${endDate || "…"}`
+              : "Range: All time",
+            `Departments: ${rowsForExport.length} | Empty: ${emptyCount} | Total Positions: ${totalPositions}`,
+          ],
+          columns,
+          rows: rowsForExport,
+        }).catch(() => {});
+      } else if (isCsv) {
+        exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      } else {
+        exportRowsToXlsx({
+          filename,
+          sheetName: "Departments",
+          columns,
+          rows: rowsForExport,
+        });
+      }
+
+      setReportOpen(false);
+    } catch (err) {
+      console.error("Report generation failed:", err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const displayList = useMemo(() => {
@@ -485,29 +389,14 @@ useEffect(() => {
     setNewDeptName("");
   };
 
-  const startEdit = () => {
-    const map = {};
-    departments.forEach((d) => (map[d.id] = d.name));
-    setEditedNames(map);
-    setMode("edit");
-    setActiveEditDeptId(null);
-  };
-
   const hasUnsavedChanges = () => {
-    if (mode === "add") return Boolean(newDeptName.trim());
-    if (mode !== "edit") return false;
-    return departments.some((d) => {
-      const nextName = (editedNames[d.id] ?? d.name).trim();
-      return Boolean(nextName) && nextName !== d.name;
-    });
+    return mode === "add" && Boolean(newDeptName.trim());
   };
 
   const cancelWorking = () => {
     const doCancel = () => {
       setMode("view");
       setNewDeptName("");
-      setEditedNames({});
-      setActiveEditDeptId(null);
     };
 
     if (!hasUnsavedChanges()) {
@@ -528,54 +417,25 @@ useEffect(() => {
   const doSaveChanges = async () => {
     try {
       setSaving(true);
-      if (mode === "add") {
-        const name = newDeptName.trim();
-        if (!name) return;
+      const name = newDeptName.trim();
+      if (!name) return;
 
-        const response = await post("/departments", { department_name: name });
+      const response = await post("/departments", { department_name: name });
 
-        if (response?.success) {
-          const created = response.data;
-          setDepartments((prev) => [
-            {
-              id: created.id,
-              name: created.department_name,
-              employees: 0,
-            },
-            ...prev,
-          ]);
-        }
-      }
-
-      if (mode === "edit") {
-        const updates = departments
-          .map((d) => {
-            const nextName = (editedNames[d.id] ?? d.name).trim();
-            if (!nextName || nextName === d.name) return null;
-            return { id: d.id, name: nextName };
-          })
-          .filter(Boolean);
-
-        if (updates.length > 0) {
-          await Promise.all(
-            updates.map((u) =>
-              put(`/departments/${u.id}`, { department_name: u.name })
-            )
-          );
-
-          setDepartments((prev) =>
-            prev.map((d) => {
-              const match = updates.find((u) => u.id === d.id);
-              return match ? { ...d, name: match.name } : d;
-            })
-          );
-        }
+      if (response?.success) {
+        const created = response.data;
+        setDepartments((prev) => [
+          {
+            id: created.id,
+            name: created.department_name,
+            employees: 0,
+          },
+          ...prev,
+        ]);
       }
 
       setMode("view");
       setNewDeptName("");
-      setEditedNames({});
-      setActiveEditDeptId(null);
       openConfirm({
         title: "Success",
         message: "Changes saved successfully.",
@@ -605,87 +465,6 @@ useEffect(() => {
       cancelText: "Cancel",
       onConfirm: doSaveChanges,
     });
-  };
-
-  const saveOneDepartment = (id) => {
-    if (mode !== "edit") return;
-    const dept = departments.find((d) => d.id === id);
-    if (!dept) return;
-    const nextName = String(editedNames[id] ?? dept.name).trim();
-    if (!nextName || nextName === String(dept.name || "").trim()) return;
-
-    openConfirm({
-      title: "Save department",
-      message: "Save this department name change?",
-      confirmText: "OK",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setSaving(true);
-          await put(`/departments/${id}`, { department_name: nextName });
-          setDepartments((prev) =>
-            prev.map((d) => (d.id === id ? { ...d, name: nextName } : d))
-          );
-        } catch (e) {
-          console.error("Failed to save department:", e);
-          openConfirm({
-            title: "Save failed",
-            message: e?.message || "Failed to save department",
-            confirmText: "OK",
-            cancelText: null,
-            onConfirm: null,
-          });
-        } finally {
-          setSaving(false);
-        }
-      },
-    });
-  };
-
-  const confirmDelete = (id, name) => {
-    openConfirm({
-      title: "Delete department",
-      message: `Delete ${
-        name || "this department"
-      }? This action cannot be undone.`,
-      confirmText: "Delete",
-      cancelText: "Cancel",
-      onConfirm: async () => {
-        try {
-          setSaving(true);
-          const response = await del(`/departments/${id}`);
-          if (response?.success) {
-            setDepartments((prev) => prev.filter((d) => d.id !== id));
-            setActiveEditDeptId((prev) =>
-              String(prev || "") === String(id) ? null : prev
-            );
-            openConfirm({
-              title: "Success",
-              message: "Department deleted successfully.",
-              confirmText: "OK",
-              cancelText: null,
-              onConfirm: null,
-            });
-          }
-        } catch (e) {
-          console.error("Failed to delete department:", e);
-          openConfirm({
-            title: "Delete failed",
-            message: e?.message || "Failed to delete department",
-            confirmText: "OK",
-            cancelText: null,
-            onConfirm: null,
-          });
-        } finally {
-          setSaving(false);
-        }
-      },
-    });
-  };
-
-  const deleteOneDepartment = (id) => {
-    const dept = departments.find((d) => d.id === id);
-    confirmDelete(id, dept?.name || "");
   };
 
   const openDepartment = (dept) => {
@@ -720,20 +499,19 @@ useEffect(() => {
     </button>
   );
 
-  const isWorking = mode !== "view";
   const saveDisabled = mode === "add" && !newDeptName.trim();
 
   return (
     <div>
       <Navbar />
       {loading && (
-          <div className="flex min-h-screen items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading Departments...</p>
-            </div>
+        <div className="flex min-h-screen items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990100] mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading Departments...</p>
           </div>
-        )}
+        </div>
+      )}
 
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center">
@@ -742,80 +520,67 @@ useEffect(() => {
           </h1>
 
           <div className="flex items-center justify-end gap-3">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2"
-              aria-haspopup="dialog"
-              aria-expanded={filtersOpen}
-            >
-              <span className="font-medium">Filters</span>
-              {activeFiltersCount ? (
-                <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
-                  {activeFiltersCount}
-                </span>
-              ) : null}
-              <span className="text-xs">▾</span>
-            </button>
+            {mode === "view" && (
+              <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} disabled={saving} >
+                Generate Report
+              </button>
+            )}
+            <div className="relative">
+              <button type="button" onClick={() => setFiltersOpen(true)} className="bg-white lg:h-10 md:h-9 h-8 px-3 rounded-lg text-sm border border-[#990100] text-[#990100] hover:bg-[#990100]/10 transition cursor-pointer inline-flex items-center gap-2" aria-haspopup="dialog" aria-expanded={filtersOpen} >
+                <span className="font-medium">Filters</span>
+                {activeFiltersCount ? (
+                  <span className="ml-1 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[#990100] text-white text-xs">
+                    {activeFiltersCount}
+                  </span>
+                ) : null}
+                <span className="text-xs">▾</span>
+              </button>
 
-            {filtersOpen ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-                <div
-                  className="absolute inset-0 bg-black/40"
-                  onClick={() => setFiltersOpen(false)}
-                />
+              {filtersOpen ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                  <div className="absolute inset-0 bg-black/40" onClick={() => setFiltersOpen(false)} />
 
-                <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                    <p className="text-sm font-bold text-[#990100]">Filters</p>
-                    <button
-                      type="button"
-                      onClick={() => setFiltersOpen(false)}
-                      className="text-[#990100] hover:opacity-70 text-lg leading-none"
-                      aria-label="Close"
-                    >
-                      ×
-                    </button>
-                  </div>
+                  <div className="relative bg-white w-[92%] max-w-lg rounded-2xl shadow-xl border border-gray-200 overflow-hidden z-10">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-bold text-[#990100]">
+                        Filters
+                      </p>
+                      <button type="button" onClick={() => setFiltersOpen(false)} className="text-[#990100] hover:opacity-70 text-lg leading-none" aria-label="Close" >
+                        ×
+                      </button>
+                    </div>
 
-                  <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
-                    <div className="mb-5">
-                      <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
-                      <div className="flex flex-wrap gap-2">
-                        {sortOptions.map((opt) => (
-                          <ChipButton
-                            key={opt.value}
-                            active={draftSortOrder === opt.value}
-                            onClick={() => setDraftSortOrder(opt.value)}
-                          >
-                            {opt.label}
-                          </ChipButton>
-                        ))}
+                    <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
+                      <div className="mb-5">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">
+                          Sort
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {sortOptions.map((opt) => (
+                            <ChipButton
+                              key={opt.value}
+                              active={draftSortOrder === opt.value}
+                              onClick={() => setDraftSortOrder(opt.value)}
+                            >
+                              {opt.label}
+                            </ChipButton>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
-                    >
-                      Clear all
-                    </button>
-                    <button
-                      type="button"
-                      onClick={applyDraftFilters}
-                      className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
-                    >
-                      Apply
-                    </button>
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-white">
+                      <button type="button" onClick={clearFilters} className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer" >
+                        Clear all
+                      </button>
+                      <button type="button" onClick={applyDraftFilters} className="bg-[#990100] text-white text-xs font-semibold px-3 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer" >
+                        Apply
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
+              ) : null}
+            </div>
             <div className="relative border border-[#990100] rounded-lg">
               <input
                 type="search"
@@ -835,8 +600,6 @@ useEffect(() => {
 
         <hr className="text-[#990100] mt-6" />
 
-        
-
         {error && !loading && (
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
@@ -854,78 +617,19 @@ useEffect(() => {
         {!loading && !error && (
           <>
             <div className="flex justify-end mt-6 gap-3 flex-wrap">
-              {mode === "view" && (
-                <button
-                  type="button"
-                  className="generate-report-button disabled:opacity-60 disabled:pointer-events-none"
-                  onClick={() => setReportOpen(true)}
-                  disabled={saving}
-                >
-                  Generate Report
-                </button>
-              )}
-
-              {isWorking ? (
+              {mode === "add" ? (
                 <div className="flex gap-3">
-                  <button
-                    className="cursor-pointer  text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out"
-                    onClick={cancelWorking}
-                    disabled={saving}
-                  >
+                  <button className="cursor-pointer text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md bg-red-700 hover:bg-red-600 hover:scale-105 transition duration-300 ease-in-out" onClick={cancelWorking} disabled={saving} >
                     Cancel Changes
                   </button>
-
-                  { mode === "edit"&& (
-                    <button
-                      className="green-button disabled:opacity-50 disabled:pointer-events-none"
-                      onClick={() =>
-                        openConfirm({
-                          title: "Done editing",
-                          message: "Would you like to exit the edit mode?",
-                          confirmText: "OK",
-                          cancelText: "Cancel",
-                          onConfirm: () => {
-                            setMode("view");
-                          },
-                        })
-                      }
-                    >
-                      Done Editing
-                    </button>
-                  )
-
-                  }
-
-                  {mode === "add" && (
-                    <button
-                      className="green-button disabled:opacity-50 disabled:pointer-events-none"
-                      onClick={saveChanges}
-                      disabled={saveDisabled || saving}
-                    >
-                      Save Department
-                    </button>
-                  )}
+                  <button className="green-button disabled:opacity-50 disabled:pointer-events-none" onClick={saveChanges} disabled={saveDisabled || saving} >
+                    Save Department
+                  </button>
                 </div>
               ) : (
-                <>
-                  {!showUpdateActions && (
-                    <div className="flex gap-3">
-                      <button className="green-button" onClick={startEdit}>
-                        Edit Departments
-                      </button>
-                      <button className="mustard-button" onClick={startAdd}>
-                        Add New Department
-                      </button>
-                      {/*}button
-                        type="button"
-                        className="cursor-pointer bg-[#990100] text-white lg:px-5 px-4 py-[10px] lg:text-[15px] text-xs rounded-md hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out"
-                        onClick={() => setShowUpdateActions(false)}
-                      >
-                        Cancel
-                      </button>*/}
-                    </div>
-                  )}
-                </>
+                <button className="mustard-button" onClick={startAdd}>
+                  Add New Department
+                </button>
               )}
             </div>
 
@@ -938,24 +642,10 @@ useEffect(() => {
                     onChange={setNewDeptName}
                   />
                 ) : (
-
-                  
                   <DepartmentCard
                     key={dept.id}
-                    id={dept.id}
                     name={dept.name}
                     employeesCount={dept.employees}
-                    mode={mode}
-                    editedName={editedNames[dept.id]}
-                    onNameChange={(id, val) =>
-                      setEditedNames((p) => ({ ...p, [id]: val }))
-                    }
-                    onSaveEdit={saveOneDepartment}
-                    onDelete={deleteOneDepartment}
-                    saving={saving}
-                    activeEditId={activeEditDeptId}
-                    onSelectEdit={(id) => setActiveEditDeptId(id)}
-                    onConfirmDelete={() => confirmDelete(dept.id, dept.name)}
                     onOpen={() => openDepartment(dept)}
                   />
                 )
@@ -965,33 +655,33 @@ useEffect(() => {
             <div className="flex justify-end mt-6 text-[#990100]">
               {pageCount > 1 && (
                 <ReactPaginate
-                    breakLabel="..."
-                    nextLabel=">"
-                    onPageChange={handlePageClick}
-                    pageRangeDisplayed={2}
-                    pageCount={pageCount}
-                    forcePage={Math.floor(itemOffset / itemsPerPage)}
-                    previousLabel="<"
-                    renderOnZeroPageCount={null}
-                    marginPagesDisplayed={2}
-                    pageClassName=""
-                    pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
-                    previousClassName={
-                      multiPages
-                        ? "cursor-pointer hover:text-gray-500 hover:underline"
-                        : "text-gray-400 cursor-not-allowed pointer-events-none"
-                    }
-                    previousLinkClassName="page-link"
-                    nextClassName={
-                      multiPages
-                        ? "cursor-pointer hover:text-gray-500 hover:underline"
-                        : "text-gray-400 cursor-not-allowed pointer-events-none"
-                    }
-                    nextLinkClassName="page-link"
-                    breakClassName="page-item"
-                    breakLinkClassName="page-link"
-                    containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
-                    activeClassName="underline font-medium"
+                  breakLabel="..."
+                  nextLabel=">"
+                  onPageChange={handlePageClick}
+                  pageRangeDisplayed={2}
+                  pageCount={pageCount}
+                  forcePage={Math.floor(itemOffset / itemsPerPage)}
+                  previousLabel="<"
+                  renderOnZeroPageCount={null}
+                  marginPagesDisplayed={2}
+                  pageClassName=""
+                  pageLinkClassName="cursor-pointer hover:text-gray-500 hover:underline"
+                  previousClassName={
+                    multiPages
+                      ? "cursor-pointer hover:text-gray-500 hover:underline"
+                      : "text-gray-400 cursor-not-allowed pointer-events-none"
+                  }
+                  previousLinkClassName="page-link"
+                  nextClassName={
+                    multiPages
+                      ? "cursor-pointer hover:text-gray-500 hover:underline"
+                      : "text-gray-400 cursor-not-allowed pointer-events-none"
+                  }
+                  nextLinkClassName="page-link"
+                  breakClassName="page-item"
+                  breakLinkClassName="page-link"
+                  containerClassName="flex items-center space-x-2 lg:pt-0 pt-4 text-[#990100]"
+                  activeClassName="underline font-medium"
                 />
               )}
             </div>
@@ -1004,14 +694,9 @@ useEffect(() => {
         title="Generate Report - Departments"
         onClose={() => setReportOpen(false)}
         onGenerate={handleGenerateReport}
-        enableDateRange={true}
+        loading={reportLoading}
+        enableDateRange={false}
         fileTypes={["XLSX", "CSV", "PDF"]}
-        categoryOptions={[
-          { value: "all", label: "All Departments" },
-          { value: "with_employees", label: "With Employees" },
-          { value: "empty", label: "Empty (0 employees)" },
-        ]}
-        defaultCategory="all"
       />
 
       <ConfirmModal

@@ -17,7 +17,7 @@ const EVALUATION_FIELDS = `
   evaluation_document_path,
   created_at,
   updated_at,
-  employees (id, employee_id, first_name, last_name, personnel_type, positions (position_title)),
+  employees (id, employee_id, first_name, middle_name, last_name, personnel_type, positions (position_title)),
   evaluation_templates (id, name)
 `;
 
@@ -136,9 +136,9 @@ const buildQuarterRangeUtc = ({ year, quarter }) => {
 
 const formatEmployeeName = (employee) => {
   if (!employee) return '';
-  const first = employee.first_name || '';
-  const last = employee.last_name || '';
-  return `${first} ${last}`.trim();
+  return [employee.first_name, employee.middle_name, employee.last_name]
+    .filter(Boolean)
+    .join(' ');
 };
 
 const safeJsonParse = (value) => {
@@ -262,7 +262,7 @@ const getEmployeeRecipientEmail = async (employee) => {
 export const getEmployeeEvaluationSummary = async ({ includeInactive = false } = {}) => {
   let empQuery = supabase
     .from('employees')
-    .select('id, employee_id, first_name, last_name, personnel_type, hire_date, employment_status, positions(position_title)')
+    .select('id, employee_id, first_name, middle_name, last_name, personnel_type, hire_date, employment_status, positions(position_title)')
     .order('employee_id', { ascending: true });
 
   if (!includeInactive) {
@@ -295,6 +295,9 @@ export const getEmployeeEvaluationSummary = async ({ includeInactive = false } =
 
   const isCompleted = (ev) => Boolean(ev.evaluation_notes || ev.evaluation_document_path);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return (employees || []).map((emp) => {
     const empEvals = evalsByEmployee[String(emp.id)] || [];
 
@@ -304,6 +307,10 @@ export const getEmployeeEvaluationSummary = async ({ includeInactive = false } =
 
     const latest = sorted[0] || null;
     const latestCompleted = sorted.find(isCompleted) || null;
+
+    const nextEval = empEvals
+      .filter((ev) => !isCompleted(ev) && ev.evaluation_date && new Date(ev.evaluation_date) >= today)
+      .sort((a, b) => new Date(a.evaluation_date) - new Date(b.evaluation_date))[0] || null;
 
     const evalYears = [
       ...new Set(
@@ -316,7 +323,7 @@ export const getEmployeeEvaluationSummary = async ({ includeInactive = false } =
     return {
       id: emp.id,
       employee_code: emp.employee_id,
-      name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+      name: [emp.first_name, emp.middle_name, emp.last_name].filter(Boolean).join(' '),
       position: emp.positions?.position_title || null,
       personnel_type: emp.personnel_type || null,
       hire_date: emp.hire_date || null,
@@ -327,6 +334,8 @@ export const getEmployeeEvaluationSummary = async ({ includeInactive = false } =
       latest_eval_date: latest?.evaluation_date || null,
       latest_eval_type: latest?.evaluation_type || null,
       latest_eval_score: latestCompleted ? extractScore(latestCompleted.evaluation_notes) : null,
+      next_eval_date: nextEval?.evaluation_date || null,
+      next_eval_type: nextEval?.evaluation_type || null,
     };
   });
 };

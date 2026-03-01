@@ -78,14 +78,23 @@ export default function ReportModal({
   fileTypes = DEFAULT_FILE_TYPES,
   categoryOptions = null,
   defaultCategory = '',
+  loading = false,
+  dateRangeHint = '',
+  yearOptions = null,
 }) {
   const [preset, setPreset] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [fileType, setFileType] = useState('XLSX');
   const [category, setCategory] = useState('');
+  const [selectedYear, setSelectedYear] = useState(null);
   const [initialData, setInitialData] = useState(null);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const normalizedYearOptions = useMemo(() => {
+    if (!Array.isArray(yearOptions) || yearOptions.length === 0) return [];
+    return yearOptions.map(Number).filter((y) => !Number.isNaN(y));
+  }, [yearOptions]);
 
   const normalizedFileTypes = useMemo(() => {
     const incoming = Array.isArray(fileTypes) ? fileTypes : ['XLSX', 'CSV'];
@@ -134,8 +143,9 @@ export default function ReportModal({
       endDate,
       fileType,
       category,
+      selectedYear,
     }),
-    [preset, startDate, endDate, fileType, category]
+    [preset, startDate, endDate, fileType, category, selectedYear]
   );
 
   useEffect(() => {
@@ -152,7 +162,12 @@ export default function ReportModal({
     } else {
       setCategory('');
     }
-  }, [open, normalizedFileTypes, normalizedCategories, defaultCategory]);
+    if (normalizedYearOptions.length) {
+      setSelectedYear(normalizedYearOptions[0]);
+    } else {
+      setSelectedYear(null);
+    }
+  }, [open, normalizedFileTypes, normalizedCategories, defaultCategory, normalizedYearOptions]);
 
   useEffect(() => {
     if (!open) return;
@@ -215,6 +230,21 @@ export default function ReportModal({
     <ModalShell open={open} title={title || 'Generate Report'} onClose={handleClose}>
       <div className="space-y-5 flex justify-center">
         <div className="items-center gap-4 lg:text-sm text-xs">
+          {normalizedYearOptions.length ? (
+            <>
+              <div className="font-semibold pb-1.5">Year:</div>
+              <select
+                className="modal-employees-field w-60 cursor-pointer"
+                value={selectedYear ?? ''}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {normalizedYearOptions.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </>
+          ) : null}
+
           {normalizedCategories.length ? (
             <>
               <div className="font-semibold pb-1.5 ">Report Category:</div>
@@ -245,28 +275,28 @@ export default function ReportModal({
             ))}
           </select>
 
-          <div className="pt-2 pb-1.5 font-semibold">Range:</div>
-          <select
-            className="modal-employees-field cursor-pointer"
-            value={preset}
-            onChange={(e) => setPreset(e.target.value)}
-            disabled={!enableDateRange}
-          >
-            {presets.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-
           {enableDateRange && (
             <>
+              <div className="pt-2 pb-1.5 font-semibold">
+                Range:
+                {dateRangeHint && (
+                  <span className="ml-2 text-xs font-normal text-gray-400">({dateRangeHint})</span>
+                )}
+              </div>
+              <select className="modal-employees-field cursor-pointer" value={preset} onChange={(e) => setPreset(e.target.value)} >
+                {presets.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+
               <div className="pt-2 pb-1.5 font-semibold">Starting Date:</div>
               <input
                 type="date"
                 className="modal-employees-field cursor-pointer"
                 value={startDate}
-                max = {maxDate}
+                max={maxDate}
                 onChange={(e) => {
                   setPreset('custom');
                   setStartDate(e.target.value);
@@ -278,7 +308,7 @@ export default function ReportModal({
                 type="date"
                 className="modal-employees-field cursor-pointer"
                 value={endDate}
-                max = {maxDate}
+                max={maxDate}
                 onChange={(e) => {
                   setPreset('custom');
                   setEndDate(e.target.value);
@@ -288,12 +318,6 @@ export default function ReportModal({
             </>
           )}
         </div>
-
-        {!enableDateRange && (
-          <div className="text-xs text-gray-600">
-            Date modifiers are not available for this report.
-          </div>
-        )}
       </div>
 
       <div className="flex justify-end lg:pt-7 pt-5  gap-3">
@@ -307,10 +331,10 @@ export default function ReportModal({
           <button
             type="button"
             className="bg-[#198C19] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#46a346] hover:scale-105 transition duration-300 ease-in-out cursor-pointer disabled:bg-[#198C19]/50 disabled:cursor-default"
-            disabled={!canGenerate}
-            onClick={() => onGenerate?.({ preset, startDate, endDate, fileType, category })}
+            disabled={!canGenerate || loading}
+            onClick={() => onGenerate?.({ preset, startDate, endDate, fileType, category, year: selectedYear })}
           >
-            Download {downloadLabel()}
+            {loading ? 'Generating...' : `Download ${downloadLabel()}`}
           </button>
       </div>
 

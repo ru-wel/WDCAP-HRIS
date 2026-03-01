@@ -715,6 +715,7 @@ function OnboardingFiles (){
     const [draftSortOrder, setDraftSortOrder] = useState("name_az");
     const [searchTerm, setSearchTerm] = useState("");
     const [reportOpen, setReportOpen] = useState(false);
+    const [reportLoading, setReportLoading] = useState(false);
 
     const filtersWrapRef = useRef(null);
 
@@ -867,10 +868,13 @@ function OnboardingFiles (){
                 // transform backend data to frontend format
                 const transformedData = transformChecklistData(response.data);
                 setEmployeesFiles(transformedData);
+                return transformedData;
             }
+            return [];
         } catch (err) {
             setError(err.message || 'Failed to fetch employee checklists');
             console.error('Failed to fetch checklists:', err);
+            return [];
         } finally {
             setLoading(false);
         }
@@ -1107,16 +1111,19 @@ function OnboardingFiles (){
         return { requiredTotal, requiredApproved };
     };
 
-    const handleGenerateReport = ({ startDate, endDate, fileType, category } = {}) => {
+    const handleGenerateReport = async ({ startDate, endDate, fileType, category } = {}) => {
+        setReportLoading(true);
+        try {
+        const freshData = await fetchEmployeesWithChecklists();
         const base =
             startDate || endDate
             ? filterRowsByDateRange(
-                filteredEmployees,
+                freshData,
                 (r) => r?.hireDate,
                 startDate,
                 endDate
                 )
-            : filteredEmployees;
+            : freshData;
 
         const cat = String(category || "all").toLowerCase();
         const rowsForExport = base.filter((r) => {
@@ -1154,11 +1161,20 @@ function OnboardingFiles (){
             { header: "Hire Date", value: (r) => r.hireDate },
             { header: "Remarks", value: (r) => r.remarks || getRemarks(r) },
             {
-            header: "Required Docs Approved",
-            value: (r) => {
-                const { requiredApproved, requiredTotal } = getRequiredDocCounts(r);
-                return `${requiredApproved}/${requiredTotal}`;
+                header: "Required Docs Approved",
+                value: (r) => {
+                    const { requiredApproved, requiredTotal } = getRequiredDocCounts(r);
+                    return `${requiredApproved}/${requiredTotal}`;
+                },
             },
+            {
+                header: "Missing Documents",
+                value: (r) => {
+                    const missing = modalFiles
+                        .filter((f) => r[f.required] && r[f.status] !== ONBOARDING_STATUSES.APPROVED)
+                        .map((f) => f.fileName);
+                    return missing.length > 0 ? missing.join(', ') : '—';
+                },
             },
         ];
 
@@ -1193,6 +1209,11 @@ function OnboardingFiles (){
         }
 
         setReportOpen(false);
+        } catch (err) {
+            console.error('Report generation failed:', err);
+        } finally {
+            setReportLoading(false);
+        }
     };
 
 
@@ -1256,6 +1277,8 @@ function OnboardingFiles (){
                     </div>
 
                     <div className="flex items-center justify-end md:gap-4 gap-3">
+                        <button className="generate-report-button" onClick={() => setReportOpen(true)} disabled={filteredEmployees.length === 0} title={filteredEmployees.length === 0 ? "No rows to export" : "Generate report"}>Generate Report</button>
+
                         {/* Filters Button */}
                         <div className="relative" ref={filtersWrapRef}>
                             <button
@@ -1411,10 +1434,6 @@ function OnboardingFiles (){
 
                 <hr className='text-[#990100] mt-6 '/>
 
-                <div className="flex justify-end mt-5">
-                    <button className="generate-report-button" onClick={() => setReportOpen(true)} disabled={filteredEmployees.length === 0} title={filteredEmployees.length === 0 ? "No rows to export" : "Generate report"}>Generate Report</button>
-                </div>
-
                 <div className="div-table">
                     <table className="table-style">
                         <thead className="thead-style">
@@ -1494,16 +1513,16 @@ function OnboardingFiles (){
                         title="Generate Report - 201 Files"
                         onClose={() => setReportOpen(false)}
                         onGenerate={handleGenerateReport}
+                        loading={reportLoading}
                         enableDateRange={true}
                         fileTypes={["XLSX", "CSV", "PDF"]}
                         categoryOptions={[
                             { value: "all", label: "All 201 Files" },
                             { value: "complete", label: "Complete" },
                             { value: "incomplete", label: "Incomplete" },
-                            { value: "standard", label: "Probationary/Regular" },
-                            { value: "project_based", label: "Project-Based" },
                         ]}
                         defaultCategory="all"
+                        dateRangeHint="filters by Hire Date"
                     />
 
                     {/* Checklist Configuration Modal */}

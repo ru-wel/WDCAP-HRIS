@@ -1,12 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/navbar";
-import { get } from "../../services/api.js";
+import { get, post } from "../../services/api.js";
 import ReactPaginate from "react-paginate";
 import { compareDate, compareText } from "../../utils/sort.js";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 import ReportModal from "../../components/report-modal.jsx";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
+
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${date} | ${time}`;
+};
 
 function EvaluationLogs() {
   const [logs, setLogs] = useState([]);
@@ -15,6 +25,7 @@ function EvaluationLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("timestamp_newest");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
@@ -309,29 +320,26 @@ function EvaluationLogs() {
     return changes.length ? changes.join(", ") : "—";
   };
 
+  const fetchEvaluationLogs = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await get("/audit-logs/table/evaluations");
+      const data = Array.isArray(response?.data) ? response.data : [];
+      setLogs(data);
+      return data;
+    } catch (err) {
+      console.error("Failed to fetch evaluation logs:", err);
+      setError("Failed to load evaluation audit logs");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const response = await get("/audit-logs/table/evaluations");
-        const data = Array.isArray(response?.data) ? response.data : [];
-        if (!cancelled) setLogs(data);
-      } catch (err) {
-        console.error("Failed to fetch evaluation logs:", err);
-        if (!cancelled) setError("Failed to load evaluation audit logs");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
+    fetchEvaluationLogs();
   }, []);
 
   const visibleLogs = useMemo(() => {
@@ -395,29 +403,58 @@ function EvaluationLogs() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, logs.length]);
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport = startDate || endDate
-      ? filterRowsByDateRange(visibleLogs, (log) => log?.timestamp, startDate, endDate)
-      : visibleLogs;
+  const handleGenerateReport = async ({ startDate, endDate, fileType } = {}) => {
+    setReportLoading(true);
+    try {
+      const freshData = await fetchEvaluationLogs();
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    const ext = fileType === "XLSX" ? "xlsx" : "csv";
-    const filename = `audit-evaluation-${stamp}.${ext}`;
+      const rowsForExport = startDate || endDate
+        ? filterRowsByDateRange(freshData, (log) => log?.timestamp, startDate, endDate)
+        : freshData;
 
-    const columns = [
-      { header: "Date | Time", value: (log) => (log?.timestamp ? new Date(log.timestamp).toLocaleString() : "") },
-      { header: "Email", value: (log) => log?.users?.email || "N/A" },
-      { header: "Action", value: (log) => formatEvalAction(log) },
-      { header: "Changes", value: (log) => formatEvalChanges(log) },
-    ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = fileType === "PDF" ? "pdf" : fileType === "XLSX" ? "xlsx" : "csv";
+      const filename = `audit-evaluation-${stamp}.${ext}`;
 
-    if (fileType === "XLSX") {
-      exportRowsToXlsx({ filename, sheetName: "Evaluation Logs", columns, rows: rowsForExport });
-    } else {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      post("/audit-logs/reports", {
+        report_name: "Audit Evaluation Report",
+        filename,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        row_count: rowsForExport.length,
+        source: "audit-evaluation",
+      }).catch(() => {});
+
+      const columns = [
+        { header: "Date | Time", value: (log) => formatDateTime(log?.timestamp) },
+        { header: "User", value: (log) => log?.users?.email || "N/A" },
+        { header: "Action", value: (log) => formatEvalAction(log) },
+        { header: "Changes", value: (log) => formatEvalChanges(log) },
+      ];
+
+      if (fileType === "PDF") {
+        await exportReportToPdf({
+          filename,
+          title: "Audit Log - Evaluations",
+          summaryLines: [
+            startDate || endDate ? `Range: ${startDate || "…"} to ${endDate || "…"}` : "Range: All time",
+            `Rows: ${rowsForExport.length}`,
+          ],
+          columns,
+          rows: rowsForExport,
+        });
+      } else if (fileType === "XLSX") {
+        exportRowsToXlsx({ filename, sheetName: "Evaluation Logs", columns, rows: rowsForExport });
+      } else {
+        exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      }
+
+      setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
     }
-
-    setReportOpen(false);
   };
 
   if (loading) {
@@ -440,6 +477,10 @@ function EvaluationLogs() {
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Evaluation</h1>
 
           <div className="flex items-center justify-end gap-3">
+            <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+              Generate Report
+            </button>
+
             <div className="relative">
               <button
                 type="button"
@@ -530,19 +571,7 @@ function EvaluationLogs() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="flex justify-end mt-5">
-          <button className="generate-report-button" onClick={() => setReportOpen(true)}>
-            Generate Report
-          </button>
-        </div>
-
-        <ReportModal
-          open={reportOpen}
-          title="Generate Report - Evaluation Logs"
-          onClose={() => setReportOpen(false)}
-          onGenerate={handleGenerateReport}
-          enableDateRange={true}
-        />
+        <ReportModal open={reportOpen} title="Generate Report - Evaluation Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
 
         {loading && <div className="py-20 text-center text-gray-600">Loading evaluation audit logs...</div>}
 
@@ -569,12 +598,10 @@ function EvaluationLogs() {
                   </tr>
                 ) : (
                   currentLogs.map((log) => {
-                    const date = new Date(log.timestamp);
-
                     return (
                       <tr key={log.id} className="tr-style">
                         <td className="td-style-nobtn">
-                          {date.toLocaleDateString()} | {date.toLocaleTimeString()}
+                          {formatDateTime(log?.timestamp)}
                         </td>
 
                         <td className="td-style-nobtn font-medium">{log.users?.email || "N/A"}</td>

@@ -1,12 +1,22 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Navbar from "../../components/navbar";
-import { get } from "../../services/api.js";
+import { get, post } from "../../services/api.js";
 import ReactPaginate from "react-paginate";
 import { compareDate, compareText } from "../../utils/sort";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 import ReportModal from "../../components/report-modal.jsx";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
+
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${date} | ${time}`;
+};
 
 function LeaveLogs() {
   const [logs, setLogs] = useState([]);
@@ -16,6 +26,7 @@ function LeaveLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("timestamp_newest");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
@@ -266,12 +277,15 @@ function LeaveLogs() {
 
       if (logsResponse?.success) {
         setLogs(logsResponse.data);
+        return logsResponse.data;
       } else {
         setError("Failed to load leave audit logs");
+        return [];
       }
     } catch (err) {
       console.error("Failed to fetch leave logs:", err);
       setError("Failed to load leave audit logs");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -338,44 +352,67 @@ function LeaveLogs() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, logs.length]);
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport =
-      startDate || endDate
-        ? filterRowsByDateRange(
-            visibleLogs,
-            (log) => log?.timestamp,
-            startDate,
-            endDate
-          )
-        : visibleLogs;
+  const handleGenerateReport = async ({ startDate, endDate, fileType } = {}) => {
+    setReportLoading(true);
+    try {
+      const freshData = await fetchLeaveLogs();
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    const ext = fileType === "XLSX" ? "xlsx" : "csv";
-    const filename = `audit-leave-${stamp}.${ext}`;
+      const rowsForExport =
+        startDate || endDate
+          ? filterRowsByDateRange(
+              freshData,
+              (log) => log?.timestamp,
+              startDate,
+              endDate
+            )
+          : freshData;
 
-    const columns = [
-      {
-        header: "Date | Time",
-        value: (log) =>
-          log?.timestamp ? new Date(log.timestamp).toLocaleString() : "",
-      },
-      { header: "User", value: (log) => formatActorLabel(log) },
-      { header: "Action", value: (log) => getActionLabel(log) },
-      { header: "Changes", value: (log) => formatLeaveChanges(log) },
-    ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = fileType === "PDF" ? "pdf" : fileType === "XLSX" ? "xlsx" : "csv";
+      const filename = `audit-leave-${stamp}.${ext}`;
 
-    if (fileType === "XLSX") {
-      exportRowsToXlsx({
+      post("/audit-logs/reports", {
+        report_name: "Audit Leave Report",
         filename,
-        sheetName: "Leave Logs",
-        columns,
-        rows: rowsForExport,
-      });
-    } else {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    }
+        start_date: startDate || null,
+        end_date: endDate || null,
+        row_count: rowsForExport.length,
+        source: "audit-leave",
+      }).catch(() => {});
 
-    setReportOpen(false);
+      const columns = [
+        {
+          header: "Date | Time",
+          value: (log) => formatDateTime(log?.timestamp),
+        },
+        { header: "User", value: (log) => formatActorLabel(log) },
+        { header: "Action", value: (log) => getActionLabel(log) },
+        { header: "Changes", value: (log) => formatLeaveChanges(log) },
+      ];
+
+      if (fileType === "PDF") {
+        await exportReportToPdf({
+          filename,
+          title: "Audit Log - Leave",
+          summaryLines: [
+            startDate || endDate ? `Range: ${startDate || "…"} to ${endDate || "…"}` : "Range: All time",
+            `Rows: ${rowsForExport.length}`,
+          ],
+          columns,
+          rows: rowsForExport,
+        });
+      } else if (fileType === "XLSX") {
+        exportRowsToXlsx({ filename, sheetName: "Leave Logs", columns, rows: rowsForExport });
+      } else {
+        exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      }
+
+      setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   if (loading) {
@@ -400,6 +437,10 @@ function LeaveLogs() {
           </h1>
 
           <div className="flex justify-end items-center gap-3">
+            <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+              Generate Report
+            </button>
+
             <div className="relative">
               <button
                 type="button"
@@ -494,22 +535,7 @@ function LeaveLogs() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="flex justify-end mt-5">
-          <button
-            className="generate-report-button"
-            onClick={() => setReportOpen(true)}
-          >
-            Generate Report
-          </button>
-        </div>
-
-        <ReportModal
-          open={reportOpen}
-          title="Generate Report - Leave Logs"
-          onClose={() => setReportOpen(false)}
-          onGenerate={handleGenerateReport}
-          enableDateRange={true}
-        />
+        <ReportModal open={reportOpen} title="Generate Report - Leave Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
 
         {loading && (
           <div className="py-20 text-center text-gray-600">
@@ -551,13 +577,10 @@ function LeaveLogs() {
                   </tr>
                 ) : (
                   currentLogs.map((log) => {
-                    const date = new Date(log.timestamp);
-
                     return (
                       <tr key={log.id} className="tr-style">
                         <td className="td-style-nobtn">
-                          {date.toLocaleDateString()} |{" "}
-                          {date.toLocaleTimeString()}
+                          {formatDateTime(log?.timestamp)}
                         </td>
 
                         <td className="td-style-nobtn font-medium">

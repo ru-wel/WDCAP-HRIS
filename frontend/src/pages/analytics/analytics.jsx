@@ -55,45 +55,43 @@ function Analytics() {
   const [reportStatus, setReportStatus] = useState("All");
   const [reportSearch, setReportSearch] = useState("");
   const [excelExportOpen, setExcelExportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await get("/analytics/summary");
+      if (!res?.success) throw new Error(res?.message || "Failed to load analytics");
+
+      const data = res?.data || {};
+
+      const s = data.summary || {};
+      setSummary({
+        totalEmployees: Number(s.totalEmployees) || 0,
+        activeProjects: Number(s.activeProjects) || 0,
+        pendingLeaves: Number(s.pendingLeaves) || 0,
+      });
+
+      setEmployeesByDepartment(Array.isArray(data.employeesByDepartment) ? data.employeesByDepartment : []);
+      setEmployeeStatusData(Array.isArray(data.employeeStatusData) ? data.employeeStatusData : []);
+      setProjectsByStatus(Array.isArray(data.projectsByStatus) ? data.projectsByStatus : []);
+      setLeaveStatusData(Array.isArray(data.leaveStatusData) ? data.leaveStatusData : []);
+      setLeaveTypesData(Array.isArray(data.leaveTypesData) ? data.leaveTypesData : []);
+      const rows = Array.isArray(data.reportRows) ? data.reportRows : [];
+      setReportRows(rows);
+      return rows;
+    } catch (e) {
+      setError(e?.message || "Failed to load data overview");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    const fetchAnalytics = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const res = await get("/analytics/summary");
-        if (!res?.success) throw new Error(res?.message || "Failed to load analytics");
-
-        const data = res?.data || {};
-        if (cancelled) return;
-
-        const s = data.summary || {};
-        setSummary({
-          totalEmployees: Number(s.totalEmployees) || 0,
-          activeProjects: Number(s.activeProjects) || 0,
-          pendingLeaves: Number(s.pendingLeaves) || 0,
-        });
-
-        setEmployeesByDepartment(Array.isArray(data.employeesByDepartment) ? data.employeesByDepartment : []);
-        setEmployeeStatusData(Array.isArray(data.employeeStatusData) ? data.employeeStatusData : []);
-        setProjectsByStatus(Array.isArray(data.projectsByStatus) ? data.projectsByStatus : []);
-        setLeaveStatusData(Array.isArray(data.leaveStatusData) ? data.leaveStatusData : []);
-        setLeaveTypesData(Array.isArray(data.leaveTypesData) ? data.leaveTypesData : []);
-        setReportRows(Array.isArray(data.reportRows) ? data.reportRows : []);
-      } catch (e) {
-        if (!cancelled) setError(e?.message || "Failed to load data overview");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
     fetchAnalytics();
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const filteredReports = useMemo(() => {
@@ -127,10 +125,13 @@ function Analytics() {
     setReportOffset(0);
   }, [reportModule, reportStatus, reportSearch, reportRows.length]);
 
-  const handleExcelExport = ({ startDate, endDate, fileType } = {}) => {
+  const handleExcelExport = async ({ startDate, endDate, fileType } = {}) => {
+    setReportLoading(true);
+    try {
+    const freshData = await fetchAnalytics();
     const rowsForExport = (startDate || endDate)
-      ? filterRowsByDateRange(filteredReports, (r) => r?.date, startDate, endDate)
-      : filteredReports;
+      ? filterRowsByDateRange(freshData, (r) => r?.date, startDate, endDate)
+      : freshData;
 
     const columns = [
       { header: "Report ID", value: (r) => r?.id || "" },
@@ -149,6 +150,11 @@ function Analytics() {
     }
 
     setExcelExportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const formatReportDate = (value) => {
@@ -330,6 +336,7 @@ function Analytics() {
               title="Generate Report - Analytics (Reports)"
               onClose={() => setExcelExportOpen(false)}
               onGenerate={handleExcelExport}
+              loading={reportLoading}
               enableDateRange={true}
             />
             <div className="flex flex-col lg:flex-row gap-3 mb-4">

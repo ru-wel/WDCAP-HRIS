@@ -8,6 +8,7 @@ import { compareDate, compareText } from "../../utils/sort.js";
 import ReportModal from "../../components/report-modal.jsx";
 import { exportRowsToCsv } from "../../utils/csv.js";
 import { exportRowsToXlsx } from "../../utils/excel.js";
+import { exportReportToPdf } from "../../utils/pdf.js";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
 
 const formatDateShort = (iso) => {
@@ -42,6 +43,15 @@ const formatDateTime = (iso) => {
     hour12: true,
   });
   return `${dateStr} at ${timeStr}`;
+};
+
+const calcDaysTaken = (startIso, endIso) => {
+  if (!startIso || !endIso) return "";
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
+  const diff = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  return diff > 0 ? diff : 1;
 };
 
 const formatRange = (startIso, endIso, mode) => {
@@ -376,6 +386,7 @@ export default function LeaveHistory() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [sortOrder, setSortOrder] = useState("requested_newest");
 
@@ -453,10 +464,13 @@ export default function LeaveHistory() {
       const endpoint = isEmployee ? "/leave/history/me" : "/leave/history";
       const resp = await get(endpoint);
       const apiRows = Array.isArray(resp?.data) ? resp.data : [];
-      setRows(apiRows.map(mapApiRowToUi));
+      const mapped = apiRows.map(mapApiRowToUi);
+      setRows(mapped);
+      return mapped;
     } catch (e) {
       console.error("Failed to load leave history:", e);
       setRows([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -565,44 +579,83 @@ export default function LeaveHistory() {
     setItemOffset(event.selected * itemsPerPage);
   };
 
-  const handleGenerateReport = async ({ startDate, endDate, fileType } = {}) => {
-    const rowsForExport =
-      startDate || endDate
-        ? filterRowsByDateRange(visibleRows, (r) => r?.startDateRaw, startDate, endDate)
-        : visibleRows;
+  const handleGenerateReport = async ({ startDate, endDate, fileType, category } = {}) => {
+    setReportLoading(true);
+    try {
+      const freshData = await fetchHistory();
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    const isCsv = fileType === "CSV";
-    const filename = `leave-history-${stamp}.${isCsv ? "csv" : "xlsx"}`;
+      let rowsForExport = startDate || endDate
+        ? filterRowsByDateRange(freshData, (r) => r?.startDateRaw, startDate, endDate)
+        : freshData;
 
-    post("/audit-logs/reports", {
-      report_name: "Leave History Report",
-      filename,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      row_count: rowsForExport.length,
-      source: "leave-history",
-    }).catch(() => {});
+      if (category && category !== "all") {
+        rowsForExport = rowsForExport.filter(
+          (r) => String(r?.status || "").toUpperCase() === category.toUpperCase()
+        );
+      }
 
-    const columns = [
-      { header: "Employee ID", value: (r) => r?.id || "" },
-      { header: "Name", value: (r) => r?.name || "" },
-      { header: "Position", value: (r) => r?.position || "" },
-      { header: "Leave Type", value: (r) => r?.type || "" },
-      { header: "Start Date", value: (r) => r?.startDateRaw || "" },
-      { header: "End Date", value: (r) => r?.endDateRaw || "" },
-      { header: "Status", value: (r) => r?.status || "" },
-      { header: "Date Requested", value: (r) => r?.dateRequested || "" },
-      { header: "Updated By", value: (r) => r?.updatedBy || "" },
-    ];
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = fileType === "CSV" ? "csv" : fileType === "PDF" ? "pdf" : "xlsx";
+      const filename = `leave-history-${stamp}.${ext}`;
 
-    if (isCsv) {
-      exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    } else {
-      await exportRowsToXlsx({ filename, sheetName: "Leave History", columns, rows: rowsForExport });
+      post("/audit-logs/reports", {
+        report_name: "Leave History Report",
+        filename,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        row_count: rowsForExport.length,
+        source: "leave-history",
+      }).catch(() => {});
+
+      const columns = [
+        { header: "Employee ID", value: (r) => r?.id || "" },
+        { header: "Name", value: (r) => r?.name || "" },
+        { header: "Position", value: (r) => r?.position || "" },
+        { header: "Leave Type", value: (r) => r?.type || "" },
+        { header: "Leave Purpose", value: (r) => {
+          const p = r?.leave_purpose || "";
+          if (p === "vacation") return "Vacation";
+          if (p === "bereavement") return "Bereavement";
+          if (p === "sick") return "Sick";
+          return p || "—";
+        }},
+        { header: "Start Date", value: (r) => r?.startDateRaw || "" },
+        { header: "End Date", value: (r) => r?.endDateRaw || "" },
+        { header: "Days Taken", value: (r) => calcDaysTaken(r?.startDateRaw, r?.endDateRaw) },
+        { header: "Status", value: (r) => r?.status || "" },
+        { header: "Reason", value: (r) => r?.reason || "—" },
+        { header: "Date Requested", value: (r) => r?.dateRequested || "" },
+        { header: "Updated By", value: (r) => r?.updatedBy || "" },
+      ];
+
+      if (fileType === "CSV") {
+        exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      } else if (fileType === "PDF") {
+        const categoryLabel = category && category !== "all"
+          ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
+          : "All";
+        const summaryLines = [
+          `Total Records: ${rowsForExport.length}`,
+          `Status Filter: ${categoryLabel}`,
+          ...(startDate && endDate ? [`Date Range: ${startDate} to ${endDate}`] : []),
+        ];
+        await exportReportToPdf({
+          filename,
+          title: "Leave History Report",
+          summaryLines,
+          columns,
+          rows: rowsForExport,
+        });
+      } else {
+        await exportRowsToXlsx({ filename, sheetName: "Leave History", columns, rows: rowsForExport });
+      }
+
+      setReportOpen(false);
+    } catch (err) {
+      console.error("Report generation failed:", err);
+    } finally {
+      setReportLoading(false);
     }
-
-    setReportOpen(false);
   };
 
   if (loading) {
@@ -625,6 +678,12 @@ export default function LeaveHistory() {
           </h1>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            {!isEmployee && (
+              <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+                Generate Report
+              </button>
+            )}
+
             <div className="relative">
               <button
                 type="button"
@@ -726,19 +785,24 @@ export default function LeaveHistory() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="flex justify-end mt-6">
-          <button className="generate-report-button" onClick={() => setReportOpen(true)}>
-            Generate Report
-          </button>
-
-          <ReportModal
+        <ReportModal
             open={reportOpen}
             title="Generate Report - Leave History"
             onClose={() => setReportOpen(false)}
             onGenerate={handleGenerateReport}
+            loading={reportLoading}
             enableDateRange={true}
+            dateRangeHint="filters by Leave Start Date"
+            fileTypes={["XLSX", "CSV", "PDF"]}
+            categoryOptions={[
+              { value: "all", label: "All" },
+              { value: "APPROVED", label: "Approved" },
+              { value: "REJECTED", label: "Rejected" },
+              { value: "PENDING", label: "Pending" },
+              { value: "CANCELLED", label: "Cancelled" },
+            ]}
+            defaultCategory="all"
           />
-        </div>
 
         <div className="div-table">
           <table className="table-style">

@@ -12,6 +12,7 @@ import { compareDate, compareText } from '../../utils/sort.js';
 import { filterRowsByDateRange } from '../../utils/reporting.js';
 import { exportRowsToXlsx } from '../../utils/excel.js';
 import { exportRowsToCsv } from '../../utils/csv.js';
+import { exportReportToPdf } from '../../utils/pdf.js';
 
 const formatShortDate = (value) => {
   if (!value) return '';
@@ -561,6 +562,7 @@ export default function EvaluationHistory() {
   });
 
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
   const [reportMode, setReportMode] = useState('evaluations');
 
   const [regularizationModalOpen, setRegularizationModalOpen] = useState(false);
@@ -627,7 +629,7 @@ export default function EvaluationHistory() {
               {
                 id: me?.id,
                 employeeCode: me?.employee_id,
-                name: `${me?.first_name || ''} ${me?.last_name || ''}`.trim(),
+                name: [me?.first_name, me?.middle_name, me?.last_name].filter(Boolean).join(' '),
                 position: me?.positions?.position_title || 'N/A',
                 hireDate: formatShortDate(me?.hire_date),
                 hireDateRaw: me?.hire_date || '',
@@ -654,14 +656,18 @@ export default function EvaluationHistory() {
         latestEvalScore: e?.latest_eval_score || null,
         latestEvalType: e?.latest_eval_type || null,
         latestEvalDate: e?.latest_eval_date || null,
+        nextEvalDate: e?.next_eval_date || null,
+        nextEvalType: e?.next_eval_type || null,
         evalYears: Array.isArray(e?.eval_years) ? e.eval_years : [],
         hasEvaluations: Boolean(e?.has_evaluations),
       }));
       setRows(formatted);
+      return formatted;
     } catch (e) {
       console.error('Failed to load evaluation employees:', e);
       setError(e?.message || 'Failed to load evaluation history');
       setRows([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -836,72 +842,142 @@ export default function EvaluationHistory() {
   };
 
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
-    const stamp = new Date().toISOString().slice(0, 10);
-    const isCsv = fileType === 'CSV';
+  const needsEvalNextQuarter = (employee) => {
+    if (!employee?.nextEvalDate) return false;
+    const next = new Date(employee.nextEvalDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() + 90);
+    return next >= today && next <= cutoff;
+  };
 
-    if (reportMode === 'employees') {
-      const employeesRows = Array.isArray(visible) ? visible : [];
+  const handleGenerateReport = async ({ startDate, endDate, fileType, category } = {}) => {
+    setReportLoading(true);
+    try {
+      const freshData = await fetchEmployees();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const ext = fileType === 'CSV' ? 'csv' : fileType === 'PDF' ? 'pdf' : 'xlsx';
+
+      if (reportMode === 'employees') {
+        let employeesRows = Array.isArray(freshData) ? freshData : [];
+
+        if (startDate || endDate) {
+          employeesRows = filterRowsByDateRange(employeesRows, (r) => r?.hireDateRaw, startDate, endDate);
+        }
+
+        if (category === 'next_quarter') {
+          employeesRows = employeesRows.filter(needsEvalNextQuarter);
+        } else if (category && category !== 'all') {
+          employeesRows = employeesRows.filter(
+            (r) => String(r?.type || '').toLowerCase() === category.toLowerCase()
+          );
+        }
+
+        const filename = `evaluation-employees-${stamp}.${ext}`;
+
+        post('/audit-logs/reports', {
+          report_name: 'Evaluation Employees Table',
+          filename,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          row_count: employeesRows.length,
+          source: 'employees',
+        }).catch((err) => console.debug('Audit log failed:', err));
+
+        const columns = [
+          { header: 'Employee ID', value: (r) => r?.employeeCode || '' },
+          { header: 'Name', value: (r) => r?.name || '' },
+          { header: 'Position', value: (r) => r?.position || '' },
+          { header: 'Hire Date', value: (r) => r?.hireDate || '' },
+          { header: 'Personnel Type', value: (r) => r?.type || '' },
+          { header: 'Employment Status', value: (r) => r?.employmentStatus || '' },
+          { header: 'Last Evaluation Type', value: (r) => r?.latestEvalType || '—' },
+          { header: 'Last Evaluation Date', value: (r) => r?.latestEvalDate ? formatShortDate(r.latestEvalDate) : '—' },
+          ...(category === 'next_quarter' ? [
+            { header: 'Next Evaluation Type', value: (r) => r?.nextEvalType || '—' },
+            { header: 'Next Evaluation Due', value: (r) => r?.nextEvalDate ? formatShortDate(r.nextEvalDate) : '—' },
+          ] : []),
+        ];
+
+        if (fileType === 'CSV') {
+          exportRowsToCsv({ filename, columns, rows: employeesRows });
+        } else if (fileType === 'PDF') {
+          const categoryLabel = category === 'next_quarter'
+            ? 'Needs Evaluation – Next Quarter'
+            : category && category !== 'all'
+              ? category.charAt(0).toUpperCase() + category.slice(1).toLowerCase()
+              : 'All';
+          await exportReportToPdf({
+            filename,
+            title: 'Evaluation Employees Report',
+            summaryLines: [
+              `Total Records: ${employeesRows.length}`,
+              `Category: ${categoryLabel}`,
+              ...(startDate && endDate ? [`Hire Date Range: ${startDate} to ${endDate}`] : []),
+            ],
+            columns,
+            rows: employeesRows,
+          });
+        } else {
+          await exportRowsToXlsx({ filename, sheetName: 'Employees', columns, rows: employeesRows });
+        }
+
+        setReportOpen(false);
+        return;
+      }
+
+      // evaluations mode — specific employee's evaluation history
+      const employee = detailsEmployee;
+      const evaluations = Array.isArray(detailsEvals) ? detailsEvals : [];
       const rowsForExport = (startDate || endDate)
-        ? filterRowsByDateRange(employeesRows, (r) =>r?.hireDateRaw, startDate, endDate)
-        : employeesRows;
+        ? filterRowsByDateRange(evaluations, (r) => r?.evaluation_date, startDate, endDate)
+        : evaluations;
 
-      const filename = `evaluation-employees-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
+      const empCode = String(employee?.employeeCode || employee?.id || 'employee').replace(/\s+/g, '-');
+      const filename = `evaluation-history-${empCode}-${stamp}.${ext}`;
 
       post('/audit-logs/reports', {
-        report_name: 'Evaluation Employees Table',
+        report_name: 'Evaluation History Report',
         filename,
         start_date: startDate || null,
         end_date: endDate || null,
         row_count: rowsForExport.length,
-        source: 'employees',
+        source: 'performance_evaluations',
       }).catch((err) => console.debug('Audit log failed:', err));
 
       const columns = [
-        { header: 'Employee ID', value: (r) => r?.employeeCode || '' },
-        { header: 'Name', value: (r) => r?.name || '' },
-        { header: 'Position', value: (r) => r?.position || '' },
-        { header: 'Hire Date', value: (r) => r?.hireDate || '' },
-        { header: 'Personnel Type', value: (r) => r?.type || '' },
+        { header: 'Employee ID', value: () => employee?.employeeCode || '' },
+        { header: 'Employee Name', value: () => employee?.name || '' },
+        { header: 'Evaluation Type', value: (r) => r?.evaluation_type || '' },
+        { header: 'Evaluation Date', value: (r) => formatShortDate(r?.evaluation_date) },
+        { header: 'Notes', value: (r) => r?.evaluation_notes || '' },
       ];
 
-      if (isCsv) exportRowsToCsv({ filename, columns, rows: rowsForExport });
-      else exportRowsToXlsx({ filename, sheetName: 'Employees', columns, rows: rowsForExport });
+      if (fileType === 'CSV') {
+        exportRowsToCsv({ filename, columns, rows: rowsForExport });
+      } else if (fileType === 'PDF') {
+        await exportReportToPdf({
+          filename,
+          title: `Evaluation History — ${employee?.name || empCode}`,
+          summaryLines: [
+            `Employee ID: ${employee?.employeeCode || '—'}`,
+            `Total Records: ${rowsForExport.length}`,
+            ...(startDate && endDate ? [`Date Range: ${startDate} to ${endDate}`] : []),
+          ],
+          columns,
+          rows: rowsForExport,
+        });
+      } else {
+        await exportRowsToXlsx({ filename, sheetName: 'Evaluation History', columns, rows: rowsForExport });
+      }
 
       setReportOpen(false);
-      return;
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
     }
-
-    const employee = detailsEmployee;
-    const evaluations = Array.isArray(detailsEvals) ? detailsEvals : [];
-    const rowsForExport = (startDate || endDate)
-      ? filterRowsByDateRange(evaluations, (r) => r?.evaluation_date, startDate, endDate)
-      : evaluations;
-
-    const empCode = String(employee?.employeeCode || employee?.id || 'employee').replace(/\s+/g, '-');
-    const filename = `evaluation-history-${empCode}-${stamp}.${isCsv ? 'csv' : 'xlsx'}`;
-
-    post('/audit-logs/reports', {
-      report_name: 'Evaluation History Report',
-      filename,
-      start_date: startDate || null,
-      end_date: endDate || null,
-      row_count: rowsForExport.length,
-      source: 'performance_evaluations',
-    }).catch((err) => console.debug('Audit log failed:', err));
-
-    const columns = [
-      { header: 'Employee ID', value: () => employee?.employeeCode || '' },
-      { header: 'Employee Name', value: () => employee?.name || '' },
-      { header: 'Evaluation Type', value: (r) => r?.evaluation_type || '' },
-      { header: 'Evaluation Date', value: (r) => formatShortDate(r?.evaluation_date) },
-      { header: 'Notes', value: (r) => r?.evaluation_notes || '' },
-    ];
-
-    if (isCsv) exportRowsToCsv({ filename, columns, rows: rowsForExport });
-    else exportRowsToXlsx({ filename, sheetName: 'Evaluation History', columns, rows: rowsForExport });
-
-    setReportOpen(false);
   };
 
   const handleTopGenerateReportClick = () => {
@@ -1039,7 +1115,9 @@ export default function EvaluationHistory() {
         <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Evaluation History</h1>
 
         <div className="flex items-center justify-end gap-3">
-          
+          <button type="button" className="generate-report-button" onClick={handleTopGenerateReportClick} >
+            Generate Report
+          </button>
 
           <div className="relative">
             <button
@@ -1178,17 +1256,8 @@ export default function EvaluationHistory() {
       </div>
 
       <hr className="text-[#990100] mt-6" />
-      <div className="flex justify-end mt-5">
-        <button
-          type="button"
-          className="generate-report-button"
-          onClick={handleTopGenerateReportClick}
-        >
-          Generate Report
-        </button>
-      </div>
 
-      
+
 
       <div className="mt-6">
         {loading ? (
@@ -1350,10 +1419,21 @@ export default function EvaluationHistory() {
 
       <ReportModal
         open={reportOpen}
-        title="Generate Report - Evaluation History"
+        title={reportMode === 'employees' ? 'Generate Report - Evaluation Employees' : 'Generate Report - Evaluation History'}
         onClose={() => setReportOpen(false)}
         onGenerate={handleGenerateReport}
+        loading={reportLoading}
         enableDateRange={true}
+        fileTypes={['XLSX', 'CSV', 'PDF']}
+        dateRangeHint={reportMode === 'employees' ? 'filters by Hire Date' : 'filters by Evaluation Date'}
+        categoryOptions={reportMode === 'employees' ? [
+          { value: 'all', label: 'All Employees' },
+          { value: 'regular', label: 'Regular' },
+          { value: 'probationary', label: 'Probationary' },
+          { value: 'project_based', label: 'Project-Based' },
+          { value: 'next_quarter', label: 'Needs Evaluation – Next Quarter' },
+        ] : null}
+        defaultCategory="all"
       />
 
       <ConfirmModal

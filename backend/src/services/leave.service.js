@@ -448,7 +448,7 @@ const LEAVE_REQUEST_FIELDS = `
   approved_date,
   created_at,
   updated_at,
-  employees (employee_id, first_name, last_name, positions (position_title)),
+  employees (employee_id, first_name, middle_name, last_name, positions (position_title)),
   leave_types (leave_type_id, leave_type_name, default_credits)
 `;
 
@@ -461,9 +461,9 @@ const normalizeStatus = (value) => {
 
 const formatEmployeeName = (employee) => {
   if (!employee) return '';
-  const first = employee.first_name || '';
-  const last = employee.last_name || '';
-  return `${first} ${last}`.trim();
+  return [employee.first_name, employee.middle_name, employee.last_name]
+    .filter(Boolean)
+    .join(' ');
 };
 
 const toUiLeaveRow = (r) => {
@@ -506,6 +506,7 @@ const getLatestLeaveRequestUpdaters = async (leaveRequestIds) => {
         employee_id,
         employees (
           first_name,
+          middle_name,
           last_name
         )
       )
@@ -1389,7 +1390,7 @@ export const listLeaveCredits = async ({ year, employee_id } = {}) => {
         current_balance,
         created_at,
         updated_at,
-        employees (employee_id, first_name, last_name, positions (position_title)),
+        employees (employee_id, first_name, middle_name, last_name, positions (position_title)),
         leave_types (leave_type_id, leave_type_name, default_credits)
       `)
       .order('year', { ascending: false });

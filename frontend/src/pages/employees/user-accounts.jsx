@@ -458,6 +458,7 @@ function UserAccounts() {
   const [draftStatusFilter, setDraftStatusFilter] = useState("all");
 
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const sortOptions = useMemo(
     () => [
@@ -526,10 +527,12 @@ function UserAccounts() {
       }));
       setEmployeesAcc(rows);
       setError("");
+      return rows;
     } catch (e) {
       console.error(e);
       setEmployeesAcc([]);
       setError(e?.message || "Failed to load user accounts");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -669,21 +672,24 @@ function UserAccounts() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, roleFilter, statusFilter, employeesAcc.length]);
 
-  const handleGenerateReport = ({
+  const handleGenerateReport = async ({
     startDate,
     endDate,
     fileType,
     category,
   } = {}) => {
+    setReportLoading(true);
+    try {
+    const freshData = await fetchUsers();
     const base =
       startDate || endDate
         ? filterRowsByDateRange(
-            filteredEmployeesAcc,
+            freshData,
             (r) => r?.createdAtRaw || r?.createdAt,
             startDate,
             endDate
           )
-        : filteredEmployeesAcc;
+        : freshData;
 
     const cat = category || "all";
     const rowsForExport = base.filter((r) => {
@@ -748,6 +754,11 @@ function UserAccounts() {
     }
 
     setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   const clearFilters = () => {
@@ -785,6 +796,10 @@ function UserAccounts() {
           </div>
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
+            <button type="button" onClick={() => setReportOpen(true)} className="generate-report-button" >
+              Generate Report
+            </button>
+
             <div className="relative" data-filters-root="true">
               <button
                 type="button"
@@ -954,7 +969,9 @@ function UserAccounts() {
           title="Generate Report - User Accounts"
           onClose={() => setReportOpen(false)}
           onGenerate={handleGenerateReport}
+          loading={reportLoading}
           enableDateRange={true}
+          dateRangeHint="filters by Account Creation Date"
           fileTypes={["XLSX", "CSV", "PDF"]}
           categoryOptions={[
             { value: "all", label: "All Accounts" },

@@ -8,6 +8,15 @@ import { exportRowsToXlsx } from "../../utils/excel.js";
 import ReportModal from "../../components/report-modal.jsx";
 import { filterRowsByDateRange } from "../../utils/reporting.js";
 
+const formatDateTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const date = d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+  return `${date} | ${time}`;
+};
+
 function EmployeesLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +24,7 @@ function EmployeesLogs() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("timestamp_newest");
   const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
@@ -331,10 +341,13 @@ function EmployeesLogs() {
     try {
       setLoading(true);
       const response = await get("/audit-logs/table/employees");
-      if (response.success) setLogs(response.data);
+      const data = response.success ? response.data : [];
+      setLogs(data);
+      return data;
     } catch (err) {
       console.error("Failed to fetch employee logs:", err);
       setError("Failed to load employee audit logs");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -408,11 +421,14 @@ function EmployeesLogs() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, logs.length]);
 
-  const handleGenerateReport = ({ startDate, endDate, fileType } = {}) => {
+  const handleGenerateReport = async ({ startDate, endDate, fileType } = {}) => {
+    setReportLoading(true);
+    try {
+    const freshData = await fetchEmployeeLogs();
     const rowsForExport =
       startDate || endDate
-        ? filterRowsByDateRange(visibleLogs, (log) => log?.timestamp, startDate, endDate)
-        : visibleLogs;
+        ? filterRowsByDateRange(freshData, (log) => log?.timestamp, startDate, endDate)
+        : freshData;
 
     const stamp = new Date().toISOString().slice(0, 10);
     const upper = String(fileType || "XLSX").toUpperCase();
@@ -425,8 +441,7 @@ function EmployeesLogs() {
     const columns = [
       {
         header: "Date | Time",
-        value: (log) =>
-          log?.timestamp ? new Date(log.timestamp).toLocaleString() : "",
+        value: (log) => formatDateTime(log?.timestamp),
       },
       { header: "User", value: (log) => log?.users?.email || "N/A" },
       { header: "Employee", value: (log) => getTargetEmployee(log) },
@@ -474,6 +489,11 @@ function EmployeesLogs() {
     }
 
     setReportOpen(false);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   if (loading) {
@@ -498,6 +518,10 @@ function EmployeesLogs() {
           </h1>
 
           <div className="flex items-center justify-end gap-3">
+            <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
+              Generate Report
+            </button>
+
             <div className="relative">
               <button
                 type="button"
@@ -592,23 +616,7 @@ function EmployeesLogs() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="flex justify-end mt-5">
-          <button
-            className="generate-report-button"
-            onClick={() => setReportOpen(true)}
-          >
-            Generate Report
-          </button>
-        </div>
-
-        <ReportModal
-          open={reportOpen}
-          title="Generate Report - Audit Employees"
-          onClose={() => setReportOpen(false)}
-          onGenerate={handleGenerateReport}
-          enableDateRange={true}
-          fileTypes={["XLSX", "CSV", "PDF"]}
-        />
+        <ReportModal open={reportOpen} title="Generate Report - Audit Employees" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} loading={reportLoading} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} />
 
         {loading && (
           <div className="py-20 text-center text-gray-600">
@@ -651,13 +659,10 @@ function EmployeesLogs() {
                   </tr>
                 ) : (
                   currentLogs.map((log) => {
-                    const date = new Date(log.timestamp);
-
                     return (
                       <tr key={log.id} className="tr-style">
                         <td className="td-style-nobtn">
-                          {date.toLocaleDateString()} |{" "}
-                          {date.toLocaleTimeString()}
+                          {formatDateTime(log?.timestamp)}
                         </td>
 
                         <td className="td-style-nobtn font-medium">

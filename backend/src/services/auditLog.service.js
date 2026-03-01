@@ -6,10 +6,11 @@ import logger from "../utils/logger.js";
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-const toFullName = (firstName, lastName) => {
-  const fn = String(firstName || '').trim();
-  const ln = String(lastName || '').trim();
-  return `${fn} ${ln}`.trim();
+const toFullName = (firstName, middleName, lastName) => {
+  return [firstName, middleName, lastName]
+    .map((p) => String(p || '').trim())
+    .filter(Boolean)
+    .join(' ');
 };
 
 const normalizeJsonObject = (value) => {
@@ -18,7 +19,7 @@ const normalizeJsonObject = (value) => {
 };
 
 const resolveActorLabel = ({ email, role, employee }) => {
-  const employeeName = toFullName(employee?.first_name, employee?.last_name);
+  const employeeName = toFullName(employee?.first_name, employee?.middle_name, employee?.last_name);
   if (employeeName) return employeeName;
   const normalizedRole = String(role || '').trim();
   if (normalizedRole) return normalizedRole;
@@ -35,7 +36,7 @@ const extractTargetEmployeeHint = (log) => {
   // includes the human-readable fields.
   if (table === 'employees') {
     const code = String(values?.employee_id || '').trim();
-    const name = toFullName(values?.first_name, values?.last_name);
+    const name = toFullName(values?.first_name, values?.middle_name, values?.last_name);
     return {
       employeeDbId: null,
       employeeCode: code || null,
@@ -107,7 +108,7 @@ export const enrichAuditLogs = async (logs) => {
   if (actorUserIds.length > 0) {
     const { data: actorEmployees, error: actorEmployeesError } = await supabase
       .from('employees')
-      .select('user_id, employee_id, first_name, last_name')
+      .select('user_id, employee_id, first_name, middle_name, last_name')
       .in('user_id', actorUserIds);
 
     if (!actorEmployeesError && Array.isArray(actorEmployees)) {
@@ -122,7 +123,7 @@ export const enrichAuditLogs = async (logs) => {
   if (targetEmployeeDbIds.length > 0) {
     const { data: targetEmployees, error: targetEmployeesError } = await supabase
       .from('employees')
-      .select('id, employee_id, first_name, last_name')
+      .select('id, employee_id, first_name, middle_name, last_name')
       .in('id', targetEmployeeDbIds);
 
     if (!targetEmployeesError && Array.isArray(targetEmployees)) {
@@ -137,7 +138,7 @@ export const enrichAuditLogs = async (logs) => {
   if (targetEmployeeCodes.length > 0) {
     const { data: targetEmployeesByCode, error: targetEmployeesByCodeError } = await supabase
       .from('employees')
-      .select('id, employee_id, first_name, last_name')
+      .select('id, employee_id, first_name, middle_name, last_name')
       .in('employee_id', targetEmployeeCodes);
 
     if (!targetEmployeesByCodeError && Array.isArray(targetEmployeesByCode)) {
@@ -190,14 +191,14 @@ export const enrichAuditLogs = async (logs) => {
       targetEmployee = {
         id: e.id,
         employee_code: e.employee_id || null,
-        name: toFullName(e.first_name, e.last_name) || null,
+        name: toFullName(e.first_name, e.middle_name, e.last_name) || null,
       };
     } else if (hint?.employeeCode && employeesByCode[hint.employeeCode]) {
       const e = employeesByCode[hint.employeeCode];
       targetEmployee = {
         id: e.id,
         employee_code: e.employee_id || null,
-        name: toFullName(e.first_name, e.last_name) || null,
+        name: toFullName(e.first_name, e.middle_name, e.last_name) || null,
       };
     }
 
@@ -266,11 +267,15 @@ export const getAuditLogsByTable = async (tableName) => {
     const leaveTables = ['leave_requests', 'leave_types', 'employee_leave_balances'];
     const employeesTables = ['employees', 'documents', 'onboarding_checklists', 'onboarding_items'];
     const evaluationTables = ['performance_evaluations', 'evaluation_templates'];
+    const departmentsTables = ['departments', 'positions'];
+    const projectsTables = ['projects', 'project_assignments'];
 
     let query = supabase.from("audit_logs").select(auditLogFields);
     if (normalized === 'leave') query = query.in("table_name", leaveTables);
     else if (normalized === 'employees') query = query.in('table_name', employeesTables);
     else if (normalized === 'evaluations' || normalized === 'performance_evaluations') query = query.in('table_name', evaluationTables);
+    else if (normalized === 'departments') query = query.in('table_name', departmentsTables);
+    else if (normalized === 'projects') query = query.in('table_name', projectsTables);
     else if (normalized === 'reports') query = query.eq('action_type', AUDIT_ACTIONS.GENERATE_REPORT);
     else query = query.eq("table_name", tableName);
 

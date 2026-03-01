@@ -52,6 +52,10 @@ export default function DepartmentEmployees() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
 
+  const [deptSaving, setDeptSaving] = useState(false);
+  const [isEditingDeptName, setIsEditingDeptName] = useState(false);
+  const [deptNameDraft, setDeptNameDraft] = useState("");
+
   const defaultSort = useMemo(
     () => (tab === "positions" ? "position_title_az" : "name_az"),
     [tab]
@@ -84,10 +88,6 @@ export default function DepartmentEmployees() {
         { value: "position_id_desc", label: "Position ID: Descending" },
         { value: "position_title_az", label: "Position Title: A - Z" },
         { value: "position_title_za", label: "Position Title: Z - A" },
-        { value: "created_at_newest", label: "Created At: Newest" },
-        { value: "created_at_oldest", label: "Created At: Oldest" },
-        { value: "updated_at_newest", label: "Updated At: Newest" },
-        { value: "updated_at_oldest", label: "Updated At: Oldest" },
       ];
     }
 
@@ -331,9 +331,7 @@ export default function DepartmentEmployees() {
       : byDept.filter(
           (p) =>
             p.id.toLowerCase().includes(s) ||
-            p.title.toLowerCase().includes(s) ||
-            p.createdAt.toLowerCase().includes(s) ||
-            p.updatedAt.toLowerCase().includes(s)
+            p.title.toLowerCase().includes(s)
         );
 
     const sorted = [...filtered].sort((a, b) => {
@@ -558,6 +556,64 @@ const onCreatePosition = async () => {
     });
   };
 
+  const onStartEditDeptName = () => {
+    setDeptNameDraft(departmentName);
+    setIsEditingDeptName(true);
+  };
+
+  const onCancelEditDeptName = () => {
+    setIsEditingDeptName(false);
+    setDeptNameDraft("");
+  };
+
+  const onUpdateDepartment = () => {
+    const name = deptNameDraft.trim();
+    if (!name || name === departmentName) return;
+    openConfirm({
+      title: "Update department name",
+      message: "Are you sure you want to update the department name?",
+      confirmText: "OK",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          setDeptSaving(true);
+          const res = await put(`/departments/${departmentId}`, { department_name: name });
+          if (!res?.success) throw new Error(res?.message || "Failed to update department");
+          setDepartmentName(name);
+          setIsEditingDeptName(false);
+          setDeptNameDraft("");
+        } catch (e) {
+          console.error("Failed to update department:", e);
+          throw e;
+        } finally {
+          setDeptSaving(false);
+        }
+      },
+    });
+  };
+
+  const onDeleteDepartment = () => {
+    openConfirm({
+      title: "Delete department",
+      message: `Delete "${departmentName}" department? This cannot be undone.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      onConfirm: async () => {
+        try {
+          setDeptSaving(true);
+          const res = await del(`/departments/${departmentId}`);
+          if (!res?.success) throw new Error(res?.message || "Failed to delete department");
+          navigate("/employees/departments");
+        } catch (e) {
+          console.error("Failed to delete department:", e);
+          throw e;
+        } finally {
+          setDeptSaving(false);
+        }
+      },
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center py-12">
@@ -577,7 +633,7 @@ const onCreatePosition = async () => {
   
       <div className="p-7 lg:mx-[4.5rem] md:mx-10">
         <div className="md:flex justify-between items-center w-full">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <button
               type="button"
               onClick={() => navigate("/employees/departments")}
@@ -586,9 +642,38 @@ const onCreatePosition = async () => {
               <span className="text-xl">←</span>Back
             </button>
             <span className="text-gray-300">|</span>
-            <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
-              {departmentName}
-            </h1>
+            {isEditingDeptName ? (
+              <>
+                <input value={deptNameDraft} onChange={(e) => setDeptNameDraft(e.target.value)} className="lg:text-2xl text-xl font-bold text-[#990100]/70 border-b border-[#990100] bg-gray-100 px-2 py-1 focus:outline-gray-400" disabled={deptSaving} />
+                <button
+                  type="button"
+                  onClick={onUpdateDepartment}
+                  disabled={
+                    deptSaving ||
+                    !deptNameDraft.trim() ||
+                    deptNameDraft.trim() === departmentName
+                  }
+                  className="green-button text-sm px-3 py-1.5 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {deptSaving ? "Saving..." : "Save"}
+                </button>
+                <button type="button" onClick={onCancelEditDeptName} disabled={deptSaving} className="text-sm text-white bg-red-700 hover:bg-red-600 px-3 py-1.5 rounded-md transition cursor-pointer" >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold">
+                  {departmentName}
+                </h1>
+                <button type="button" onClick={onStartEditDeptName} className="text-sm text-[#990100] border border-[#990100] px-3 py-1 rounded-md hover:bg-[#990100]/10 transition cursor-pointer" >
+                  Edit
+                </button>
+                <button type="button" onClick={onDeleteDepartment} className="text-sm text-white bg-red-700 hover:bg-red-600 px-3 py-1 rounded-md transition cursor-pointer" >
+                  Delete
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-end md:gap-4 gap-3 md:mt-0 mt-5">
@@ -840,8 +925,6 @@ const onCreatePosition = async () => {
                             <th className="th-style rounded-tl-lg rounded-bl-lg">
                               Position Title
                             </th>
-                            <th className="th-style">Created At</th>
-                            <th className="th-style">Last Updated At</th>
                             <th className="th-style rounded-tr-lg rounded-br-lg">
                               Actions
                             </th>
@@ -852,15 +935,13 @@ const onCreatePosition = async () => {
                           {currentPositions.map((p) => (
                             <tr key={p.id} className="tr-style">
                               <td className="td-style font-medium">{p.title}</td>
-                              <td className="td-style">{p.createdAt}</td>
-                              <td className="td-style">{p.updatedAt}</td>
                               <td className="td-style">
                                 <button
                                   type="button"
                                   onClick={() => onViewPosition(p)}
                                   className="bg-[#990100] text-white lg:text-sm text-xs px-4 py-[5px] rounded-lg hover:bg-[#ad3332] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                                 >
-                                  View Details
+                                  Edit Details
                                 </button>
                               </td>
                             </tr>
@@ -1144,7 +1225,7 @@ const onCreatePosition = async () => {
         cancelText={confirmState.cancelText}
         onConfirm={handleConfirm}
         onCancel={confirmBusy ? undefined : closeConfirm}
-        confirmDisabled={positionSaving || confirmBusy}
+        confirmDisabled={positionSaving || deptSaving || confirmBusy}
       />
     </div>
   );
