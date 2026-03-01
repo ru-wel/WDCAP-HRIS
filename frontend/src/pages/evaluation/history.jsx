@@ -845,11 +845,13 @@ export default function EvaluationHistory() {
   const needsEvalNextQuarter = (employee) => {
     if (!employee?.nextEvalDate) return false;
     const next = new Date(employee.nextEvalDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const cutoff = new Date(today);
-    cutoff.setDate(cutoff.getDate() + 90);
-    return next >= today && next <= cutoff;
+    const now = new Date();
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const nextQuarter = (currentQuarter + 1) % 4;
+    const nextQuarterYear = nextQuarter === 0 ? now.getFullYear() + 1 : now.getFullYear();
+    const nextQuarterStart = new Date(nextQuarterYear, nextQuarter * 3, 1);
+    const nextQuarterEnd = new Date(nextQuarterYear, nextQuarter * 3 + 3, 0);
+    return next >= nextQuarterStart && next <= nextQuarterEnd;
   };
 
   const handleGenerateReport = async ({ startDate, endDate, fileType, category } = {}) => {
@@ -863,7 +865,7 @@ export default function EvaluationHistory() {
         let employeesRows = Array.isArray(freshData) ? freshData : [];
 
         if (startDate || endDate) {
-          employeesRows = filterRowsByDateRange(employeesRows, (r) => r?.hireDateRaw, startDate, endDate);
+          employeesRows = filterRowsByDateRange(employeesRows, (r) => r?.latestEvalDate, startDate, endDate);
         }
 
         if (category === 'next_quarter') {
@@ -914,7 +916,7 @@ export default function EvaluationHistory() {
             summaryLines: [
               `Total Records: ${employeesRows.length}`,
               `Category: ${categoryLabel}`,
-              ...(startDate && endDate ? [`Hire Date Range: ${startDate} to ${endDate}`] : []),
+              ...(startDate && endDate ? [`Last Evaluation Date Range: ${startDate} to ${endDate}`] : []),
             ],
             columns,
             rows: employeesRows,
@@ -1425,7 +1427,7 @@ export default function EvaluationHistory() {
         loading={reportLoading}
         enableDateRange={true}
         fileTypes={['XLSX', 'CSV', 'PDF']}
-        dateRangeHint={reportMode === 'employees' ? 'filters by Hire Date' : 'filters by Evaluation Date'}
+        dateRangeHint={reportMode === 'employees' ? 'filters by Last Evaluation Date' : 'filters by Evaluation Date'}
         categoryOptions={reportMode === 'employees' ? [
           { value: 'all', label: 'All Employees' },
           { value: 'regular', label: 'Regular' },

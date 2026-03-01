@@ -630,19 +630,19 @@ function Dashboard() {
           <>
             <section className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
               <StatCard
-                title="Employees"
+                title="Active Employees"
                 icon="icons/red-employees.png"
                 value={loading ? "…" : statValues.employees}
                 onClick={() => navigate("/employees")}
               />
               <StatCard
-                title="Ongoing Projects"
+                title="Active Projects"
                 icon="icons/red-projects.png"
                 value={loading ? "…" : statValues.activeProjects}
                 onClick={() => navigate("/projects")}
               />
               <StatCard
-                title="Leave Requests"
+                title="Pending Leaves"
                 icon="icons/red-leave.png"
                 value={loading ? "…" : statValues.pendingLeaves}
                 onClick={() => navigate("/leave/request")}
@@ -788,7 +788,7 @@ function Dashboard() {
                       Data Overview
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
-                      Employees & projects snapshot (Executive/HR only)
+                      Employees & projects snapshot
                     </p>
                   </div>
 
@@ -807,21 +807,13 @@ function Dashboard() {
                   </div>
                 ) : null}
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                       On Leave Today
                     </p>
                     <p className="mt-2 text-2xl font-semibold text-[#990100]">
                       {loading ? "…" : (summary.onLeaveTodayCount ?? "—")}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Active Employees
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-[#990100]">
-                      {analyticsLoading ? "…" : activeEmployeesCount}
                     </p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
