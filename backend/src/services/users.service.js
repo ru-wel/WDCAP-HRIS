@@ -1,15 +1,22 @@
 import { supabase } from "../config/supabase.js";
-import { InternalServerError, NotFoundError, ConflictError } from "../utils/errors.js";
-import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES, ROLES } from "../config/constants.js";
+import { InternalServerError, NotFoundError, ConflictError, ForbiddenError } from "../utils/errors.js";
+import { AUDIT_ACTIONS, EMPLOYMENT_STATUSES, PERSONNEL_TYPES, ROLES } from "../config/constants.js";
 import logger from "../utils/logger.js";
 
 const userFields = "id, employee_id, email, role, created_at";
 
 const DELETED_EMAIL_PREFIX = 'deleted+';
 
+const PLACEHOLDER_EMAIL_DOMAINS = ['@project-based.com', '@projectbased.com', '@no-email.local'];
+
 const isSoftDeletedEmail = (email) => {
   const normalized = String(email || '').trim().toLowerCase();
   return normalized.startsWith(DELETED_EMAIL_PREFIX);
+};
+
+const isPlaceholderEmail = (email) => {
+  const normalized = String(email || '').trim().toLowerCase();
+  return PLACEHOLDER_EMAIL_DOMAINS.some((domain) => normalized.endsWith(domain));
 };
 
 const UUID_REGEX =
@@ -42,10 +49,7 @@ export const getAllUsers = async (requester) => {
 
     let query = supabase.from("users").select(userFields);
 
-    if (requesterRole === ROLES.EXECUTIVE) {
-      // no additional filtering
-    } else if (requesterRole === ROLES.HR) {
-      query = query.in("role", [ROLES.HR, ROLES.MANAGER, ROLES.EMPLOYEE]);
+    if (requesterRole === ROLES.EXECUTIVE || requesterRole === ROLES.HR) {
     } else {
       // Employee/Manager (or any unexpected role): self-only
       query = query.eq("id", requesterId || "__no_user__");
@@ -57,22 +61,30 @@ export const getAllUsers = async (requester) => {
 
     const userIds = (users || []).map((u) => u.id).filter(Boolean);
     let statusByUserId = {};
+    const projectBasedUserIds = new Set();
 
     if (userIds.length > 0) {
       const { data: employees, error: employeesError } = await supabase
         .from("employees")
-        .select("user_id, employment_status")
+        .select("user_id, employment_status, personnel_type")
         .in("user_id", userIds);
 
       if (!employeesError && Array.isArray(employees)) {
-        statusByUserId = employees.reduce((acc, e) => {
-          acc[e.user_id] = toUiStatus(e.employment_status);
-          return acc;
-        }, {});
+        employees.forEach((e) => {
+          statusByUserId[e.user_id] = toUiStatus(e.employment_status);
+          if (
+            String(e.personnel_type || '').trim().toLowerCase() ===
+            String(PERSONNEL_TYPES.PROJECT_BASED || '').trim().toLowerCase()
+          ) {
+            projectBasedUserIds.add(e.user_id);
+          }
+        });
       }
     }
 
-    const visibleUsers = (users || []).filter((u) => !isSoftDeletedEmail(u.email));
+    const visibleUsers = (users || []).filter(
+      (u) => !isSoftDeletedEmail(u.email) && !isPlaceholderEmail(u.email) && !projectBasedUserIds.has(u.id)
+    );
 
     return visibleUsers.map((u) => ({
       ...u,
@@ -84,7 +96,7 @@ export const getAllUsers = async (requester) => {
   }
 };
 
-export const updateUserByEmployeeId = async (employeeId, { role, status }, actorId) => {
+export const updateUserByEmployeeId = async (employeeId, { role, status }, actorId, requesterRole) => {
   try {
     const { key, value } = resolveUserLookup(employeeId);
 
@@ -95,6 +107,10 @@ export const updateUserByEmployeeId = async (employeeId, { role, status }, actor
       .single();
 
     if (fetchError || !existingUser) throw new NotFoundError("User not found");
+
+    if (requesterRole === ROLES.HR && [ROLES.EXECUTIVE, ROLES.MANAGER].includes(existingUser.role)) {
+      throw new ForbiddenError("HR cannot edit Executive or Manager accounts.");
+    }
 
     const newValues = {};
     if (role !== undefined) newValues.role = role;
@@ -175,7 +191,7 @@ export const updateUserByEmployeeId = async (employeeId, { role, status }, actor
   }
 };
 
-export const deleteUserByEmployeeId = async (employeeId, actorId) => {
+export const deleteUserByEmployeeId = async (employeeId, actorId, requesterRole) => {
   try {
     const { key, value } = resolveUserLookup(employeeId);
 
@@ -197,6 +213,10 @@ export const deleteUserByEmployeeId = async (employeeId, actorId) => {
         created_at: null,
         alreadyDeleted: true
       };
+    }
+
+    if (requesterRole === ROLES.HR && [ROLES.EXECUTIVE, ROLES.MANAGER].includes(existingUser.role)) {
+      throw new ForbiddenError("HR cannot delete Executive or Manager accounts.");
     }
 
     const { data: linkedEmployee, error: employeeLookupError } = await supabase

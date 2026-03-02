@@ -14,7 +14,7 @@ router.get("/", authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), usersController.getAl
 // update role and/or status (status maps to employees.employment_status)
 router.put("/:employeeId", authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), usersController.updateUser);
 
-// delete user (Executive only)
-router.delete("/:employeeId", authorizeRoles(ROLES.EXECUTIVE), usersController.deleteUser);
+// delete user (Executive and HR)
+router.delete("/:employeeId", authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), usersController.deleteUser);
 
 export default router;

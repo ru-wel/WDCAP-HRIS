@@ -13,7 +13,7 @@ router.post('/login', loginLimiter, validate(loginSchema), authController.login)
 router.post('/logout', authenticate, authController.logout);                                                                      // /api/auth/logout
 router.get('/me', authenticate, authController.getCurrentUser);                                                                   // /api/auth/me
 router.post('/change-password', authenticate, validate(changePasswordSchema), authController.changePassword);                     // /api/auth/change-password
-router.post('/admin-reset-password', authenticate, authorizeRoles(ROLES.EXECUTIVE), validate(adminResetPasswordSchema), authController.adminResetPassword);
+router.post('/admin-reset-password', authenticate, authorizeRoles(ROLES.EXECUTIVE, ROLES.HR), validate(adminResetPasswordSchema), authController.adminResetPassword);
 router.post('/password-reset-request', validate(passwordResetRequestSchema), authController.requestPasswordReset);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 router.post('/refresh', refreshLimiter, authController.refreshToken);

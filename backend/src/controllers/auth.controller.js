@@ -122,7 +122,7 @@ export const adminResetPassword = async (req, res, next) => {
     const actorId = req.user?.id;
     const { employeeId, new_password } = req.body;
 
-    const result = await authService.adminResetPassword({ employeeId, new_password, actorId });
+    const result = await authService.adminResetPassword({ employeeId, new_password, actorId, requesterRole: req.user?.role });
 
     res.status(200).json({
       success: true,

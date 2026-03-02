@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { del, get, put, post } from "../../services/api.js";
 import ReactPaginate from "react-paginate";
 import ConfirmModal from "../../components/confirm-modal.jsx";
@@ -27,7 +28,7 @@ function ChipButton({ active, children, onClick, title }) {
   );
 }
 
-function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
+function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete, viewerRole }) {
   const [data, setData] = useState(employeeAcc);
   const [editData, setEditData] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -124,6 +125,10 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
   const unsavedChanges =
     JSON.stringify(currentData) !== JSON.stringify(originalData);
 
+  const canEdit =
+    viewerRole !== "HR" ||
+    !["Executive", "Manager"].includes(currentData.role);
+
   return (
     <div className="fixed inset-0 flex items-center justify-center z-1000 bg-[#EDEDED]/50 p-4">
       <div
@@ -206,8 +211,12 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
         </div>
 
         <div className="pt-7">
-          {!editData ? (
-            <div className="flex justify-end gap-4">
+          {!canEdit ? (
+            <p className="text-center text-xs text-gray-400 italic">
+              This account is view-only for HR.
+            </p>
+          ) : !editData ? (
+            <div className="flex justify-center gap-4">
               <button
                 onClick={() => setEditData(true)}
                 disabled={loading}
@@ -216,13 +225,13 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
                 Update Account
               </button>
 
-              {/*<button
+              <button
                 onClick={() => setResetMode((p) => !p)}
                 disabled={loading}
                 className="bg-[#FFA500] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#ffb732] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer"
               >
                 {resetMode ? "Cancel Reset" : "Reset Password"}
-              </button>*/}
+              </button>
 
               <button
                 onClick={async () => {
@@ -340,6 +349,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
               </p>
               <input
                 type="password"
+                autoComplete="new-password"
                 className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs"
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
@@ -353,6 +363,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
                 </p>
                 <input
                   type="password"
+                  autoComplete="new-password"
                   className="input-field disabled:text-gray-600 lg:py-1.5 lg:px-2 p-1 lg:text-sm text-xs"
                   value={resetConfirmPassword}
                   onChange={(e) => setResetConfirmPassword(e.target.value)}
@@ -371,6 +382,29 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
                       openConfirm({
                         title: "Missing fields",
                         message: "Please enter and confirm the new password.",
+                        confirmText: "OK",
+                        cancelText: null,
+                        onConfirm: null,
+                      });
+                      return;
+                    }
+
+                    if (resetPassword !== resetConfirmPassword) {
+                      openConfirm({
+                        title: "Password mismatch",
+                        message: "The passwords do not match. Please try again.",
+                        confirmText: "OK",
+                        cancelText: null,
+                        onConfirm: null,
+                      });
+                      return;
+                    }
+
+                    const pwPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+                    if (!pwPattern.test(resetPassword)) {
+                      openConfirm({
+                        title: "Weak password",
+                        message: "Password must be at least 8 characters and include an uppercase letter, a lowercase letter, and a number.",
                         confirmText: "OK",
                         cancelText: null,
                         onConfirm: null,
@@ -443,6 +477,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete }) {
 }
 
 function UserAccounts() {
+  const { user } = useAuth();
   const [isModalOpen, setModalOpen] = useState(false);
   const [viewEmployeeAcc, setViewEmployeeAcc] = useState(null);
   const [employeesAcc, setEmployeesAcc] = useState([]);
@@ -672,6 +707,25 @@ function UserAccounts() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, roleFilter, statusFilter, employeesAcc.length]);
 
+  const fetchUsersSilent = async () => {
+    try {
+      const res = await get("/users");
+      if (!res?.success) throw new Error(res?.message || "Failed to fetch user accounts");
+      return (res.data || []).map((u) => ({
+        id: u.employee_id || u.id,
+        email: u.email,
+        role: u.role,
+        createdAtRaw: u.created_at || "",
+        createdAt: u.created_at
+          ? new Date(u.created_at).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
+          : "",
+        status: u.status || "ACTIVE",
+      }));
+    } catch {
+      return employeesAcc;
+    }
+  };
+
   const handleGenerateReport = async ({
     startDate,
     endDate,
@@ -680,7 +734,7 @@ function UserAccounts() {
   } = {}) => {
     setReportLoading(true);
     try {
-    const freshData = await fetchUsers();
+    const freshData = await fetchUsersSilent();
     const base =
       startDate || endDate
         ? filterRowsByDateRange(
@@ -943,6 +997,7 @@ function UserAccounts() {
               <input
                 type="search"
                 name="search"
+                autoComplete="off"
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -1082,6 +1137,7 @@ function UserAccounts() {
             employeeAcc={viewEmployeeAcc}
             onSave={updateEmployeeAcc}
             onDelete={deleteEmployeeAcc}
+            viewerRole={user?.role}
           />
           <br />
 

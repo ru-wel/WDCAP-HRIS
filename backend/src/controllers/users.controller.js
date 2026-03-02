@@ -18,7 +18,7 @@ export const updateUser = async (req, res, next) => {
     const { employeeId } = req.params;
     const actorId = req.user.id;
 
-    const updated = await usersService.updateUserByEmployeeId(employeeId, req.body, actorId);
+    const updated = await usersService.updateUserByEmployeeId(employeeId, req.body, actorId, req.user.role);
 
     res.status(200).json({
       success: true,
@@ -35,7 +35,7 @@ export const deleteUser = async (req, res, next) => {
     const { employeeId } = req.params;
     const actorId = req.user.id;
 
-    const deleted = await usersService.deleteUserByEmployeeId(employeeId, actorId);
+    const deleted = await usersService.deleteUserByEmployeeId(employeeId, actorId, req.user.role);
 
     res.status(200).json({
       success: true,

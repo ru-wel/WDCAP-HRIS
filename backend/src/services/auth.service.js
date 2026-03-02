@@ -1,5 +1,5 @@
 import { supabase, createAnonSupabaseClient, supabaseAnonKey } from '../config/supabase.js';
-import { UnauthorizedError, ConflictError, InternalServerError, NotFoundError } from '../utils/errors.js';
+import { UnauthorizedError, ConflictError, InternalServerError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 import { ROLES, AUDIT_ACTIONS, EMPLOYMENT_STATUSES } from '../config/constants.js';
 import logger from '../utils/logger.js';
 import { sendEmail } from './mail.service.js';
@@ -647,18 +647,22 @@ const resolveUserLookup = (identifier) => {
 };
 
 // Admin/HR-assisted password reset (safe alternative to security questions).
-export const adminResetPassword = async ({ employeeId, new_password, actorId }) => {
+export const adminResetPassword = async ({ employeeId, new_password, actorId, requesterRole }) => {
   try {
     const { key, value } = resolveUserLookup(employeeId);
 
     const { data: userRow, error: userError } = await supabase
       .from('users')
-      .select('id, email, employee_id')
+      .select('id, email, employee_id, role')
       .eq(key, value)
       .maybeSingle();
 
     if (userError) throw new InternalServerError(userError.message);
     if (!userRow?.id) throw new NotFoundError('User not found');
+
+    if (requesterRole === ROLES.HR && [ROLES.EXECUTIVE, ROLES.MANAGER].includes(userRow.role)) {
+      throw new ForbiddenError('HR cannot reset the password of Executive or Manager accounts.');
+    }
 
     const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(userRow.id, {
       password: new_password
