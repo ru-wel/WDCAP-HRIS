@@ -584,15 +584,36 @@ export const assignTemplateToPosition = async (positionId, templateId, userId) =
 
   const template = await getTemplateById(templateId);
 
-  const { data, error } = await supabase
+  const { data: existing } = await supabase
     .from('position_template_assignments')
-    .upsert({ position_id: positionId, template_id: templateId }, { onConflict: 'position_id' })
-    .select(`
-      id, position_id, template_id, created_at,
-      positions (id, position_title),
-      evaluation_templates (id, name)
-    `)
-    .single();
+    .select('id')
+    .eq('position_id', positionId)
+    .maybeSingle();
+
+  let data, error;
+
+  if (existing) {
+    ({ data, error } = await supabase
+      .from('position_template_assignments')
+      .update({ template_id: templateId })
+      .eq('position_id', positionId)
+      .select(`
+        id, position_id, template_id, created_at,
+        positions (id, position_title),
+        evaluation_templates (id, name)
+      `)
+      .single());
+  } else {
+    ({ data, error } = await supabase
+      .from('position_template_assignments')
+      .insert({ position_id: positionId, template_id: templateId })
+      .select(`
+        id, position_id, template_id, created_at,
+        positions (id, position_title),
+        evaluation_templates (id, name)
+      `)
+      .single());
+  }
 
   if (error) {
     logger.error('Error assigning template to position:', error);
