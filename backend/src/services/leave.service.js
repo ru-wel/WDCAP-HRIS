@@ -811,6 +811,7 @@ export const createLeaveRequest = async (payload, user) => {
           details: [
             { label: 'Employee', value: body.employee_name },
             { label: 'Type', value: body.leave_type_name },
+            ...(body.leave_purpose ? [{ label: 'Purpose', value: body.leave_purpose }] : []),
             { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
             { label: 'Reason', value: body.reason || '—' }
           ],
@@ -851,6 +852,7 @@ export const createLeaveRequest = async (payload, user) => {
             details: [
               { label: 'Employee', value: body.employee_name },
               { label: 'Type', value: body.leave_type_name },
+              ...(body.leave_purpose ? [{ label: 'Purpose', value: body.leave_purpose }] : []),
               { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
               { label: 'Reason', value: body.reason || '—' }
             ],
@@ -1012,6 +1014,7 @@ export const updateLeaveRequestStatus = async (leaveRequestId, { status, reason 
           details: [
             { label: 'Employee', value: body.employee_name },
             { label: 'Type', value: body.leave_type_name },
+            ...(body.leave_purpose ? [{ label: 'Purpose', value: body.leave_purpose }] : []),
             { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
             ...(remarks ? [{ label: 'Remarks', value: remarks }] : [])
           ],
@@ -1151,6 +1154,7 @@ export const cancelLeaveRequest = async (leaveRequestId, user) => {
             details: [
               { label: 'Employee', value: body.employee_name },
               { label: 'Type', value: body.leave_type_name },
+              ...(body.leave_purpose ? [{ label: 'Purpose', value: body.leave_purpose }] : []),
               { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` },
               { label: 'Reason', value: body.reason || '—' }
             ],
@@ -1195,6 +1199,7 @@ export const cancelLeaveRequest = async (leaveRequestId, user) => {
             details: [
               { label: 'Employee', value: body.employee_name },
               { label: 'Type', value: body.leave_type_name },
+              ...(body.leave_purpose ? [{ label: 'Purpose', value: body.leave_purpose }] : []),
               { label: 'Dates', value: `${formatShortDate(body.start_date)} to ${formatShortDate(body.end_date)}` }
             ],
             status: body.status
