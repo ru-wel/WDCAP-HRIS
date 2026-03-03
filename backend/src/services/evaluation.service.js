@@ -1113,9 +1113,10 @@ export const sendEvaluationReminders = async () => {
     targetDate.setDate(today.getDate() + 7);
     const targetIso = toUtcIsoDate(targetDate);
 
-    logger.info(`Checking for evaluations due on ${targetIso} (7 days from now)`);
+    logger.info(`Checking for evaluations due between today and ${targetIso} (within 7 days)`);
 
-    // find evaluations due in exactly 7 days that haven't been reminded
+    // find evaluations due within the next 7 days that haven't been reminded
+    const todayIso = toUtcIsoDate(today);
     const { data: evaluations, error } = await supabase
       .from('performance_evaluations')
       .select(`
@@ -1133,7 +1134,8 @@ export const sendEvaluationReminders = async () => {
           positions (position_title)
         )
       `)
-      .eq('evaluation_date', targetIso)
+      .gte('evaluation_date', todayIso)
+      .lte('evaluation_date', targetIso)
       .is('reminder_sent_at', null);
 
     if (error) throw new InternalServerError(error.message);
