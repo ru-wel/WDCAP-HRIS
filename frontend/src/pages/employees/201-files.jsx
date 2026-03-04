@@ -366,10 +366,11 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openCon
             files.forEach(file => {
                 const checklistId = data[file.checklistId];
                 const status = data[file.status];
+                const originalStatus = initialData[file.status];
                 const remarks = data[file.comment] || null;
 
-                // only call API if status is approved or rejected (not pending/submitted)
-                if (checklistId && (status === ONBOARDING_STATUSES.APPROVED || status === ONBOARDING_STATUSES.REJECTED)) {
+                // only call API if status is approved or rejected AND it changed in this session
+                if (checklistId && (status === ONBOARDING_STATUSES.APPROVED || status === ONBOARDING_STATUSES.REJECTED) && status !== originalStatus) {
                     const reviewPromise = post(`/onboarding/checklist/${checklistId}/review`, {
                         status,
                         remarks

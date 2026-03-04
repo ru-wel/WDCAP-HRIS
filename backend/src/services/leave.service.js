@@ -187,8 +187,7 @@ const buildLeaveEmailHtml = ({ title, message, details, status, recipientName, d
                 <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
 
                 <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
-                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">WDCAP HR Department</p>
-                <p style="margin:2px 0 0;font-size:12px;color:#374151;">WDCAP HRIS</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">ARISE HR Department</p>
               </td>
             </tr>
           </table>
@@ -222,10 +221,10 @@ const statusSubject = (status, employeeName = null) => {
 
   // include employee name in subject line for HR notifs
   if (employeeName) {
-    return `WDCAP HRIS — Leave Request from ${employeeName} — ${label}`;
+    return `ARISE HRIS — Leave Request from ${employeeName} — ${label}`;
   }
 
-  return `WDCAP HRIS — Leave Request — ${label}`;
+  return `ARISE HRIS — Leave Request — ${label}`;
 };
 
 const getFirstName = (fullName) => {

@@ -165,8 +165,7 @@ const buildPasswordResetEmailHtml = ({ recipientName, resetUrl, logoSrc, date, o
                 <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
 
                 <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
-                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">WDCAP HR Department</p>
-                <p style="margin:2px 0 0;font-size:12px;color:#374151;">WDCAP HRIS</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">ARISE HR Department</p>
 
               </td>
             </tr>
@@ -846,7 +845,7 @@ export const requestPasswordReset = async ({ email, ip = null, userAgent = null,
         console.log('[PASSWORD RESET] Calling sendEmail() to:', normalizedEmail);
         const emailResult = await sendEmail({
           to: [normalizedEmail],
-          subject: 'WDCAP HRIS — Password Reset',
+          subject: 'ARISE HRIS — Password Reset',
           text: `We received a request to reset your HRIS password.\n\nReset link: ${actionLink}\n\nIf you did not request this, ignore this email.`,
           html,
           attachments: logoAttachment ? [logoAttachment] : undefined
@@ -879,7 +878,7 @@ export const requestPasswordReset = async ({ email, ip = null, userAgent = null,
     if (recipients.length) {
       await sendEmail({
         to: recipients,
-        subject: 'WDCAP HRIS — Password Reset Request',
+        subject: 'ARISE HRIS — Password Reset Request',
         text: `A password reset request was submitted for: ${normalizedEmail}\n\nTime: ${nowIso}\nIP: ${ip || 'n/a'}\nUser-Agent: ${userAgent || 'n/a'}\n\nAction: User may receive a reset link email (if configured). Admin/HR can reset via the User Accounts panel.`
       });
     }

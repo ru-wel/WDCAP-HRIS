@@ -134,7 +134,7 @@ const buildAccountCreatedEmailHtml = ({ recipientName, email, initialPassword, l
                 <p style="margin:0 0 10px;font-size:14px;color:#111827;">Dear <b>${escapeHtml(safeRecipient)}</b>,</p>
 
                 <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#111827;">
-                  Your WDCAP HRIS account has been created. Please use the details below to log in.
+                  Your ARISE HRIS account has been created. Please use the details below to log in.
                 </p>
 
                 <div style="font-size:14px;line-height:1.7;color:#111827;margin:0 0 10px;">
@@ -157,8 +157,7 @@ const buildAccountCreatedEmailHtml = ({ recipientName, email, initialPassword, l
                 <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
 
                 <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
-                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">WDCAP HR Department</p>
-                <p style="margin:2px 0 0;font-size:12px;color:#374151;">WDCAP HRIS</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">ARISE HR Department</p>
 
               </td>
             </tr>
@@ -702,11 +701,11 @@ export const createEmployeeWithAccount = async (onboardingData, actorUserId = nu
       const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
       const effectiveDate = new Date().toISOString();
 
-      const subject = 'WDCAP HRIS — Account Created';
+      const subject = 'ARISE HRIS — Account Created';
       const text = [
         `Dear ${recipientName || 'Sir/Ma\u2019am'},`,
         '',
-        'Your WDCAP HRIS account has been created.',
+        'Your ARISE HRIS account has been created.',
         '',
         `Email: ${normalizedEmail}`,
         `Initial Password: ${initialPassword}`,
@@ -1329,6 +1328,81 @@ export const submitDocument = async (checklistId, documentId, userId) => {
   }
 };
 
+const buildDocumentRejectedEmailHtml = ({ recipientName, documentName, remarks, date, logoSrc }) => {
+  const safeRecipient = String(recipientName || 'Sir/Ma\u2019am');
+  const safeDocument = String(documentName || 'document');
+  const safeRemarks = String(remarks || '').trim();
+  const dateLine = formatLetterDate(date);
+
+  const frontendBase = getFrontendBaseUrl();
+  const logoUrl = frontendBase ? `${frontendBase}/arise-logo-login.png` : '';
+  const effectiveLogoSrc = logoSrc || logoUrl;
+
+  const confidentiality =
+    'Confidentiality Notice: This e-mail communication and any attachments may contain confidential and privileged information for the use of the designated recipient(s). If you are not the intended recipient, any review, disclosure, dissemination, distribution, or copying of this message is prohibited. If you have received this communication in error, please notify the sender immediately by replying to this message and delete it from your computer.';
+
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${WEBSITE_COLORS.red};padding:24px 0;margin:0;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+      <tr>
+        <td align="center" style="padding:0 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;background:#ffffff;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:20px 22px 12px;">
+                <div style="text-align:center;margin:2px 0 12px;">
+                  ${effectiveLogoSrc ? `<img src="${escapeHtml(effectiveLogoSrc)}" alt="ARISE" style="max-width:170px;height:auto;display:inline-block;" />` : ''}
+                </div>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                  <tr>
+                    <td align="left" style="padding:0;">
+                      <div style="font-family:'Bebas Neue','Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;letter-spacing:0.04em;font-size:24px;color:${WEBSITE_COLORS.red};margin:0;">
+                        201 FILE UPDATE
+                      </div>
+                    </td>
+                    <td align="right" style="padding:0;">
+                      <div style="display:inline-block;background:${WEBSITE_COLORS.red};color:#ffffff;font-weight:700;font-size:12px;letter-spacing:0.06em;border-radius:999px;padding:6px 10px;">
+                        REJECTED
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                ${dateLine ? `<div style="font-size:12px;color:#6b7280;margin-top:6px;">${escapeHtml(dateLine)}</div>` : ''}
+
+                <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
+
+                <p style="margin:0 0 10px;font-size:14px;color:#111827;">Dear <b>${escapeHtml(safeRecipient)}</b>,</p>
+
+                <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#111827;">
+                  Your submitted document has been reviewed and <b style="color:${WEBSITE_COLORS.red};">rejected</b>. Please review the details below and re-upload the required document at your earliest convenience.
+                </p>
+
+                <div style="font-size:14px;line-height:1.7;color:#111827;margin:0 0 10px;">
+                  <div style="margin:0 0 8px;"><span style="color:#374151;font-weight:700;">Document:</span> ${escapeHtml(safeDocument)}</div>
+                  ${safeRemarks ? `<div style="margin:0 0 8px;"><span style="color:#374151;font-weight:700;">Reason:</span> ${escapeHtml(safeRemarks)}</div>` : ''}
+                </div>
+
+                <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
+
+                <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">ARISE HR Department</p>
+              </td>
+            </tr>
+          </table>
+
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:720px;margin-top:14px;">
+            <tr>
+              <td style="padding:0 6px;font-size:11px;line-height:1.5;color:#fef2f2;opacity:0.9;font-family:'Overused Grotesk',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Noto Sans';">
+                <i>${escapeHtml(confidentiality)}</i>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `.trim();
+};
+
 export const reviewSubmission = async (checklistId, status, remarks, reviewerId) => {
   try {
     const updates = {
@@ -1338,7 +1412,74 @@ export const reviewSubmission = async (checklistId, status, remarks, reviewerId)
       reviewed_by: reviewerId
     };
 
-    return await updateChecklistItem(checklistId, updates, reviewerId);
+    const updatedItem = await updateChecklistItem(checklistId, updates, reviewerId);
+
+    // send rejection email to employee only (fire-and-forget)
+    if (status === ONBOARDING_STATUSES.REJECTED) {
+      (async () => {
+        try {
+          const { data: empData } = await supabase
+            .from('employees')
+            .select('first_name, user_id')
+            .eq('id', updatedItem.employee_id)
+            .maybeSingle();
+
+          if (!empData?.user_id) return;
+
+          const { data: userData } = await supabase
+            .from('users')
+            .select('email')
+            .eq('id', empData.user_id)
+            .maybeSingle();
+
+          const employeeEmail = String(userData?.email || '').trim();
+          if (!employeeEmail) return;
+
+          const recipientName = String(empData.first_name || '').trim() || 'Employee';
+          const documentName = String(updatedItem.onboarding_items?.item_name || 'document').trim();
+
+          const logoAttachment = await getEmailLogoAttachment();
+          const logoSrc = logoAttachment ? `cid:${LOGO_CID}` : undefined;
+
+          const html = buildDocumentRejectedEmailHtml({
+            recipientName,
+            documentName,
+            remarks: remarks || '',
+            date: new Date(),
+            logoSrc
+          });
+
+          const emailResult = await sendEmail({
+            to: [employeeEmail],
+            subject: 'ARISE HRIS \u2014 201 File Update: Document Rejected',
+            text: [
+              `Dear ${recipientName},`,
+              '',
+              `Your submitted document "${documentName}" has been reviewed and rejected.`,
+              remarks ? `Reason: ${remarks}` : '',
+              '',
+              'Please log in to re-upload the required document.'
+            ].filter(Boolean).join('\n'),
+            html,
+            attachments: logoAttachment ? [logoAttachment] : undefined
+          });
+
+          if (emailResult?.skipped) {
+            logger.warn('Document rejection email skipped (SMTP not configured).');
+          } else if (emailResult?.error) {
+            logger.warn(`Document rejection email failed: ${emailResult.error}`);
+          } else {
+            logger.info(`Document rejection email sent to ${employeeEmail} for item: ${documentName}`);
+          }
+        } catch (mailErr) {
+          logger.warn('Document rejection email notification failed:', mailErr);
+        }
+      })().catch((err) => {
+        logger.error('Async email notification error:', err);
+      });
+    }
+
+    return updatedItem;
 
   } catch (error) {
     logger.error(`Error reviewing checklist item ${checklistId}:`, error);
@@ -1432,8 +1573,7 @@ const buildMissingDocsReminderEmailHtml = ({ recipientName, employeeCode, missin
                 <div style="height:1px;background:#f3f4f6;margin:14px 0 14px;"></div>
 
                 <p style="margin:0;font-size:14px;color:#111827;">Sincerely,</p>
-                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">WDCAP HR Department</p>
-                <p style="margin:2px 0 0;font-size:12px;color:#374151;">WDCAP HRIS</p>
+                <p style="margin:8px 0 0;font-size:14px;font-weight:700;color:#111827;">ARISE HR Department</p>
               </td>
             </tr>
           </table>
@@ -1498,7 +1638,7 @@ export const sendMissingDocumentsReminder = async (employeeId, actorUserId = nul
   })();
 
   const recipientName = [employee?.first_name, employee?.last_name].filter(Boolean).join(' ').trim();
-  const subject = `WDCAP HRIS: 201 Files Reminder${employee?.employee_id ? ` (${employee.employee_id})` : ''}`;
+  const subject = `ARISE HRIS: 201 Files Reminder${employee?.employee_id ? ` (${employee.employee_id})` : ''}`;
 
   if (!recipientEmail) {
     return {
