@@ -606,6 +606,10 @@ const onCreatePosition = async () => {
           navigate("/employees/departments");
         } catch (e) {
           console.error("Failed to delete department:", e);
+          const msg = e?.message || "";
+          if (msg.toLowerCase().includes("foreign key") || msg.toLowerCase().includes("positions_department_id_fkey")) {
+            throw new Error("Cannot delete this department because it still has positions assigned to it. Please delete all positions first.");
+          }
           throw e;
         } finally {
           setDeptSaving(false);

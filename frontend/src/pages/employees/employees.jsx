@@ -822,13 +822,13 @@ function ModalEmployees({
                 >
                   Update Record
                 </button>
-                {/*<button
+                <button
                   onClick={handleDelete}
                   disabled={loading}
                   className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out cursor-pointer"
                 >
-                  {loading ? "Archiving ..." : "Archive Employee"}
-                </button>*/}
+                  {loading ? "Archiving..." : "Archive Employee"}
+                </button>
               </div>
             ) : (
               <div className="flex justify-end gap-4">
@@ -897,8 +897,9 @@ function Employees() {
   const [personnelTypeFilter, setPersonnelTypeFilter] = useState("ALL");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
-  const [draftPersonnelType, setDraftPersonnelType] =
-    useState(personnelTypeFilter);
+  const [draftPersonnelType, setDraftPersonnelType] = useState(personnelTypeFilter);
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const [draftIncludeInactive, setDraftIncludeInactive] = useState(false);
 
   const filtersWrapRef = useRef(null);
 
@@ -948,20 +949,19 @@ function Employees() {
   const resetFilters = () => {
     setPersonnelTypeFilter("ALL");
     setSortOrder("name_az");
+    setIncludeInactive(false);
   };
 
   const sortOptions = useMemo(
     () => [
-      { value: "employee_id_asc", label: "Employee ID: Asc" },
-      { value: "employee_id_desc", label: "Employee ID: Desc" },
       { value: "name_az", label: "Name: A–Z" },
       { value: "name_za", label: "Name: Z–A" },
+      { value: "employee_id_asc", label: "Employee ID: Asc" },
+      { value: "employee_id_desc", label: "Employee ID: Desc" },
       { value: "position_az", label: "Position: A–Z" },
       { value: "position_za", label: "Position: Z–A" },
       { value: "hire_date_newest", label: "Hire Date: Newest" },
       { value: "hire_date_oldest", label: "Hire Date: Oldest" },
-      { value: "personnel_type_az", label: "Personnel Type: A–Z" },
-      { value: "personnel_type_za", label: "Personnel Type: Z–A" },
     ],
     []
   );
@@ -999,10 +999,19 @@ function Employees() {
       });
     }
 
+    if (includeInactive) {
+      chips.push({
+        key: "include_inactive",
+        label: "Includes Inactive",
+        onClear: () => setIncludeInactive(false),
+      });
+    }
+
     return chips;
-  }, [personnelTypeFilter, sortOrder, personnelTypeOptions, sortOptions]);
+  }, [personnelTypeFilter, sortOrder, includeInactive, personnelTypeOptions, sortOptions]);
 
   const activeFilterCount = activeFilterChips.length;
+
 
   const formatYearsOfService = useCallback((hireDateValue) => {
     const raw = String(hireDateValue || "").trim();
@@ -1158,13 +1167,14 @@ function Employees() {
     setItemOffset(0);
   }, [searchTerm, sortOrder, personnelTypeFilter, employees.length]);
 
-  const fetchEmployees = useCallback(async () => {
+  const fetchEmployees = useCallback(async ({ includeInactive: inactive = false } = {}) => {
     try {
       setLoading(true);
       setError("");
 
+      const empUrl = inactive ? "/employees?include_inactive=true" : "/employees";
       const [empResponse, deptResponse, posResponse] = await Promise.all([
-        get("/employees"),
+        get(empUrl),
         get("/departments"),
         get("/positions"),
       ]);
@@ -1200,8 +1210,8 @@ function Employees() {
   }, []);
 
   useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
+    fetchEmployees({ includeInactive });
+  }, [fetchEmployees, includeInactive]);
 
   const handleOpen = (employee) => {
     setViewEmployee(employee);
@@ -1458,6 +1468,7 @@ function Employees() {
                     if (next) {
                       setDraftPersonnelType(personnelTypeFilter);
                       setDraftSortOrder(sortOrder);
+                      setDraftIncludeInactive(includeInactive);
                     }
                     return next;
                   });
@@ -1531,6 +1542,18 @@ function Employees() {
                           ))}
                         </div>
                       </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 mb-2">
+                          Employment Status
+                        </p>
+                        <ChipButton
+                          active={draftIncludeInactive}
+                          onClick={() => setDraftIncludeInactive((p) => !p)}
+                        >
+                          Include Inactive
+                        </ChipButton>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between pt-4">
@@ -1539,6 +1562,7 @@ function Employees() {
                         onClick={() => {
                           setDraftPersonnelType("ALL");
                           setDraftSortOrder("name_az");
+                          setDraftIncludeInactive(false);
                         }}
                         className="text-xs font-semibold text-[#990100] hover:underline cursor-pointer"
                       >
@@ -1550,6 +1574,7 @@ function Employees() {
                         onClick={() => {
                           setPersonnelTypeFilter(draftPersonnelType);
                           setSortOrder(draftSortOrder);
+                          setIncludeInactive(draftIncludeInactive);
                           setFiltersOpen(false);
                         }}
                         className="bg-[#990100] text-white text-xs font-semibold px-4 py-2 rounded-lg hover:bg-[#ad3332] transition cursor-pointer"
@@ -1629,8 +1654,15 @@ function Employees() {
                 </tr>
               ) : (
                 currentEmp.map((row) => (
-                  <tr key={row.id} className="tr-style">
-                    <td className="td-style font-medium">{row.employee_id}</td>
+                  <tr key={row.id} className={["tr-style", row.employment_status === "Inactive" ? "opacity-50" : ""].join(" ").trim()}>
+                    <td className="td-style font-medium">
+                      {row.employee_id}
+                      {row.employment_status === "Inactive" && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-200 text-gray-600">
+                          Inactive
+                        </span>
+                      )}
+                    </td>
                     <td className="td-style ">
                       {[row.first_name, row.middle_name, row.last_name].filter(Boolean).join(' ')}
                     </td>

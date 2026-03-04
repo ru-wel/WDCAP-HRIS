@@ -112,15 +112,25 @@ function UserAccountsLogs() {
       );
     }
 
+    const passwordVal = log?.new_values?.password;
+    if (passwordVal === "reset_via_email") {
+      return log?.users?.email || "N/A";
+    }
+
     const { old_values, new_values } = log;
     const values = new_values || old_values;
     if (!values) return "N/A";
     return values.email || "N/A";
   };
 
-  const formatActionLabel = (actionType) => {
+  const formatActionLabel = (actionType, newValues) => {
     const normalized = String(actionType || "").toUpperCase();
     if (normalized === "PASSWORD_RESET_REQUEST") return "Password Reset Request";
+    if (normalized === "UPDATE") {
+      const passwordVal = newValues?.password;
+      if (passwordVal === "reset_via_email") return "Password Reset";
+      if (passwordVal === "reset_by_admin" || passwordVal === "updated") return "Password Reset";
+    }
     return actionType || "";
   };
 
@@ -129,6 +139,11 @@ function UserAccountsLogs() {
     if (normalized === "PASSWORD_RESET_REQUEST") {
       return "Requested password reset (Forgot Password)";
     }
+
+    const passwordVal = newValues?.password;
+    if (passwordVal === "reset_via_email") return "Password reset via email link";
+    if (passwordVal === "reset_by_admin") return "Password reset by admin";
+    if (passwordVal === "updated") return "Password reset by admin";
 
     if (!newValues || ["LOGIN", "LOGOUT", "DELETE"].includes(actionType)) {
       return "—";
@@ -240,7 +255,7 @@ function UserAccountsLogs() {
         },
         { header: "User", value: (log) => log?.users?.email || "N/A" },
         { header: "User Account", value: (log) => getTargetUser(log) },
-        { header: "Action", value: (log) => formatActionLabel(log?.action_type) },
+        { header: "Action", value: (log) => formatActionLabel(log?.action_type, log?.new_values) },
         { header: "Changes", value: (log) => formatChanges(log?.new_values, log?.action_type) },
       ];
 
@@ -466,7 +481,7 @@ function UserAccountsLogs() {
                         </td>
 
                         <td className="td-style-nobtn">
-                          {formatActionLabel(log.action_type)}
+                          {formatActionLabel(log.action_type, log.new_values)}
                         </td>
 
                         <td className="td-style-nobtn">

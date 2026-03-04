@@ -91,7 +91,7 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
         const types = Array.isArray(resp?.data) ? resp.data : [];
         setLeaveTypes(types);
 
-        const firstEnabled = types.find((t) => isTypeEnabled(t));
+        const firstEnabled = types.find((t) => isTypeEnabled(t) && isTypeVisible(t));
         setLeaveTypeId(firstEnabled ? String(firstEnabled.leave_type_id ?? "") : "");
       } catch (e) {
         console.error("Failed to load leave types:", e);
@@ -131,6 +131,14 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
     }
 
     return true;
+  };
+
+  // Special leaves (anything that's not SIL or LWOP) are only shown when the employee has allocated credits for them.
+  const isTypeVisible = (t) => {
+    const name = String(t?.leave_type_name || "").toLowerCase();
+    if (name.includes("without pay") || /service incentive/i.test(name)) return true;
+    const credit = leaveCredits.find((c) => String(c.leave_type_id) === String(t.leave_type_id));
+    return Number(credit?.current_balance ?? 0) > 0;
   };
 
   const isSILSelected = useMemo(() => {
@@ -276,7 +284,7 @@ function RequestLeave({ onClose, onSuccess, leaveCredits = [] }) {
                       {loadingTypes ? (
                         <option value="">Loading…</option>
                       ) : leaveTypes.length ? (
-                        leaveTypes.map((t) => (
+                        leaveTypes.filter(isTypeVisible).map((t) => (
                           <option key={String(t.leave_type_id)} value={String(t.leave_type_id)} disabled={!isTypeEnabled(t)}>
                             {t.leave_type_name}
                           </option>
