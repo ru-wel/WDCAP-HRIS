@@ -622,12 +622,12 @@ function ModalFiles ({isOpen, onClose, employeeFiles, onSave, onRefresh, openCon
                                             >
                                                 Update Record
                                             </button>
-                                            <button
+                                            {/* <button
                                                 disabled={loading}
                                                 className='bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer'
                                             >
                                                 Delete Record
-                                            </button>
+                                            </button> */}
 
                                         </div>
                                         

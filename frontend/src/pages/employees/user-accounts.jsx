@@ -233,7 +233,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete, viewerR
                 {resetMode ? "Cancel Reset" : "Reset Password"}
               </button>
 
-              <button
+              {/* <button
                 onClick={async () => {
                   openConfirm({
                     title: "Delete account",
@@ -264,7 +264,7 @@ function ModalAccounts({ isOpen, onClose, employeeAcc, onSave, onDelete, viewerR
                 className="bg-[#C60000] lg:px-5 py-[7px] px-4 lg:text-[15px] text-xs rounded-md text-white hover:bg-[#d13232] hover:scale-105 transition duration-300 ease-in-out disabled:opacity-50 cursor-pointer"
               >
                 {loading ? "Deleting..." : "Delete Account"}
-              </button>
+              </button> */}
             </div>
           ) : (
             <div className="flex justify-end gap-4">

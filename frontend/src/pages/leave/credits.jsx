@@ -430,6 +430,7 @@ export default function LeaveCredits() {
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
   const [detailsByEmployeeId, setDetailsByEmployeeId] = useState({});
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
@@ -549,9 +550,9 @@ export default function LeaveCredits() {
   };
 
   useEffect(() => {
-    fetchCredits();
+    fetchCredits(selectedYear);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEmployee]);
+  }, [isEmployee, selectedYear]);
 
   const handleGenerateYearlyCredits = () => {
     // const currentYear = new Date().getFullYear();  IBALIK MO TO WEL
@@ -569,7 +570,7 @@ export default function LeaveCredits() {
             year: testYear,   // change testYear to currentYear when done testing
           });
 
-          await fetchCredits();
+          setSelectedYear(testYear);
 
           openConfirm({
             title: "Success",
@@ -739,6 +740,7 @@ export default function LeaveCredits() {
     }
 
     setReportOpen(false);
+    await fetchCredits(selectedYear);
     } catch (err) {
       console.error('Report generation failed:', err);
     } finally {
@@ -794,7 +796,7 @@ export default function LeaveCredits() {
               current_balance: Number(it.current_balance),
             });
           }
-          await fetchCredits();
+          await fetchCredits(selectedYear);
           done?.();
           setDetailsOpen(false);
           openConfirm({
@@ -945,12 +947,31 @@ export default function LeaveCredits() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <div className="flex justify-end gap-4 mt-4">
-          {canEdit && (
-              <button type="button" onClick={handleGenerateYearlyCredits} className="green-button" title="Generate all leave types for all Regular employees for the new year">
-                Generate Yearly Credits
+        <div className="flex justify-between items-center mt-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-[#483D3D]">Year:</span>
+            {[new Date().getFullYear(), new Date().getFullYear() + 1].map((yr) => (
+              <button
+                key={yr}
+                type="button"
+                onClick={() => setSelectedYear(yr)}
+                className={[
+                  "px-3 py-1.5 rounded-full text-xs font-semibold border transition",
+                  selectedYear === yr
+                    ? "bg-[#990100] text-white border-[#990100]"
+                    : "bg-white text-[#990100] border-[#990100] hover:bg-[#990100]/10",
+                ].join(" ")}
+              >
+                {yr}
               </button>
-            )}
+            ))}
+          </div>
+
+          {canEdit && (
+            <button type="button" onClick={handleGenerateYearlyCredits} className="green-button" title="Generate all leave types for all Regular employees for the new year">
+              Generate Yearly Credits
+            </button>
+          )}
         </div>
 
         
