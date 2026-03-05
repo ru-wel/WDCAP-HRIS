@@ -150,8 +150,8 @@ export const getEvaluationEvents = async (startDate, endDate, userId, userRole) 
       .lte('evaluation_date', endDate)
       .order('evaluation_date', { ascending: true });
 
-    // employee and manager see only their own evaluations
-    if (userRole === ROLES.EMPLOYEE || userRole === ROLES.MANAGER) {
+    // only employees see their own evaluations; managers and above see all
+    if (userRole === ROLES.EMPLOYEE) {
       const { data: userData } = await supabase
         .from('users')
         .select('employee_id')
