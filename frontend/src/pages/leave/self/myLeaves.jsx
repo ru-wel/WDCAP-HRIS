@@ -801,7 +801,8 @@ function MyLeaves() {
       onConfirm: null,
     });
     const [confirmBusy, setConfirmBusy] = useState(false);
-
+    const [showAllDropdownOpen, setShowAllDropdownOpen] = useState(false);
+    const showAllDropdownRef = useRef(null);
     const openConfirm = ({ title = "", message = "", onConfirm }) => {
       setConfirmState({ open: true, title, message, onConfirm });
     };
@@ -892,6 +893,17 @@ function MyLeaves() {
         return;
       }
 
+    useEffect(() => {
+      const handleClickOutside = (e) => {
+        if (!showAllDropdownRef.current) return;
+        if (!showAllDropdownRef.current.contains(e.target)) {
+          setShowAllDropdownOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
       const computeDays = (r) => {
         try {
           if (!r?.date) return null;
@@ -1001,30 +1013,21 @@ function MyLeaves() {
 
                 <hr className="text-[#990100] my-6 " />
 
-                <div className="flex justify-end mb-6">
-                    <button
-                        className="generate-report-button font-medium"
-                        onClick={() => setShowRequestLeave(true)}
-                    >
-                        Request Leave
-                    </button>
-                </div>
-
                 {/* ALL LEAVE FOR AN EMPLOYEE */}
 
-                <div className="border border-gray-300 p-5 rounded-lg shadow-md overflow-y-auto">
+                  <div className="border border-gray-300 pt-4 px-4 pb-2 rounded-lg shadow-md overflow-y-auto">
                     <div className="flex items-center justify-between">
                         <div className="">
                             <h2 className="text-[#990100] md:text-2xl text-xl">All Leaves</h2>
                             <p className="text-xs text-gray-400">Click the boxes to know the requirements or how each leave works.</p>
                         </div>
                         
-                        <button 
-                            className="text-[#990100] hover:underline"
-                            onClick={() => setShowLeaves(!showLeaves)}
-                        >
-                            {showLeaves ? 'Hide' : 'Show All'}
-                        </button>
+                      <button
+                        className="generate-report-button font-medium"
+                        onClick={() => setShowRequestLeave(true)}
+                      >
+                        Request Leave
+                      </button>
                     </div>
 
                     <div className="px-4 pt-4 ">
@@ -1058,7 +1061,7 @@ function MyLeaves() {
 
                     </div>
 
-                    <div  className={`overflow-hidden transition-all duration-300 ${showLeaves ? "max-h-auto pt-4 px-4 pb-4 " : "max-h-0"}`}>
+                      <div className={`overflow-hidden transition-all duration-300 ${showLeaves ? "max-h-auto pt-3 px-4" : "max-h-0"}`}>
                         <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-1 gap-4">
                             <StatCard
                                 title="VAWC Leave"
@@ -1079,7 +1082,19 @@ function MyLeaves() {
                                 onClick={() => setShowWomenLeave(true)}
                             />
                         </div>
-
+                    </div>
+                    <div className="flex justify-center mt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowLeaves((v) => !v)}
+                        className="text-[#990100] text-sm hover:opacity-70 transition"
+                      >
+                        <span
+                          className={`inline-block transition-transform duration-300 mt-3 ${showLeaves ? "rotate-180" : ""}`}
+                        >
+                          ⮟
+                        </span>
+                      </button>
                     </div>
                 </div>
 

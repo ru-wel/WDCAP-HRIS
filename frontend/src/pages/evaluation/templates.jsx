@@ -1090,7 +1090,7 @@ export default function EvaluationTemplates() {
           <button type="button" onClick={openCreate} className="bg-[#990100] text-white lg:h-10 md:h-9 h-8 px-4 rounded-lg text-sm hover:bg-[#ad3332] transition cursor-pointer">
             Create Template
           </button>
-
+          
           <div className="relative text-gray-600 border border-[#990100] rounded-lg">
             <input type="search" placeholder="Search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="bg-white lg:h-10 h-9 px-2 pr-10 rounded-lg text-sm focus:outline-none"/>
             <img src="/icons/red-search.png" className="absolute right-2 top-2 w-5 h-5" alt="search" />
@@ -1128,7 +1128,7 @@ export default function EvaluationTemplates() {
                       <td className="td-style font-medium">{t.name || '—'}</td>
                       <td className="td-style text-gray-600 max-w-[200px] truncate">{t.description || '—'}</td>
                       <td className="td-style">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${t.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'}`}>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full uppercase text-xs font-semibold ${t.is_active ? 'text-[#198C19] bg-[#198C19]/25' : 'bg-gray-200 text-gray-700'}`}>
                           {t.is_active ? 'Active' : 'Inactive'}
                         </span>
                       </td>

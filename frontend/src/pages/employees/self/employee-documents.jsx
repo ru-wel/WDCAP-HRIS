@@ -170,27 +170,24 @@ function MyDocuments() {
 	const getStatusBadge = (status) => {
 		const statusConfig = {
 			[ONBOARDING_STATUSES.PENDING]: {
-				bg: 'bg-gray-100',
+				bg: 'bg-gray-700/20',
 				text: 'text-gray-700',
-				border: 'border border-gray-300',
 				label: 'Pending Upload'
 			},
 			[ONBOARDING_STATUSES.SUBMITTED]: {
-				bg: 'bg-yellow-100',
-				text: 'text-yellow-700',
-				border: 'border border-yellow-300',
+				bg: 'bg-[#FFA500]/25',
+				text: 'text-[#FFA500]',
 				label: 'Under Review'
 			},
+			 
 			[ONBOARDING_STATUSES.APPROVED]: {
-				bg: 'bg-green-100',
-				text: 'text-green-700',
-				border: 'border border-green-300',
+				bg: 'bg-[#198C19]/25',
+				text: 'text-[#198C19]',
 				label: 'Approved'
 			},
 			[ONBOARDING_STATUSES.REJECTED]: {
-				bg: 'bg-red-100',
-				text: 'text-red-700',
-				border: 'border border-red-300',
+				bg: 'bg-[#C60000]/25',
+				text: 'text-[#C60000]',
 				label: 'Rejected'
 			}
 		};
@@ -297,11 +294,11 @@ function MyDocuments() {
 											</div>
 										</td>
 										<td className="td-style hidden md:table-cell">
-											<span className={`${item.is_required ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+											<span className={` ${item.is_required ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
 												{item.is_required ? 'Required' : 'Optional'}
 											</span>
 										</td>
-										<td className="td-style">
+										<td className="td-style uppercase">
 											{getStatusBadge(item.status)}
 										</td>
 										<td className="td-style">
