@@ -1087,12 +1087,12 @@ function MyLeaves() {
                       <button
                         type="button"
                         onClick={() => setShowLeaves((v) => !v)}
-                        className="text-[#990100] text-sm hover:opacity-70 transition"
+                        className="text-[#990100] text-3xl hover:opacity-70 transition"
                       >
                         <span
                           className={`inline-block transition-transform duration-300 mt-3 ${showLeaves ? "rotate-180" : ""}`}
                         >
-                          ⮟
+                          ▾
                         </span>
                       </button>
                     </div>
