@@ -79,7 +79,7 @@ function ViewProjectCard({ project, index, onClick, disabled }) {
 
         <div className="mt-4">
           <span
-            className={`inline-block px-6 py-2 rounded-xl text-sm font-semibold ${statusStyle(
+            className={`inline-block px-6 py-2 rounded-xl text-sm uppercase font-semibold ${statusStyle(
               project.status
             )}`}
           >

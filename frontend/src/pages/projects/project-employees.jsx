@@ -49,12 +49,12 @@ function EmployeeSearchDropdown({ employees, assignedIds, value, onChange, place
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-72 overflow-hidden">
+        <div className="relative z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
           <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
             <input type="text" placeholder="Search by name or ID..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-[#990100]" autoFocus onClick={(e) => e.stopPropagation()} />
           </div>
 
-          <div className="overflow-y-auto max-h-56" data-lenis-prevent>
+          <div className="overflow-y-auto max-h-72" data-lenis-prevent>
             {filteredEmployees.length === 0 ? (
               <div className="px-3 py-4 text-gray-500 text-center text-sm">No employees found</div>
             ) : (
@@ -174,7 +174,7 @@ function AddEmployeeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EDEDED]/50 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-[560px] p-6 max-h-[80vh] overflow-y-auto">
         <div className="rounded-lg bg-[#990100] flex items-center justify-between lg:pb-[10px] lg:pt-[8px] py-[6px] md:px-4 px-3">
           <h1 className="text-white text-lg font-medium lg:text-lg text-sm">Add New Employee</h1>
           <button
@@ -185,19 +185,19 @@ function AddEmployeeModal({
           </button>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 max-w-md mx-auto">
+        <div className="mt-8 flex flex-col items-center justify-center gap-4">
           {loading ? (
             <p className="text-gray-600 text-center">Loading employees...</p>
           ) : (
             <>
-              <div>
+              <div className="w-full max-w-sm">
                 <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
-                  Employee
+                  Employee:
                 </label>
                 <EmployeeSearchDropdown employees={availableEmployees} assignedIds={assignedIds} value={selectedEmployeeId} onChange={setSelectedEmployeeId} />
               </div>
 
-              <div>
+              <div className="w-full max-w-sm">
                 <label className="block text-sm font-medium text-[#483D3D] uppercase mb-1">
                   Assignment Date
                 </label>
