@@ -90,6 +90,7 @@ const MODULE_CONFIGS = {
       { value: "active", label: "Active" },
       { value: "completed", label: "Completed" },
       { value: "on_hold", label: "On Hold" },
+      { value: "cancelled", label: "Cancelled" },
     ],
   },
   "leave-history": {
@@ -572,6 +573,7 @@ async function exportProjectsReport({ startDate, endDate, fileType, category }) 
       if (cat === "active") return s === "active";
       if (cat === "completed") return s === "completed";
       if (cat === "on_hold") return s === "on hold" || s === "on_hold";
+      if (cat === "cancelled") return s === "cancelled";
       return true;
     });
   }

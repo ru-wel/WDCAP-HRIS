@@ -191,7 +191,11 @@ function Projects() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const defaultSort = "project_name_az";
+  const defaultStatusFilter = "all";
   const [draftSortOrder, setDraftSortOrder] = useState(sortOrder);
+  const [statusFilter, setStatusFilter] = useState(defaultStatusFilter);
+  const [draftStatusFilter, setDraftStatusFilter] = useState(defaultStatusFilter);
+  const [archiveView, setArchiveView] = useState("active");
 
   const sortOptions = useMemo(
     () => [
@@ -199,8 +203,6 @@ function Projects() {
       { value: "project_name_za", label: "Project Name: Z - A" },
       { value: "site_location_az", label: "Site Location: A - Z" },
       { value: "site_location_za", label: "Site Location: Z - A" },
-      { value: "status_az", label: "Status: A - Z" },
-      { value: "status_za", label: "Status: Z - A" },
       { value: "start_date_newest", label: "Start Date: Newest" },
       { value: "start_date_oldest", label: "Start Date: Oldest" },
       { value: "end_date_newest", label: "End Date: Newest" },
@@ -209,16 +211,34 @@ function Projects() {
     []
   );
 
+  const statusFilterOptions = useMemo(
+    () =>
+      archiveView === "active"
+        ? [
+            { value: "all", label: "All" },
+            { value: PROJECT_STATUSES.ACTIVE, label: "Active" },
+            { value: PROJECT_STATUSES.ON_HOLD, label: "On Hold" },
+          ]
+        : [
+            { value: "all", label: "All" },
+            { value: PROJECT_STATUSES.COMPLETED, label: "Completed" },
+            { value: PROJECT_STATUSES.CANCELLED, label: "Cancelled" },
+          ],
+    [archiveView]
+  );
+
   const activeFiltersCount = useMemo(() => {
     let n = 0;
     if (sortOrder !== defaultSort) n += 1;
+    if (statusFilter !== defaultStatusFilter) n += 1;
     return n;
-  }, [sortOrder]);
+  }, [sortOrder, statusFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
     setDraftSortOrder(sortOrder);
-  }, [filtersOpen, sortOrder]);
+    setDraftStatusFilter(statusFilter);
+  }, [filtersOpen, sortOrder, statusFilter]);
 
   useEffect(() => {
     if (!filtersOpen) return;
@@ -231,10 +251,12 @@ function Projects() {
 
   const clearFilters = () => {
     setDraftSortOrder(defaultSort);
+    setDraftStatusFilter(defaultStatusFilter);
   };
 
   const applyDraftFilters = () => {
     setSortOrder(draftSortOrder);
+    setStatusFilter(draftStatusFilter);
     setFiltersOpen(false);
   };
 
@@ -349,15 +371,26 @@ function Projects() {
   const [itemOffset, setItemOffset] = useState(0);
 
   const filteredProjects = useMemo(() => {
+    const archiveStatuses =
+      archiveView === "active"
+        ? [PROJECT_STATUSES.ACTIVE, PROJECT_STATUSES.ON_HOLD]
+        : [PROJECT_STATUSES.COMPLETED, PROJECT_STATUSES.CANCELLED];
+
     const q = searchTerm.trim().toLowerCase();
-    const filtered = !q
-      ? projects
-      : projects.filter((p) => {
-          const haystack = `${p.project_name || ""} ${p.site_location || ""} ${
-            p.status || ""
-          }`.toLowerCase();
-          return haystack.includes(q);
-        });
+    let filtered = projects.filter((p) => archiveStatuses.includes(p.status));
+
+    if (q) {
+      filtered = filtered.filter((p) => {
+        const haystack = `${p.project_name || ""} ${p.site_location || ""} ${
+          p.status || ""
+        }`.toLowerCase();
+        return haystack.includes(q);
+      });
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((p) => p.status === statusFilter);
+    }
 
     return [...filtered].sort((a, b) => {
       switch (sortOrder) {
@@ -367,10 +400,6 @@ function Projects() {
           return compareText(a.site_location, b.site_location);
         case "site_location_za":
           return compareText(b.site_location, a.site_location);
-        case "status_az":
-          return compareText(a.status, b.status);
-        case "status_za":
-          return compareText(b.status, a.status);
         case "start_date_newest":
           return compareDate(b.start_date, a.start_date);
         case "start_date_oldest":
@@ -384,7 +413,7 @@ function Projects() {
           return compareText(a.project_name, b.project_name);
       }
     });
-  }, [projects, searchTerm, sortOrder]);
+  }, [projects, searchTerm, sortOrder, statusFilter, archiveView]);
 
   let cardDescriptors;
 
@@ -413,7 +442,7 @@ function Projects() {
 
   useEffect(() => {
     setItemOffset(0);
-  }, [mode, projects.length, searchTerm, sortOrder]);
+  }, [mode, projects.length, searchTerm, sortOrder, statusFilter, archiveView]);
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -553,6 +582,7 @@ function Projects() {
       if (cat === "active") return s === PROJECT_STATUSES.ACTIVE;
       if (cat === "completed") return s === PROJECT_STATUSES.COMPLETED;
       if (cat === "on_hold") return s === PROJECT_STATUSES.ON_HOLD;
+      if (cat === "cancelled") return s === PROJECT_STATUSES.CANCELLED;
       return true;
     });
 
@@ -692,7 +722,7 @@ function Projects() {
           <h1 className="lg:text-3xl text-2xl text-[#990100] font-bold md:mb-0 mb-5">Projects</h1>
 
           <div className="flex items=center justify-end md:gap-4 gap-3">
-            {mode === "view" && (
+            {mode === "view" && archiveView === "active" && (
               <button className="generate-report-button" onClick={() => setReportOpen(true)}>
                 Generate Report
               </button>
@@ -738,6 +768,18 @@ function Projects() {
                     </div>
 
                     <div className="px-4 py-4 max-h-[65vh] overflow-y-auto">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">Status</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {statusFilterOptions.map((opt) => (
+                          <ChipButton
+                            key={opt.value}
+                            active={draftStatusFilter === opt.value}
+                            onClick={() => setDraftStatusFilter(opt.value)}
+                          >
+                            {opt.label}
+                          </ChipButton>
+                        ))}
+                      </div>
                       <p className="text-sm font-semibold text-gray-700 mb-2">Sort</p>
                       <div className="flex flex-wrap gap-2">
                         {sortOptions.map((opt) => (
@@ -798,8 +840,35 @@ function Projects() {
 
         <hr className="text-[#990100] mt-6" />
 
+        <div className="flex mt-6 border-b border-gray-200">
+          <button
+            type="button"
+            disabled={mode === "add"}
+            onClick={() => { setArchiveView("active"); setStatusFilter(defaultStatusFilter); }}
+            className={`px-6 py-2 text-sm font-semibold border-b-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              archiveView === "active"
+                ? "border-[#990100] text-[#990100]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Active Projects
+          </button>
+          <button
+            type="button"
+            disabled={mode === "add"}
+            onClick={() => { setArchiveView("archive"); setStatusFilter(defaultStatusFilter); }}
+            className={`px-6 py-2 text-sm font-semibold border-b-2 transition disabled:opacity-40 disabled:cursor-not-allowed ${
+              archiveView === "archive"
+                ? "border-[#990100] text-[#990100]"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Archives
+          </button>
+        </div>
+
         <div className="flex justify-end mt-6 gap-3 flex-wrap">
-          {mode === "view" && (
+          {mode === "view" && archiveView === "active" && (
             <>
               <ReportModal
                 open={reportOpen}
@@ -815,6 +884,7 @@ function Projects() {
                   { value: "active", label: "Active" },
                   { value: "completed", label: "Completed" },
                   { value: "on_hold", label: "On Hold" },
+                  { value: "cancelled", label: "Cancelled" },
                 ]}
                 defaultCategory="all"
               />
@@ -834,13 +904,19 @@ function Projects() {
 
         {cardDescriptors.length === 0 && mode === "view" ? (
           <div className="mt-8 text-center py-20">
-            <p className="text-gray-500 mb-4">No projects found</p>
-            <button
-              className="bg-[#F59E0B] text-white px-6 py-3 rounded-md hover:scale-105 transition duration-300 ease-in-out"
-              onClick={handleAddClick}
-            >
-              Create Your First Project
-            </button>
+            <p className="text-gray-500 mb-4">
+              {archiveView === "archive"
+                ? "No archived projects found"
+                : "No projects found"}
+            </p>
+            {archiveView === "active" && (
+              <button
+                className="bg-[#F59E0B] text-white px-6 py-3 rounded-md hover:scale-105 transition duration-300 ease-in-out"
+                onClick={handleAddClick}
+              >
+                Create Your First Project
+              </button>
+            )}
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
