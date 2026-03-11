@@ -42,9 +42,9 @@ export const AuthProvider = ({ children }) => {
     initialiazeAuth();
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, captchaToken) => {
     try {
-      const response = await post('/auth/login', { email, password }, false);
+      const response = await post('/auth/login', { email, password, captchaToken }, false);
 
       if (response.success) {
         const { user: userData, session } = response.data;

@@ -6,7 +6,8 @@ export const loginSchema = Joi.object({
   email: Joi.string().email().required().messages({'string.email': 'Please provide a valid email address', 'any.required': 'Email is required'}),
   // Do not enforce password policy on login; Auth will validate credentials.
   // This avoids blocking older accounts and keeps error messaging consistent.
-  password: Joi.string().required().messages({ 'any.required': 'Password is required' })
+  password: Joi.string().required().messages({ 'any.required': 'Password is required' }),
+  captchaToken: Joi.string().required().messages({'any.required': 'Captcha token is required'})
 });
 
 export const registerSchema = Joi.object({

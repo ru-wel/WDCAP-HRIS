@@ -1,5 +1,6 @@
 import * as authService from '../services/auth.service.js';
 import logger from '../utils/logger.js';
+import axios from 'axios';
 
 // register controller
 export const register = async (req, res, next) => {
@@ -19,8 +20,60 @@ export const register = async (req, res, next) => {
 // login controller
 export const login = async(req, res, next) => {
   try {
-    // call auth service to login user
-    const result = await authService.login(req.body);
+    const { captchaToken, ...loginData } = req.body || {};
+
+    if (!captchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Captcha token is required'
+      });
+    }
+
+    const secretKey = process.env.RECAPTCHA_SECRET;
+
+    if (!secretKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'reCAPTCHA secret key is not configured'
+      });
+    }
+
+    const verifyResponse = await axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      null,
+      {
+        params: {
+          secret: secretKey,
+          response: captchaToken
+        }
+      }
+    );
+
+    const { success, score, action } = verifyResponse.data || {};
+
+    if (!success) {
+      return res.status(403).json({
+        success: false,
+        message: 'Captcha verification failed'
+      });
+    }
+
+    if (action !== 'login') {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid captcha action'
+      });
+    }
+
+    if (typeof score === 'number' && score < 0.5) {
+      return res.status(403).json({
+        success: false,
+        message: 'Suspicious login detected. Please try again later.'
+      });
+    }
+
+    const result = await authService.login(loginData);
+
     res.status(200).json({
       success: true,
       message: 'Login successful',

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Preloader from '../../components/preloader.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
@@ -12,41 +13,43 @@ function Login(){
     // state for form inputs
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-  const [rememberAccount, setRememberAccount] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
-  const [forgotOpen, setForgotOpen] = useState(false);
-  const [forgotStatus, setForgotStatus] = useState('idle');
-  const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
+    const [rememberAccount, setRememberAccount] = useState(true);
+    const [showPassword, setShowPassword] = useState(false);
+    const [forgotOpen, setForgotOpen] = useState(false);
+    const [forgotStatus, setForgotStatus] = useState('idle');
+    const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
 
-  useEffect(() => {
-    try {
-      const rememberedEmail = window.localStorage.getItem(REMEMBERED_EMAIL_KEY);
-      if (rememberedEmail) {
-        setEmail(rememberedEmail);
-        setRememberAccount(true);
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
+    const { executeRecaptcha } = useGoogleReCaptcha();
 
-  const passwordInputType = useMemo(() => (showPassword ? 'text' : 'password'), [showPassword]);
-
-  useEffect(() => {
-    const compute = () => {
+    useEffect(() => {
       try {
-        const viewport = window.innerWidth || 320;
-        const w = Math.min(384, Math.max(240, viewport - 48));
-        setGoogleButtonWidth(w);
+        const rememberedEmail = window.localStorage.getItem(REMEMBERED_EMAIL_KEY);
+        if (rememberedEmail) {
+          setEmail(rememberedEmail);
+          setRememberAccount(true);
+        }
       } catch {
-        setGoogleButtonWidth(320);
+        // ignore storage errors
       }
-    };
+    }, []);
 
-    compute();
-    window.addEventListener('resize', compute);
-    return () => window.removeEventListener('resize', compute);
-  }, []);
+    const passwordInputType = useMemo(() => (showPassword ? 'text' : 'password'), [showPassword]);
+
+    useEffect(() => {
+      const compute = () => {
+        try {
+          const viewport = window.innerWidth || 320;
+          const w = Math.min(384, Math.max(240, viewport - 48));
+          setGoogleButtonWidth(w);
+        } catch {
+          setGoogleButtonWidth(320);
+        }
+      };
+
+      compute();
+      window.addEventListener('resize', compute);
+      return () => window.removeEventListener('resize', compute);
+    }, []);
 
     // state for loading and errors
     const [loading, setLoading] = useState(false);
@@ -98,6 +101,11 @@ function Login(){
         return;
       }
 
+      if (!executeRecaptcha) {
+        setError('reCAPTCHA is still loading. Please try again.');
+        return;
+      }
+
       try {
         setLoading(true);
 
@@ -111,8 +119,10 @@ function Login(){
           // ignore storage errors
         }
 
+        const captchaToken = await executeRecaptcha('login');
+
         // get login function from AuthContext
-        await login(email, password);
+        await login(email, password, captchaToken);
         navigate('/dashboard');
 
       } catch (err) {
@@ -149,8 +159,6 @@ function Login(){
       setError('Google login failed. Please try again.');
     };
 
-    
-    
     return(
       <div>
         {loading ? <Preloader fullScreen text="LOGGING IN…" /> : null}
@@ -173,17 +181,26 @@ function Login(){
 
                         {/* Error message display */}
                         { error && (
-													<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-														{error}
-													</div>
+                          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                            {error}
+                          </div>
                         )}
 
-												{/* Login Form */}
-												<form onSubmit={handleSubmit}>
-													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">EMAIL</p>
-                                  <input type="email" name="email" placeholder='Enter Email' className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} required />
+                        {/* Login Form */}
+                        <form onSubmit={handleSubmit}>
+                          <p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pb-2">EMAIL</p>
+                          <input
+                            type="email"
+                            name="email"
+                            placeholder='Enter Email'
+                            className="bg-[#ffffff] rounded-lg border border-black focus:border-gray-300 focus:bg-white focus:ring-2 focus:ring-gray-200 md:h-11 h-10 w-full text-base outline-none text-gray-900 py-1 px-3 resize-none leading-6 shadow-lg"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            disabled={loading}
+                            required
+                          />
 
-													<p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pt-5 pb-2">PASSWORD</p>
+                          <p className="lg:text-lg md:text-md text-sm font-bold text-[#483D3D] pt-5 pb-2">PASSWORD</p>
                           <div className="relative">
                             <input
                               type={passwordInputType}
@@ -248,15 +265,17 @@ function Login(){
                             </label>
                           </div>
 
-													<br />
+                          <br />
 
-    											<div className="pt-8 flex gap-6 pb-3">
-                            <button type="submit" 
-                    className="text-white lg:text-lg md:text-md text-sm bg-[#990100] border-0 py-[6px] px-6 w-full focus:outline-none hover:bg-[#ad3332] rounded text-lg contact-btn transform hover:scale-105 transition duration-300 ease-in-out hover:shadow-lg text-center rounded-3xl font-bold cursor-pointer">
-                                {loading ? 'LOGGING IN ...' : 'LOGIN'}
+                          <div className="pt-8 flex gap-6 pb-3">
+                            <button
+                              type="submit"
+                              className="text-white lg:text-lg md:text-md text-sm bg-[#990100] border-0 py-[6px] px-6 w-full focus:outline-none hover:bg-[#ad3332] rounded text-lg contact-btn transform hover:scale-105 transition duration-300 ease-in-out hover:shadow-lg text-center rounded-3xl font-bold cursor-pointer"
+                            >
+                              {loading ? 'LOGGING IN ...' : 'LOGIN'}
                             </button>
-                       	 	</div>
-												</form>
+                          </div>
+                        </form>
 
                         {/* <div className="pt-6 pb-3">
                           <div className="flex items-center gap-3 pb-4">
@@ -284,40 +303,36 @@ function Login(){
                           onClick={() => setForgotOpen(true)}
                         >
                           Forgot Password?
-                        </button>	                 
-                            <ConfirmModal
-                              open={forgotOpen}
-                              title="Forgot Password"
-                              message={
-                                forgotStatus === 'sent'
-                                  ? 'If the account exists, password reset instructions have been sent. Please check your email inbox (and spam).'
-                                  : 'We will send password reset instructions to your email. Continue?'
-                              }
-                              confirmText={forgotStatus === 'sent' ? 'OK' : 'Send Request'}
-                              cancelText={forgotStatus === 'sent' ? null : 'Cancel'}
-                              confirmDisabled={forgotStatus === 'sending'}
-                              onConfirm={() => {
-                                if (forgotStatus === 'sent') {
-                                  setForgotOpen(false);
-                                  setForgotStatus('idle');
-                                  return;
-                                }
-                                handleForgotPasswordRequest();
-                              }}
-                              onCancel={() => {
-                                setForgotOpen(false);
-                                setForgotStatus('idle');
-                              }}
-                            />
+                        </button>
+                        <ConfirmModal
+                          open={forgotOpen}
+                          title="Forgot Password"
+                          message={
+                            forgotStatus === 'sent'
+                              ? 'If the account exists, password reset instructions have been sent. Please check your email inbox (and spam).'
+                              : 'We will send password reset instructions to your email. Continue?'
+                          }
+                          confirmText={forgotStatus === 'sent' ? 'OK' : 'Send Request'}
+                          cancelText={forgotStatus === 'sent' ? null : 'Cancel'}
+                          confirmDisabled={forgotStatus === 'sending'}
+                          onConfirm={() => {
+                            if (forgotStatus === 'sent') {
+                              setForgotOpen(false);
+                              setForgotStatus('idle');
+                              return;
+                            }
+                            handleForgotPasswordRequest();
+                          }}
+                          onCancel={() => {
+                            setForgotOpen(false);
+                            setForgotStatus('idle');
+                          }}
+                        />
                     </div>
                 </div>
-
-                
             </div>
-            
         </div>
     );
 }
- 
-export default Login;
 
+export default Login;
