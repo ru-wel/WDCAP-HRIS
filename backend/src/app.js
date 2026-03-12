@@ -21,6 +21,9 @@ if (Object.prototype.hasOwnProperty.call(process.env, '')) {
 
 const app = express();
 
+// reflects the real client IP, not the proxy IP cloud run
+app.set('trust proxy', 1);
+
 app.use(helmet()); // set security headers
 app.use(cors({
   origin: [

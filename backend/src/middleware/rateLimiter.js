@@ -17,14 +17,14 @@ export const generalLimiter = rateLimit({
 // stricter rate limits for login attempts
 
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,      // 15 minutes
-  max: 5,                        // 5 login attempts per 15 minutes
+  windowMs: 10 * 60 * 1000,      // 10 minutes
+  max: 10,                       // 10 failed login attempts per 10 minutes
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false, // Count all attempts
+  skipSuccessfulRequests: true,  // Only count failed attempts
   message: {
     success: false,
-    message: 'Too many login attempts, please try again after 15 minutes.',
+    message: 'Too many failed login attempts. Please use "Forgot Password" to reset your account, or try again after 10 minutes.',
     error: 'LOGIN_RATE_LIMIT_EXCEEDED'
   }
 });
