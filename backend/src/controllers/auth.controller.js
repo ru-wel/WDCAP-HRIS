@@ -1,3 +1,4 @@
+// auth controller
 import * as authService from '../services/auth.service.js';
 import logger from '../utils/logger.js';
 import axios from 'axios';
