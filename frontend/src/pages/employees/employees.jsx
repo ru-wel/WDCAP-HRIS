@@ -1446,13 +1446,13 @@ function Employees() {
               disabled={filteredEmployees.length === 0}
               title={
                 selectedCount
-                  ? "Generate report for selected employees"
-                  : "Generate report"
+                  ? "Export data for selected employees"
+                  : "Export data"
               }
             >
               {selectedCount
-                ? `Generate Report (Selected: ${selectedCount})`
-                : "Generate Report"}
+                ? `Export Data (Selected: ${selectedCount})`
+                : "Export Data"}
             </button>
 
             <div
@@ -1698,7 +1698,7 @@ function Employees() {
 
           <ReportModal
             open={reportOpen}
-            title="Generate Report - Employees"
+            title="Export Data - Employees"
             onClose={() => setReportOpen(false)}
             onGenerate={handleGenerateReport}
             loading={reportLoading}

@@ -842,7 +842,7 @@ export default function LeaveCredits() {
           <div className="flex items-center justify-end md:gap-4 gap-3">
             {!isEmployee && (
               <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
-                Generate Report
+                Export Data
               </button>
             )}
 
@@ -1103,7 +1103,7 @@ export default function LeaveCredits() {
 {!isEmployee && (
   <ReportModal
     open={reportOpen}
-    title="Generate Report - Leave Credits"
+    title="Export Data - Leave Credits"
     onClose={() => setReportOpen(false)}
     onGenerate={handleGenerateReport}
     loading={reportLoading}

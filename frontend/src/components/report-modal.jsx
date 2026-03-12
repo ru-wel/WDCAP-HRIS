@@ -227,7 +227,7 @@ export default function ReportModal({
   };
 
   return (
-    <ModalShell open={open} title={title || 'Generate Report'} onClose={handleClose}>
+    <ModalShell open={open} title={title || 'Export Data'} onClose={handleClose}>
       <div className="space-y-5 flex justify-center">
         <div className="items-center gap-4 lg:text-sm text-xs">
           {normalizedYearOptions.length ? (

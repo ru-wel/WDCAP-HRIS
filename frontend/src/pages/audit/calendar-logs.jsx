@@ -227,7 +227,7 @@ function CalendarLogs() {
 
           <div className="flex justify-end items-center gap-3">
             <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
-              Generate Report
+              Export Data
             </button>
 
             <div className="relative text-gray-600 border border-[#990100] rounded-lg">
@@ -239,7 +239,7 @@ function CalendarLogs() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <ReportModal open={reportOpen} title="Generate Report - Calendar Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
+        <ReportModal open={reportOpen} title="Export Data - Calendar Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
 
         <div className="div-table">
           <table className="table-style">

@@ -680,7 +680,7 @@ export default function LeaveHistory() {
           <div className="flex items-center justify-end md:gap-4 gap-3">
             {!isEmployee && (
               <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
-                Generate Report
+                Export Data
               </button>
             )}
 
@@ -787,7 +787,7 @@ export default function LeaveHistory() {
 
         <ReportModal
             open={reportOpen}
-            title="Generate Report - Leave History"
+            title="Export Data - Leave History"
             onClose={() => setReportOpen(false)}
             onGenerate={handleGenerateReport}
             loading={reportLoading}

@@ -724,7 +724,7 @@ function Projects() {
           <div className="flex items=center justify-end md:gap-4 gap-3">
             {mode === "view" && archiveView === "active" && (
               <button className="generate-report-button" onClick={() => setReportOpen(true)}>
-                Generate Report
+                Export Data
               </button>
             )}
 
@@ -872,7 +872,7 @@ function Projects() {
             <>
               <ReportModal
                 open={reportOpen}
-                title="Generate Report - Projects"
+                title="Export Data - Projects"
                 onClose={() => setReportOpen(false)}
                 onGenerate={handleGenerateReport}
                 loading={reportLoading}

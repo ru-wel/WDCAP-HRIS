@@ -522,7 +522,7 @@ export default function Departments() {
           <div className="flex items-center justify-end gap-3">
             {mode === "view" && (
               <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} disabled={saving} >
-                Generate Report
+                Export Data
               </button>
             )}
             <div className="relative">
@@ -691,7 +691,7 @@ export default function Departments() {
 
       <ReportModal
         open={reportOpen}
-        title="Generate Report - Departments"
+        title="Export Data - Departments"
         onClose={() => setReportOpen(false)}
         onGenerate={handleGenerateReport}
         loading={reportLoading}

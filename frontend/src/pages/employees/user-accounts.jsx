@@ -851,7 +851,7 @@ function UserAccounts() {
 
           <div className="flex items-center justify-end md:gap-4 gap-3">
             <button type="button" onClick={() => setReportOpen(true)} className="generate-report-button" >
-              Generate Report
+              Export Data
             </button>
 
             <div className="relative" data-filters-root="true">
@@ -1021,7 +1021,7 @@ function UserAccounts() {
 
         <ReportModal
           open={reportOpen}
-          title="Generate Report - User Accounts"
+          title="Export Data - User Accounts"
           onClose={() => setReportOpen(false)}
           onGenerate={handleGenerateReport}
           loading={reportLoading}

@@ -1278,7 +1278,7 @@ function OnboardingFiles (){
                     </div>
 
                     <div className="flex items-center justify-end md:gap-4 gap-3">
-                        <button className="generate-report-button" onClick={() => setReportOpen(true)} disabled={filteredEmployees.length === 0} title={filteredEmployees.length === 0 ? "No rows to export" : "Generate report"}>Generate Report</button>
+                        <button className="generate-report-button" onClick={() => setReportOpen(true)} disabled={filteredEmployees.length === 0} title={filteredEmployees.length === 0 ? "No rows to export" : "Export data"}>Export Data</button>
 
                         {/* Filters Button */}
                         <div className="relative" ref={filtersWrapRef}>
@@ -1511,7 +1511,7 @@ function OnboardingFiles (){
 
                     <ReportModal
                         open={reportOpen}
-                        title="Generate Report - 201 Files"
+                        title="Export Data - 201 Files"
                         onClose={() => setReportOpen(false)}
                         onGenerate={handleGenerateReport}
                         loading={reportLoading}

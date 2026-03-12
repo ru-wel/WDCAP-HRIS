@@ -27,7 +27,7 @@ const MODULE_CONFIGS = {
   employees: {
     title: "Employees",
     description: "All employee records with personal and employment details.",
-    modalTitle: "Generate Report — Employees",
+    modalTitle: "Export Data — Employees",
     enableDateRange: true,
     dateRangeHint: "filters by Hire Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -43,7 +43,7 @@ const MODULE_CONFIGS = {
   "user-accounts": {
     title: "User Accounts",
     description: "System user accounts, roles, and access status.",
-    modalTitle: "Generate Report — User Accounts",
+    modalTitle: "Export Data — User Accounts",
     enableDateRange: true,
     dateRangeHint: "filters by Account Created Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -60,7 +60,7 @@ const MODULE_CONFIGS = {
   "201-files": {
     title: "201 Files",
     description: "Employee document compliance and checklist status.",
-    modalTitle: "Generate Report — 201 Files",
+    modalTitle: "Export Data — 201 Files",
     enableDateRange: true,
     dateRangeHint: "filters by Hire Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -73,7 +73,7 @@ const MODULE_CONFIGS = {
   departments: {
     title: "Departments",
     description: "Department listings with employee count and positions.",
-    modalTitle: "Generate Report — Departments",
+    modalTitle: "Export Data — Departments",
     enableDateRange: false,
     fileTypes: ["XLSX", "CSV", "PDF"],
     categoryOptions: null,
@@ -81,7 +81,7 @@ const MODULE_CONFIGS = {
   projects: {
     title: "Projects",
     description: "Project records with assigned employee details.",
-    modalTitle: "Generate Report — Projects",
+    modalTitle: "Export Data — Projects",
     enableDateRange: true,
     dateRangeHint: "filters by Start Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -96,7 +96,7 @@ const MODULE_CONFIGS = {
   "leave-history": {
     title: "Leave History",
     description: "All leave requests with status and approval details.",
-    modalTitle: "Generate Report — Leave History",
+    modalTitle: "Export Data — Leave History",
     enableDateRange: true,
     dateRangeHint: "filters by Leave Start Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -111,7 +111,7 @@ const MODULE_CONFIGS = {
   "leave-credits": {
     title: "Leave Credits",
     description: "Employee leave credit balances and usage by year.",
-    modalTitle: "Generate Report — Leave Credits",
+    modalTitle: "Export Data — Leave Credits",
     enableDateRange: false,
     fileTypes: ["XLSX", "CSV", "PDF"],
     categoryOptions: null,
@@ -120,7 +120,7 @@ const MODULE_CONFIGS = {
   "evaluation-history": {
     title: "Evaluation History",
     description: "Performance evaluation records per employee.",
-    modalTitle: "Generate Report — Evaluation History",
+    modalTitle: "Export Data — Evaluation History",
     enableDateRange: true,
     dateRangeHint: "filters by Last Evaluation Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -135,7 +135,7 @@ const MODULE_CONFIGS = {
   // Audit log modules
   "audit-employees": {
     title: "Employees",
-    modalTitle: "Generate Report — Audit: Employees",
+    modalTitle: "Export Data — Audit: Employees",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -143,7 +143,7 @@ const MODULE_CONFIGS = {
   },
   "audit-leave": {
     title: "Leave",
-    modalTitle: "Generate Report — Audit: Leave",
+    modalTitle: "Export Data — Audit: Leave",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -151,7 +151,7 @@ const MODULE_CONFIGS = {
   },
   "audit-projects": {
     title: "Projects",
-    modalTitle: "Generate Report — Audit: Projects",
+    modalTitle: "Export Data — Audit: Projects",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -159,7 +159,7 @@ const MODULE_CONFIGS = {
   },
   "audit-departments": {
     title: "Departments",
-    modalTitle: "Generate Report — Audit: Departments",
+    modalTitle: "Export Data — Audit: Departments",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -167,7 +167,7 @@ const MODULE_CONFIGS = {
   },
   "audit-evaluations": {
     title: "Evaluations",
-    modalTitle: "Generate Report — Audit: Evaluations",
+    modalTitle: "Export Data — Audit: Evaluations",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -175,7 +175,7 @@ const MODULE_CONFIGS = {
   },
   "audit-user-accounts": {
     title: "User Accounts",
-    modalTitle: "Generate Report — Audit: User Accounts",
+    modalTitle: "Export Data — Audit: User Accounts",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -183,7 +183,7 @@ const MODULE_CONFIGS = {
   },
   "audit-reports": {
     title: "Reports",
-    modalTitle: "Generate Report — Audit: Reports",
+    modalTitle: "Export Data — Audit: Reports",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],
@@ -191,7 +191,7 @@ const MODULE_CONFIGS = {
   },
   "audit-calendar": {
     title: "Calendar",
-    modalTitle: "Generate Report — Audit: Calendar",
+    modalTitle: "Export Data — Audit: Calendar",
     enableDateRange: true,
     dateRangeHint: "filters by Log Date",
     fileTypes: ["XLSX", "CSV", "PDF"],

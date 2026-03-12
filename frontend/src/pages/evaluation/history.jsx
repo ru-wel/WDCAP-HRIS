@@ -1118,7 +1118,7 @@ export default function EvaluationHistory() {
 
         <div className="flex items-center justify-end gap-3">
           <button type="button" className="generate-report-button" onClick={handleTopGenerateReportClick} >
-            Generate Report
+            Export Data
           </button>
 
           <div className="relative">
@@ -1421,7 +1421,7 @@ export default function EvaluationHistory() {
 
       <ReportModal
         open={reportOpen}
-        title={reportMode === 'employees' ? 'Generate Report - Evaluation Employees' : 'Generate Report - Evaluation History'}
+        title={reportMode === 'employees' ? 'Export Data - Evaluation Employees' : 'Export Data - Evaluation History'}
         onClose={() => setReportOpen(false)}
         onGenerate={handleGenerateReport}
         loading={reportLoading}

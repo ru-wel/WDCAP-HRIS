@@ -120,15 +120,15 @@ export default function Sidenav({
 
       "/data-overview": { main: "Data Overview", sub: null },
 
-      "/audit": { main: "Audit Logs", sub: null },
-      "/audit/user-accounts": { main: "Audit Logs", sub: "User Accounts" },
-      "/audit/employees": { main: "Audit Logs", sub: "Employees" },
-      "/audit/departments": { main: "Audit Logs", sub: "Departments" },
-      "/audit/projects": { main: "Audit Logs", sub: "Projects" },
-      "/audit/leave": { main: "Audit Logs", sub: "Leave" },
-      "/audit/evaluation": { main: "Audit Logs", sub: "Evaluation" },
-      "/audit/reports": { main: "Audit Logs", sub: "Reports" },
-      "/audit/calendar" : { main: "Audit Logs", sub: "Calendar" },
+      "/audit": { main: "Logs", sub: null },
+      "/audit/user-accounts": { main: "Logs", sub: "User Accounts" },
+      "/audit/employees": { main: "Logs", sub: "Employees" },
+      "/audit/departments": { main: "Logs", sub: "Departments" },
+      "/audit/projects": { main: "Logs", sub: "Projects" },
+      "/audit/leave": { main: "Logs", sub: "Leave" },
+      "/audit/evaluation": { main: "Logs", sub: "Evaluation" },
+      "/audit/reports": { main: "Logs", sub: "Reports" },
+      "/audit/calendar" : { main: "Logs", sub: "Calendar" },
     };
 
     return pathMappings[path] || { main: initialActive, sub: initialSub };
@@ -240,7 +240,7 @@ export default function Sidenav({
     },
     { label: "Data Overview", icon: "analytics", type: "item", path: "/data-overview" },
     {
-      label: "Audit Logs",
+      label: "Logs",
       icon: "audit",
       type: "group",
       path: null,
@@ -257,7 +257,7 @@ export default function Sidenav({
     },
   ];
 
-  const hrHiddenLabels = new Set(["Audit Logs"]);
+  const hrHiddenLabels = new Set(["Logs"]);
 
   const finalVisibleItems = (() => {
 
@@ -280,7 +280,7 @@ export default function Sidenav({
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
           if (item.label === "Data Overview") return false;
-          if (item.label === "Audit Logs") return false;
+          if (item.label === "Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;
           return true;
         }),
@@ -306,7 +306,7 @@ export default function Sidenav({
           if (item.label === "Dashboard") return false;
           if (item.label === "Employees") return false;
           if (item.label === "Data Overview") return false;
-          if (item.label === "Audit Logs") return false;
+          if (item.label === "Logs") return false;
           if (isProjectBased && item.label === "Projects") return false;
           return true;
         }),

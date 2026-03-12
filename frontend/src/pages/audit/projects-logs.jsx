@@ -177,7 +177,7 @@ function ProjectsLogs() {
       }
     } catch (err) {
       console.error("Failed to fetch project logs:", err);
-      setError("Failed to load project audit logs");
+      setError("Failed to load project logs");
       return [];
     } finally {
       setLoading(false);
@@ -339,7 +339,7 @@ function ProjectsLogs() {
 
           <div className="flex items-center justify-end gap-3">
             <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
-              Generate Report
+              Export Data
             </button>
 
             <div className="relative">
@@ -436,11 +436,11 @@ function ProjectsLogs() {
 
         <hr className="text-[#990100] mt-6" />
 
-        <ReportModal open={reportOpen} title="Generate Report - Project Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
+        <ReportModal open={reportOpen} title="Export Data - Project Logs" onClose={() => setReportOpen(false)} onGenerate={handleGenerateReport} enableDateRange={true} dateRangeHint="filters by Log Date" fileTypes={["XLSX", "CSV", "PDF"]} loading={reportLoading} />
 
         {loading && (
           <div className="py-20 text-center text-gray-600">
-            Loading project audit logs...
+            Loading project logs...
           </div>
         )}
 

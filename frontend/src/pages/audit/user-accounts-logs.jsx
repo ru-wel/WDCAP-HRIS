@@ -164,8 +164,8 @@ function UserAccountsLogs() {
       }
       return [];
     } catch (err) {
-      console.error("Failed to fetch audit logs:", err);
-      setError(err.message || "Failed to load audit logs");
+      console.error("Failed to fetch logs:", err);
+      setError(err.message || "Failed to load logs");
       return [];
     } finally {
       setLoading(false);
@@ -320,7 +320,7 @@ function UserAccountsLogs() {
 
           <div className="flex items-center jusitfy-end gap-3">
             <button type="button" className="generate-report-button" onClick={() => setReportOpen(true)} >
-              Generate Report
+            Export Data
             </button>
 
             <div className="relative">
@@ -419,7 +419,7 @@ function UserAccountsLogs() {
 
         <ReportModal
           open={reportOpen}
-          title="Generate Report - User Account Logs"
+          title="Export Data - User Account Logs"
           onClose={() => setReportOpen(false)}
           onGenerate={handleGenerateReport}
           enableDateRange={true}
@@ -430,7 +430,7 @@ function UserAccountsLogs() {
 
         {loading && (
           <div className="flex justify-center py-20">
-            <p className="text-gray-600">Loading audit logs...</p>
+            <p className="text-gray-600">Loading logs...</p>
           </div>
         )}
 
@@ -461,7 +461,7 @@ function UserAccountsLogs() {
                 {visibleLogs.length === 0 ? (
                   <tr>
                     <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      No audit logs found
+                      No logs found
                     </td>
                   </tr>
                 ) : (
