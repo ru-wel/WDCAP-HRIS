@@ -32,6 +32,11 @@ export const login = async(req, res, next) => {
 
     const secretKey = process.env.RECAPTCHA_SECRET;
 
+    // TEMPORARY DEBUG — remove after confirming env vars work
+    console.log('[LOGIN DEBUG] RECAPTCHA_SECRET exists:', !!secretKey);
+    console.log('[LOGIN DEBUG] RECAPTCHA_SECRET length:', secretKey ? secretKey.length : 0);
+    console.log('[LOGIN DEBUG] All env keys containing RECAPTCHA:', Object.keys(process.env).filter(k => k.toUpperCase().includes('RECAPTCHA')));
+
     if (!secretKey) {
       return res.status(500).json({
         success: false,
