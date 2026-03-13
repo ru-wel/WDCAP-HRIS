@@ -1537,7 +1537,7 @@ function ModuleCard({ title, description, onGenerate }) {
       </div>
       <div className="mt-auto pt-2">
         <button type="button" onClick={onGenerate} className="generate-report-button" >
-          Generate
+          Export
         </button>
       </div>
     </div>
@@ -1934,7 +1934,7 @@ function Analytics() {
         </div>
 
         <div className="mt-8">
-          <SectionCard title="HR Data Reports" subtitle="Generate and export reports for any HR module." >
+          <SectionCard title="HR Data Exports" subtitle="Generate and export reports for any HR module." >
             <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-4">
               {HR_MODULES.map((key) => {
                 const c = MODULE_CONFIGS[key];
@@ -1947,7 +1947,7 @@ function Analytics() {
         </div>
 
         <div className="mt-8">
-          <SectionCard title="Audit Log Reports" subtitle="Export audit trail logs for any module." >
+          <SectionCard title="Log Exports" subtitle="Export audit trail logs for any module." >
             <div className="grid lg:grid-cols-4 md:grid-cols-2 grid-cols-2 gap-3">
               {AUDIT_MODULES.map((key) => {
                 const c = MODULE_CONFIGS[key];
@@ -1955,7 +1955,7 @@ function Analytics() {
                   <div key={key} className="flex items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3" >
                     <span className="text-sm font-medium text-gray-700">{c.title}</span>
                     <button type="button" onClick={() => setActiveModule(key)} className="text-xs px-3 py-1.5 rounded-md bg-[#990100] text-white hover:bg-[#7a0100] whitespace-nowrap transition-colors" >
-                      Generate
+                      Export
                     </button>
                   </div>
                 );
