@@ -7,7 +7,8 @@ export const loginSchema = Joi.object({
   // Do not enforce password policy on login; Auth will validate credentials.
   // This avoids blocking older accounts and keeps error messaging consistent.
   password: Joi.string().required().messages({ 'any.required': 'Password is required' }),
-  captchaToken: Joi.string().required().messages({'any.required': 'Captcha token is required'})
+  // reCAPTCHA disabled, see auth.controller.js login()
+  // captchaToken: Joi.string().required().messages({'any.required': 'Captcha token is required'})
 });
 
 export const registerSchema = Joi.object({

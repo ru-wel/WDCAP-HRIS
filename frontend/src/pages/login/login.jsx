@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+// reCAPTCHA disabled for now, see backend auth.controller.js login()
+// import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Preloader from '../../components/preloader.jsx';
 import ConfirmModal from '../../components/confirm-modal.jsx';
@@ -19,7 +20,7 @@ function Login(){
     const [forgotStatus, setForgotStatus] = useState('idle');
     const [googleButtonWidth, setGoogleButtonWidth] = useState(320);
 
-    const { executeRecaptcha } = useGoogleReCaptcha();
+    // const { executeRecaptcha } = useGoogleReCaptcha();
 
     useEffect(() => {
       try {
@@ -101,10 +102,10 @@ function Login(){
         return;
       }
 
-      if (!executeRecaptcha) {
-        setError('reCAPTCHA is still loading. Please try again.');
-        return;
-      }
+      // if (!executeRecaptcha) {
+      //   setError('reCAPTCHA is still loading. Please try again.');
+      //   return;
+      // }
 
       try {
         setLoading(true);
@@ -119,10 +120,10 @@ function Login(){
           // ignore storage errors
         }
 
-        const captchaToken = await executeRecaptcha('login');
+        // const captchaToken = await executeRecaptcha('login');
 
         // get login function from AuthContext
-        await login(email, password, captchaToken);
+        await login(email, password);
         navigate('/dashboard');
 
       } catch (err) {

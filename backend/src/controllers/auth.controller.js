@@ -1,7 +1,7 @@
 // auth controller
 import * as authService from '../services/auth.service.js';
 import logger from '../utils/logger.js';
-import axios from 'axios';
+// import axios from 'axios'; // reCAPTCHA disabled, see login()
 
 // register controller
 export const register = async (req, res, next) => {
@@ -23,6 +23,10 @@ export const login = async(req, res, next) => {
   try {
     const { captchaToken, ...loginData } = req.body || {};
 
+    // reCAPTCHA is disabled for now (no access to the reCAPTCHA admin console).
+    // To turn it back on, uncomment this block, the axios import, the captchaToken rule
+    // in auth.validation.js, and the reCAPTCHA code in frontend main.jsx and login.jsx.
+    /*
     if (!captchaToken) {
       return res.status(400).json({
         success: false,
@@ -72,6 +76,7 @@ export const login = async(req, res, next) => {
         message: 'Suspicious login detected. Please try again later.'
       });
     }
+    */
 
     const result = await authService.login(loginData);
 
