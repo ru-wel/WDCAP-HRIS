@@ -29,7 +29,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',                                  // local URL
     'https://hris-frontend-715830193633.asia-east2.run.app',  // production URL
-    'https://acdc-hris.site'                                  // custom domain
+    'https://arise-hris.vercel.app/'                                  // custom domain
   ],
   credentials: true
 }));

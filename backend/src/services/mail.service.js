@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 import logger from '../utils/logger.js';
+import { supabase } from '../config/supabase.js';
+import { EMPLOYMENT_STATUSES } from '../config/constants.js';
 
 const toBool = (v) => {
   if (typeof v === 'boolean') return v;
@@ -38,6 +40,33 @@ const getSmtpConfig = () => {
 };
 
 const isConfigured = (cfg) => Boolean(cfg.host && cfg.port && cfg.user && cfg.pass && cfg.from);
+
+// Accounts set to INACTIVE (/employees/user-accounts sets employees.employment_status)
+// must never get email. Addresses with no user account (e.g. env notification lists) are kept.
+// Throws if the lookup fails, so the caller can skip the send instead of risking it.
+const removeInactiveRecipients = async (recipients) => {
+  const variants = [...new Set(recipients.flatMap((e) => [e, e.toLowerCase()]))];
+
+  const { data: users, error: usersError } = await supabase
+    .from('users')
+    .select('id, email')
+    .in('email', variants);
+  if (usersError) throw usersError;
+  if (!users?.length) return recipients;
+
+  const { data: inactive, error: empError } = await supabase
+    .from('employees')
+    .select('user_id')
+    .in('user_id', users.map((u) => u.id))
+    .eq('employment_status', EMPLOYMENT_STATUSES.INACTIVE);
+  if (empError) throw empError;
+
+  const inactiveIds = new Set((inactive || []).map((e) => e.user_id));
+  const inactiveEmails = new Set(
+    users.filter((u) => inactiveIds.has(u.id)).map((u) => String(u.email).toLowerCase())
+  );
+  return recipients.filter((e) => !inactiveEmails.has(e.toLowerCase()));
+};
 
 let cachedTransport = null;
 
@@ -99,10 +128,28 @@ export const sendEmail = async ({ to, subject, text, html, attachments }) => {
 
   console.log('[MAIL SERVICE] Transport created successfully');
 
-  const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
-  if (!recipients.length) {
+  const requested = (Array.isArray(to) ? to : [to])
+    .flatMap((e) => String(e || '').split(','))
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!requested.length) {
     console.log('[MAIL SERVICE] No recipients provided');
     return { skipped: true };
+  }
+
+  let recipients;
+  try {
+    recipients = await removeInactiveRecipients(requested);
+  } catch (err) {
+    logger.error('Could not check recipient account status; skipping email send:', err);
+    return { skipped: true, reason: 'Recipient status check failed' };
+  }
+
+  if (recipients.length < requested.length) {
+    logger.info(`Skipped ${requested.length - recipients.length} inactive recipient(s) for "${subject}"`);
+  }
+  if (!recipients.length) {
+    return { skipped: true, reason: 'All recipients are inactive' };
   }
 
   console.log('[MAIL SERVICE] Attempting to send email to:', recipients.join(', '));
