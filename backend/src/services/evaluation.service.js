@@ -44,7 +44,7 @@ const getEmailLogoAttachment = async () => {
   try {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
-    const logoPath = path.resolve(__dirname, '../../../frontend/public/arise-logo-login.png');
+    const logoPath = path.resolve(__dirname, '../assets/arise-logo-login.png');
     const content = await fs.readFile(logoPath);
 
     cachedLogoAttachment = {

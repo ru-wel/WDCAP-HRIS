@@ -1,6 +1,7 @@
 export const validateCronRequest = (req, res, next) => {
   const cronSecret = process.env.CRON_SECRET;
-  const authHeader = req.headers['x-cron-secret'];
+  // Vercel Cron sends CRON_SECRET as "Authorization: Bearer <secret>"
+  const authHeader = req.headers.authorization;
 
   if (!cronSecret) {
     return res.status(500).json({
@@ -9,7 +10,7 @@ export const validateCronRequest = (req, res, next) => {
     });
   }
 
-  if (authHeader !== cronSecret) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return res.status(401).json({
       success: false,
       message: 'Unauthorized cron request'

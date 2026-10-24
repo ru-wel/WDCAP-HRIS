@@ -4,8 +4,8 @@ import * as cronController from '../controllers/cron.controller.js';
 
 const router = express.Router();
 
-// send evaluation reminders (7 days before due date)
-router.post('/evaluation-reminders',
+// send evaluation reminders (7 days before due date); Vercel Cron calls this with GET
+router.get('/evaluation-reminders',
   validateCronRequest,
   cronController.sendEvaluationReminders
 );
